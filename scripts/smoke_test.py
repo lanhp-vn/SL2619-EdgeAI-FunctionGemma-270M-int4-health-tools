@@ -11,13 +11,13 @@ per prompt and a markdown summary table with regex pass/fail derived from
 each prompt's `pass_pattern` (auto-signal floor; final verdict is qualitative
 per plan §10.3).
 
-Single source of truth for the prompt format is `tools/scripts/finetune.py`
+Single source of truth for the prompt format is `scripts/finetune.py`
 (`_to_prompt_completion` + `apply_chat_template(..., add_generation_prompt=True)`)
 — the smoke replicates the exact same chat-template invocation so we measure
 the SFT delta, not a tokenization artifact.
 
 Deploy:
-    scp tools/scripts/t5_smoke.py nouslogic-server:~/sl2619-finetune/t5_smoke.py
+    scp scripts/t5_smoke.py nouslogic-server:~/sl2619-finetune/t5_smoke.py
     scp /tmp/t5_smoke_bundle.json nouslogic-server:~/sl2619-finetune/t5_smoke_bundle.json
 
 Usage on server (real run):
@@ -27,7 +27,7 @@ Usage on server (real run):
             --out-dir ./logs'
 
 Dry-run on host (no torch wheel needed):
-    python tools/scripts/t5_smoke.py --bundle /tmp/t5_smoke_bundle.json \
+    python scripts/t5_smoke.py --bundle /tmp/t5_smoke_bundle.json \
         --dry-run --out-dir /tmp
 """
 from __future__ import annotations

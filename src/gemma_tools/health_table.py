@@ -1,9 +1,9 @@
-"""Load and validate the SL2619 health-record fixture.
+"""Load and validate the health-record fixture.
 
-Schema source of truth: tools/data/health_table_v1.yaml (single canonical
+Schema source of truth: data/health_table_v1.yaml (single canonical
 fixture; no v2 spawned). The fixture is the closed-world knowledge base
 for the Gemma 3 270M YAML-QA bench per
-docs/conventions/16-slm-system-prompt.md §4 and
+docs/conventions/slm-system-prompt.md §4 and
 docs/plans/models-testing-plan.md §5.
 
 Schema shape (all blocks under `conditions`, `allergies`, `medications`,

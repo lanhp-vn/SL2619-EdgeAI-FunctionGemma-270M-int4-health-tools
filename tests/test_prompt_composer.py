@@ -1,8 +1,8 @@
 """Tests for gemma_tools.prompt_composer.
 
 Template authority (literal token strings):
-  references/Synaptics/torq-examples/gemma3/src/runner.py:155-178
-  references/Synaptics/torq-tools/src/torq/models/smollm2/_inference.py:193-195
+  Hugging Face `google/gemma-3-270m-it` chat_template.jinja
+  Hugging Face `HuggingFaceTB/SmolLM2-*-Instruct` chat_template.jinja
 """
 
 from __future__ import annotations
@@ -120,7 +120,7 @@ def test_compose_prompt_user_slot_contains_utterance_after_system(
     desc: str,
 ) -> None:
     out = compose_prompt(candidate, utterance, _HEALTH, _DEFAULT_NOW)
-    # Directive-form system prompt per 16-slm-system-prompt.md §4 — ROLE
+    # Directive-form system prompt per slm-system-prompt.md §4 — ROLE
     # label is the stable marker across template revisions.
     sys_marker = "ROLE: health-records assistant"
     sys_idx = out.find(sys_marker)
@@ -156,7 +156,7 @@ def test_compose_prompt_rejects_unknown_candidate(
 @pytest.mark.parametrize(
     ("source_path", "desc"),
     [
-        (PROMPTS_FIXTURE,  "committed tools/data/prompts.yaml entries are well-formed"),
+        (PROMPTS_FIXTURE,  "committed data/prompts.yaml entries are well-formed"),
         ("inline_minimal", "inline doc with the same schema parses identically"),
     ],
 )
@@ -201,7 +201,7 @@ def test_load_health_table_then_compose_smoke() -> None:
 
 # --------------------------------------------------------------------------
 # Expanded schema coverage (2026-04-24 pivot): the composer now dumps the
-# full HealthTable as YAML into the prompt body per 16-slm-system-prompt.md
+# full HealthTable as YAML into the prompt body per slm-system-prompt.md
 # §4 R-6. Cases below verify the expanded blocks appear in the composed
 # output so the SLM can attend to them.
 # --------------------------------------------------------------------------
@@ -322,7 +322,7 @@ def test_compose_user_text_includes_system_directives_and_utterance(
 
 def test_compose_user_text_utterance_is_last() -> None:
     """The utterance sits AFTER the system directives + YAML; Gemma's user
-    turn is "context first, then question" per `16-slm-system-prompt.md §4`."""
+    turn is "context first, then question" per `slm-system-prompt.md §4`."""
     utterance = "BOUNDARY_UTTERANCE_MARKER"
     out = compose_user_text(_HEALTH, _DEFAULT_NOW, utterance)
     sys = render_system_prompt(_HEALTH, _DEFAULT_NOW)

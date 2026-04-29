@@ -1,6 +1,6 @@
 """CLI entrypoint that builds the Gemma 3 SFT artifacts from the chatbot pool.
 
-Pipeline (matches `docs/plans/AI-models/a55-fine-tune-gemma.md` §4 Phase 1):
+Pipeline (matches `docs/plans/a55-gemma-fine-tune.md` §4 Phase 1):
 
     clean_sft_dataset.json          (chatbot-distilled raw pool)
         |  load_sft_pool          — schema validation
@@ -21,7 +21,7 @@ Pipeline (matches `docs/plans/AI-models/a55-fine-tune-gemma.md` §4 Phase 1):
 The CLI prints the leakage summary, the split summary, and the per-class
 counts so the user can audit before the JSONL files are consumed by the
 server-side QLoRA job. No board access; runs entirely against the host
-filesystem under `tools/data/`.
+filesystem under `data/`.
 """
 
 from __future__ import annotations
@@ -41,14 +41,14 @@ from gemma_tools.sft_dataset import (
     write_split_jsonl,
 )
 
-# Defaults match the canonical fixture paths under tools/data/. Callers can
+# Defaults match the canonical fixture paths under data/. Callers can
 # override via CLI flags but the in-tree defaults exist so a `sft-build` with
 # no args runs the canonical pipeline straight from a clean checkout.
-_REPO = Path(__file__).resolve().parents[3]
-_DEFAULT_POOL = _REPO / "tools" / "data" / "clean_sft_dataset.json"
-_DEFAULT_PROMPTS = _REPO / "tools" / "data" / "prompts.yaml"
-_DEFAULT_HEALTH = _REPO / "tools" / "data" / "health_table_v1.yaml"
-_DEFAULT_OUT = _REPO / "tools" / "data"
+_REPO = Path(__file__).resolve().parents[2]
+_DEFAULT_POOL = _REPO / "data" / "clean_sft_dataset.json"
+_DEFAULT_PROMPTS = _REPO / "data" / "prompts.yaml"
+_DEFAULT_HEALTH = _REPO / "data" / "health_table_v1.yaml"
+_DEFAULT_OUT = _REPO / "data"
 
 
 def _build_argparser() -> argparse.ArgumentParser:

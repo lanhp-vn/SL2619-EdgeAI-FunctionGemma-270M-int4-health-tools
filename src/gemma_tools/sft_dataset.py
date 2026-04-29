@@ -1,18 +1,18 @@
 """Load, dedupe, classify, leakage-scan, and split the Gemma 3 SFT dataset.
 
 This module owns the offline pipeline that turns a chatbot-distilled
-Alpaca-style JSON pool (`tools/data/clean_sft_dataset.json`) into the
+Alpaca-style JSON pool (`data/clean_sft_dataset.json`) into the
 training artifacts consumed by the server-side QLoRA SFT job:
 
-    tools/data/sft_v1.{train,val,test}.jsonl  (Path B — composed prompt,
-                                               TRL conversational format)
-    tools/data/sft_v1_pathA.{train,val,test}.jsonl  (raw pairs, ablation)
+    data/sft_v1.{train,val,test}.jsonl  (Path B — composed prompt,
+                                         TRL conversational format)
+    data/sft_v1_pathA.{train,val,test}.jsonl  (raw pairs, ablation)
 
 Authority chain:
-  - Plan:           docs/plans/AI-models/a55-fine-tune-gemma.md §4 D1-D4
-  - Prompt rules:   docs/conventions/16-slm-system-prompt.md §4 (R-1..R-10)
+  - Plan:           docs/plans/a55-gemma-fine-tune.md §4 D1-D4
+  - Prompt rules:   docs/conventions/slm-system-prompt.md §4 (R-1..R-10)
   - Composer:       gemma_tools.prompt_composer.compose_user_text
-  - Bench prompts:  tools/data/prompts.yaml (held-out test must include the
+  - Bench prompts:  data/prompts.yaml (held-out test must include the
                     five exact-match bench hits — see §4 D2 leakage gate)
 
 Convention deviation (re-stated from health_table.py): stdlib + PyYAML only —
@@ -204,7 +204,7 @@ def dedupe_pool(records: Iterable[SftRecord]) -> tuple[tuple[SftRecord, ...], De
 # D1c — class auto-tagger.
 #
 # We classify each record by content, not by source. The four classes mirror
-# the bench taxonomy (tools/data/prompts.yaml header) and feed the stratified
+# the bench taxonomy (data/prompts.yaml header) and feed the stratified
 # splitter so train/val/test keep proportional class coverage.
 #
 # Decision order (most specific first; first match wins):
@@ -280,7 +280,7 @@ def class_distribution(records: Iterable[SftRecord]) -> dict[SftClass, int]:
 # --------------------------------------------------------------------------
 # D1d — bench leakage scanner.
 #
-# `tools/data/prompts.yaml` is the held-out evaluation harness. Any pool row
+# `data/prompts.yaml` is the held-out evaluation harness. Any pool row
 # that is identical to or a near-paraphrase of a bench prompt MUST be routed
 # into the test split (and never into train/val) so we don't measure
 # memorization. The scanner enumerates every bench-prompt match it can see
@@ -302,7 +302,7 @@ NEAR_DUPLICATE_RATIO = 0.80
 
 @dataclass(frozen=True, slots=True)
 class BenchPrompt:
-    """One row of `tools/data/prompts.yaml` — id, class, text only."""
+    """One row of `data/prompts.yaml` — id, class, text only."""
 
     id: str
     cls: str
@@ -359,7 +359,7 @@ class BenchLeakageReport:
 
 
 def load_bench_prompts(path: Path) -> tuple[BenchPrompt, ...]:
-    """Read tools/data/prompts.yaml and return only the fields we need."""
+    """Read data/prompts.yaml and return only the fields we need."""
     if not path.exists():
         raise FileNotFoundError(path)
     raw = yaml.safe_load(path.read_text()) or {}

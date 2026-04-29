@@ -250,7 +250,7 @@ def test_classify_record_canonical_pool_distribution() -> None:
 
 def test_load_bench_prompts_canonical_count() -> None:
     prompts = load_bench_prompts(_CANONICAL_PROMPTS)
-    # 15 entries in tools/data/prompts.yaml today; bound is exact and fails
+    # 15 entries in data/prompts.yaml today; bound is exact and fails
     # loudly on intentional drift.
     assert len(prompts) == 15, f"prompts.yaml entry count drifted: {len(prompts)}"
 

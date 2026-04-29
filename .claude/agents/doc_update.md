@@ -13,9 +13,9 @@ Read, in order:
 3. `CLAUDE.md` and `README.md` at the repo root — current state.
 
 ## Hard constraints
-- **DRY (IL-13)**: each fact lives in exactly one file. If CLAUDE.md duplicates content from a convention file, replace the duplicate with a pointer. Never re-state section bodies.
+- **DRY**: each fact lives in exactly one file. If CLAUDE.md duplicates content from a convention file, replace the duplicate with a pointer. Never re-state section bodies.
 - **Do not edit `docs/conventions/`** — those files are normative and change through PRs, not through `doc_update`.
-- **Pre-flight (R1)**: ask the user to run the live-board verification block from SKILL.md §2 and paste results back. Do NOT run it yourself — you would be asserting hardware state.
+- **Pre-flight (optional)**: only ask for board-state verification if the doc refresh touches deployment paths or runtime perf claims. For training/data/layout-only refreshes, skip pre-flight (SKILL.md §2).
 - The `Last refreshed: YYYY-MM-DD` footer in CLAUDE.md must be updated to today's date when you edit.
 
 ## Procedure

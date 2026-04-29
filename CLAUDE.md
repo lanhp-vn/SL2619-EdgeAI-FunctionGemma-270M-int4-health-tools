@@ -1,13 +1,14 @@
-# AGENTS.md — gemma3-270M-finetune
+# CLAUDE.md — gemma3-270M-finetune
 
 Claude Code instructions specific to this repository.
 
 ## Repository purpose
 
-Fine-tuning, evaluation, and deployment tooling for **Gemma 3 270M-IT** on the
-SL2619 Synaptics Astra Machina board. This repo is a companion to
-`SynapticSL2619/` and will eventually be mounted as a git submodule at
-`SynapticSL2619/models/gemma-3-270m-it`.
+Standalone fine-tuning, evaluation, and deployment tooling for **Gemma 3 270M-IT**
+(forward-compatible with FunctionGemma when it ships). The reference deployment
+target is the SL2619 Synaptics Astra Machina board, but the repo also stands
+alone as a generic Gemma 3 270M fine-tune workspace and may optionally be
+mounted as a git submodule at `SynapticSL2619/models/gemma-3-270m-it`.
 
 ## Key paths
 
@@ -16,12 +17,14 @@ SL2619 Synaptics Astra Machina board. This repo is a companion to
 | `src/gemma_tools/` | Python package — prompt, bench, SFT, logits-equivalence |
 | `scripts/finetune.py` | LoRA/QLoRA SFT entry point (runs on GPU server) |
 | `scripts/merge.py` | Merge LoRA adapter → full BF16 checkpoint |
-| `scripts/t5_smoke.py` | Side-by-side smoke: base vs merged |
+| `scripts/smoke_test.py` | Side-by-side smoke: base vs merged |
 | `scripts/server-bootstrap.sh` | Idempotent Ubuntu server setup (CUDA + SFT stack) |
 | `scripts/chat_remote.sh` | Interactive chat via llama-server on board |
 | `data/` | Health-QA YAML, SFT datasets (sft_v1*.jsonl), prompt templates |
 | `docs/plans/` | Fine-tune and eval plans |
 | `docs/bench/` | Frozen bench run records |
+| `docs/references/` | Curated upstream sources (Gemma, HF, llama.cpp) |
+| `docs/deployment/sl2619-board.md` | SL2619 cross-compile + deploy runbook |
 | `docs/conventions/slm-system-prompt.md` | Normative SLM prompt rules (R-1…R-10) |
 | `models/gemma-3-270m-it/README.md` | Per-model analysis: IFEval, quantization, prompt strategy |
 
@@ -65,5 +68,5 @@ ssh nouslogic-server 'cd ~/sl2619-finetune && source .venv/bin/activate && pytho
 - **SSH to board is read-only** — follow SynapticSL2619 R3; deployment commands
   are emitted for the user, never run autonomously.
 - **Prompt template is the SFT contract** — `scripts/finetune.py:_to_prompt_completion`
-  is the single source of truth for training-time prompt shape. `t5_smoke.py` and
+  is the single source of truth for training-time prompt shape. `smoke_test.py` and
   `bench_prompt.py` must replicate it exactly; divergence creates a tokenization artifact.

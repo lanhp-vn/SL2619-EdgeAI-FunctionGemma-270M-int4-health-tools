@@ -474,7 +474,7 @@ def _cmd_corpus(args: argparse.Namespace) -> int:
     )
     print()
     print("Then run:")
-    print("  h5-logits-equiv classify --kl-log /tmp/h5_board.log --summary-out docs/tmp/bench/$(date +%F)_h5-logits-equivalence.md")
+    print("  logits-equiv classify --kl-log /tmp/h5_board.log --summary-out docs/bench/$(date +%F)_logits-equivalence.md")
     return 0
 
 
@@ -586,7 +586,7 @@ def main(argv: list[str] | None = None) -> int:
     p_q1.add_argument("--seed", type=int, default=1)
     p_q1.add_argument(
         "--test-jsonl", default="",
-        help="Override sft_v1.test.jsonl path (default: tools/data/sft_v1.test.jsonl)",
+        help="Override sft_v1.test.jsonl path (default: data/sft_v1.test.jsonl)",
     )
 
     p_cls = sub.add_parser(

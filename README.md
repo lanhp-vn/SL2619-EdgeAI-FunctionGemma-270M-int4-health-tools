@@ -1,11 +1,12 @@
 # gemma3-270M-finetune
 
-Fine-tuning, evaluation, and on-device deployment tooling for **Gemma 3 270M-IT**
-targeting the [Synaptics Astra Machina SL2619](https://github.com/nouslogic/SynapticSL2619)
-Cortex-A55 edge compute platform.
+Fine-tuning, evaluation, and deployment tooling for **Gemma 3 270M-IT** (and
+forward-compatible with **FunctionGemma** when its release lands).
 
-This repo will be mounted as a git submodule at `SynapticSL2619/models/gemma-3-270m-it`
-once the fine-tune cycle stabilises.
+The reference deployment target is the [Synaptics Astra Machina SL2619](https://github.com/nouslogic/SynapticSL2619)
+Cortex-A55 edge platform via llama.cpp + GGUF — see [`docs/deployment/sl2619-board.md`](docs/deployment/sl2619-board.md).
+The repo also stands alone as a generic Gemma 3 270M fine-tune workspace and may
+optionally be mounted as a git submodule at `SynapticSL2619/models/gemma-3-270m-it`.
 
 ---
 
@@ -22,11 +23,11 @@ gemma3-270M-finetune/
 │   ├── bench_eval.py         # JSONL → Markdown scorer
 │   ├── bench_remote.py       # Remote llama-server bench runner
 │   ├── chat_probe.py         # Interactive chat probe (remote server)
-│   └── h5_logits_equiv.py    # H5R logits-equivalence gate (cross-arch KL)
+│   └── logits_equivalence.py # Logits-equivalence gate (cross-arch KL)
 ├── scripts/
 │   ├── finetune.py           # LoRA/QLoRA SFT entry point (GPU server)
 │   ├── merge.py              # Merge LoRA adapter → full BF16
-│   ├── t5_smoke.py           # Side-by-side smoke: base vs merged
+│   ├── smoke_test.py         # Side-by-side smoke: base vs merged
 │   ├── server-bootstrap.sh   # Idempotent Ubuntu server setup
 │   └── chat_remote.sh        # Interactive chat via llama-server on board
 ├── data/
@@ -40,8 +41,9 @@ gemma3-270M-finetune/
 │   ├── plans/                # Fine-tune + eval + logits-equivalence plans
 │   ├── bench/                # Frozen bench run records
 │   ├── analysis/             # Model evaluation write-ups
-│   ├── deferred/             # Archived investigation notes
-│   └── get-started/          # Board deployment runbooks
+│   ├── references/           # Curated upstream-source pointers (Gemma, HF, llama.cpp)
+│   ├── deployment/           # Per-target deployment runbooks (SL2619, …)
+│   └── deferred/             # Archived investigation notes
 └── models/
     └── gemma-3-270m-it/
         └── README.md         # Per-model analysis: IFEval, quant, prompt strategy
@@ -105,14 +107,14 @@ ssh nouslogic-server 'cd ~/llama.cpp && python convert_hf_to_gguf.py \
         ~/sl2619-finetune/merged_v1.q4_0.gguf Q4_0'
 ```
 
-### 4. Logits-equivalence gate (H5R)
+### 4. Logits-equivalence gate
 
-Validates that the fine-tuned Q4_0 GGUF preserves token-rank vs BF16 reference
-before deploying to the board. See `docs/plans/a55-gemma-h5-logits-equivalence.md`.
+Validates that the fine-tuned Q4_0 GGUF preserves token-rank vs the BF16
+reference before deploying to a target. See `docs/plans/a55-gemma-h5-logits-equivalence.md`.
 
 ```bash
 # Build Q1 corpus (host)
-uv run h5-logits-equiv build-corpus --out .cache/q1/q1_corpus.txt
+uv run logits-equiv build-corpus --out .cache/q1/q1_corpus.txt
 
 # Run on server (BF16 reference .kld)
 # Run on x86 host (KL delta vs BF16)
@@ -120,24 +122,24 @@ uv run h5-logits-equiv build-corpus --out .cache/q1/q1_corpus.txt
 # Gate: same_top_p delta ≤ 1.0 pp, max_delta ratio A55/x86 ≤ 3.0×
 ```
 
-### 5. T5 smoke (base vs merged)
+### 5. Smoke test (base vs merged)
 
 ```bash
 # Build prompt bundle on host
-python scripts/t5_smoke.py --dry-run --bundle /tmp/t5_bundle.json
+python scripts/smoke_test.py --dry-run --bundle /tmp/smoke_bundle.json
 
 # Run side-by-side on server
-scp scripts/t5_smoke.py /tmp/t5_bundle.json nouslogic-server:~/sl2619-finetune/
+scp scripts/smoke_test.py /tmp/smoke_bundle.json nouslogic-server:~/sl2619-finetune/
 ssh nouslogic-server 'cd ~/sl2619-finetune && source .venv/bin/activate && \
-    python t5_smoke.py --bundle ./t5_bundle.json \
+    python smoke_test.py --bundle ./smoke_bundle.json \
         --base google/gemma-3-270m-it --merged ./merged_v1 \
         --out-dir ./logs'
 ```
 
 ### 6. Deploy to board
 
-See `docs/get-started/gemma-on-a55-get-started.md` for the cross-compile runbook
-and empirical perf numbers (5.87 tok/s decode, 37.2 tok/s prompt-eval at `-t 2`).
+See `docs/deployment/sl2619-board.md` for the cross-compile runbook and empirical
+perf numbers (5.87 tok/s decode, 37.2 tok/s prompt-eval at `-t 2`).
 
 ```bash
 # Deploy GGUF to board (user-performed)
@@ -161,9 +163,10 @@ uv run pytest tests/test_health_table.py   # specific module
   Store them on the GPU server or board SD card; reference them by path.
 - **Fine-tune checkpoints** (`checkpoints/`) are gitignored. Use the merge + quantize
   pipeline to produce the deployable GGUF; that artifact lives on the server.
-- **HuggingFace base model** (`google/gemma-3-270m-it`) is downloaded by the training
-  stack at runtime — not stored in this repo. See
-  `SynapticSL2619/docs/get-started/hugging-face-get-started.md` for HF auth setup.
+- **HuggingFace base model** (`google/gemma-3-270m-it`) is downloaded by the
+  training stack at runtime — not stored in this repo. Set `HF_TOKEN` (or run
+  `huggingface-cli login`) before the first SFT run; see
+  [`docs/references/gemma.md`](docs/references/gemma.md) for the model card link.
 
 ---
 

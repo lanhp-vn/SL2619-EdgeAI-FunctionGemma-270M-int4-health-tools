@@ -3,12 +3,12 @@
 # on the SL2619 via SSH-piped llama-completion.
 #
 # Usage:
-#   tools/scripts/chat_remote.sh "what is my heart rate?"
-#   tools/scripts/chat_remote.sh "summarize my current medications"
-#   echo "what am I allergic to?" | tools/scripts/chat_remote.sh
+#   scripts/chat_remote.sh "what is my heart rate?"
+#   scripts/chat_remote.sh "summarize my current medications"
+#   echo "what am I allergic to?" | scripts/chat_remote.sh
 #
 # Or, with custom params:
-#   N_PREDICT=64 SEED=7 tools/scripts/chat_remote.sh "what is my next appointment?"
+#   N_PREDICT=64 SEED=7 scripts/chat_remote.sh "what is my next appointment?"
 #
 # Renders the §4 directive system prompt + YAML record + user question locally
 # via `prompt_composer.compose_user_text`, pipes the body to the board's

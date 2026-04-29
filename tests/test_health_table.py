@@ -57,7 +57,7 @@ def _write_doc(path: Path, doc: object) -> Path:
 @pytest.mark.parametrize(
     ("source", "desc"),
     [
-        ("on_disk_canonical", "loads the committed tools/data/health_table_v1.yaml"),
+        ("on_disk_canonical", "loads the committed data/health_table_v1.yaml"),
         ("tmp_path_copy",     "loads an identical doc written to tmp_path"),
     ],
 )

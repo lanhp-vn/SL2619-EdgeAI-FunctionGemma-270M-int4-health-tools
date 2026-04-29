@@ -1,7 +1,7 @@
 """Smoke tests for gemma_tools.sft_build (CLI entrypoint).
 
 These run the full pipeline end-to-end against the canonical fixtures,
-writing into a tmp_path so the in-tree `tools/data/sft_v1*.jsonl` files
+writing into a tmp_path so the in-tree `data/sft_v1*.jsonl` files
 are never clobbered by the test run.
 """
 

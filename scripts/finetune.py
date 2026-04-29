@@ -16,7 +16,7 @@ the trl 1.3.0 API on the bootstrap'd server (`docs/tmp/nouslogic-server-status.m
 Single source of truth for the values below: `docs/plans/AI-models/a55-gemma-fine-tune.md` §6.
 
 Deploy:
-    scp tools/scripts/finetune.py nouslogic-server:~/sl2619-finetune/
+    scp scripts/finetune.py nouslogic-server:~/sl2619-finetune/
 
 T1 dry-run gate (loads tokenizer + model + 1 dataset row, prints decoded
 preview, exits 0):
@@ -89,7 +89,7 @@ def _to_prompt_completion(row: dict[str, Any], tokenizer: Any) -> dict[str, str]
 
     Asserts user/assistant only — Gemma 3 has no system role; system content
     is folded into the user turn at dataset-build time per
-    `docs/conventions/16-slm-system-prompt.md §2`.
+    `docs/conventions/slm-system-prompt.md §2`.
     """
     msgs = row["messages"]
     roles = [m["role"] for m in msgs]

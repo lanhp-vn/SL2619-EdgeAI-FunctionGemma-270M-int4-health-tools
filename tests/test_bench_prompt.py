@@ -722,7 +722,7 @@ def test_wrap_gemma3_chat_template_round_trips_compose_prompt() -> None:
     """The adapter's chat-template wrap MUST byte-match the user-facing
     `compose_prompt(candidate="gemma3", ...)` for the same composed body.
     If this test fails, train-time and inference-time prompts have drifted
-    — exactly the failure mode `16-slm-system-prompt.md §3` warns about.
+    — exactly the failure mode `slm-system-prompt.md §3` warns about.
     """
     repo = _REPO
     health = load_health_table(repo / "data" / "health_table_v1.yaml")

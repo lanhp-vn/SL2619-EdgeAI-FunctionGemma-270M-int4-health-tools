@@ -5,7 +5,7 @@ Merge LoRA adapters into the base model and save a standard HF checkpoint.
 Run after finetune.py (T3) to produce the merged BF16 checkpoint for Q0 quantization.
 
 Deploy to server:
-    scp tools/scripts/merge.py nouslogic-server:~/sl2619-finetune/
+    scp scripts/merge.py nouslogic-server:~/sl2619-finetune/
 
 Usage:
     # Default: picks the last epoch checkpoint inside ./adapters_v1/

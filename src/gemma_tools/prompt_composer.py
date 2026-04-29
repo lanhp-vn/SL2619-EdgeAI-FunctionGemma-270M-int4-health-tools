@@ -1,17 +1,17 @@
 """Compose per-candidate chat-formatted prompts for the SLM bench.
 
 Template authority (literal token strings):
-  references/HuggingFace/gemma-3-270m-it/chat_template.jinja
+  Hugging Face `google/gemma-3-270m-it` chat_template.jinja
     Gemma 3 270M-IT: BOS=<bos>, turn markers <start_of_turn>/<end_of_turn>.
     The Jinja template silently concatenates a system-role message into
     the first user turn — our composer encodes that same effective shape.
-  references/Synaptics/torq-tools/src/torq/models/smollm2/_inference.py:193-195
-    SmolLM2 (deferred to Linux-server work): BOS=<|im_start|>, EOS=<|im_end|>;
-    chat template resolves to bos+role+text+eos pattern at runtime.
+  SmolLM2 (Hugging Face `HuggingFaceTB/SmolLM2-*-Instruct` chat_template):
+    BOS=<|im_start|>, EOS=<|im_end|>; chat template resolves to
+    bos+role+text+eos pattern at runtime.
 
-System-prompt style: normative in docs/conventions/16-slm-system-prompt.md §4.
-The directive-form template below is the single source of truth for on-board
-SLM prompts; changes land with test updates in the same commit.
+System-prompt style: normative in docs/conventions/slm-system-prompt.md §4.
+The directive-form template below is the single source of truth for SLM
+prompts; changes land with test updates in the same commit.
 
 Time injection: `compose_prompt` accepts `now: date` so date-injection tests
 stay deterministic per docs/conventions/11-testing-verification.md §3.3
@@ -30,7 +30,7 @@ from gemma_tools.health_table import HealthTable
 
 Candidate = Literal["gemma3", "smollm2"]
 
-# Directive-form system template per 16-slm-system-prompt.md §4. Rules:
+# Directive-form system template per docs/conventions/slm-system-prompt.md §4. Rules:
 #   R-1 labeled directives, R-2 ground in YAML, R-3 refusal strings,
 #   R-4 length cap, R-5 positive imperatives, R-6 fixed slots for date + YAML,
 #   R-7 no persona, R-8 no few-shot.
@@ -123,14 +123,13 @@ def compose_user_text(health: HealthTable, now: date, utterance: str) -> str:
     """Directive-form system prompt + blank line + user utterance, NO
     chat-template markers.
 
-    This is the input shape the vendor `Gemma3Static.run()` expects: the
-    runner adds its own `<start_of_turn>user/model` wrapping internally via
-    `_tokenize(role="user")` (see
-    `references/Synaptics/torq-examples/gemma3/src/runner.py:171-176`).
-    Passing a pre-templated string double-wraps the turn markers and
-    corrupts tokenization. Use this variant whenever the downstream is the
-    vendor runner (bench harness, on-board inference service); use
-    `compose_prompt()` only when we own the tokenization.
+    This is the input shape the vendor `Gemma3Static.run()` runner expects:
+    the runner adds its own `<start_of_turn>user/model` wrapping internally
+    via its `_tokenize(role="user")` step. Passing a pre-templated string
+    double-wraps the turn markers and corrupts tokenization. Use this variant
+    whenever the downstream is the vendor runner (bench harness, on-board
+    inference service); use `compose_prompt()` only when we own the
+    tokenization.
     """
     return render_system_prompt(health, now) + "\n" + utterance
 

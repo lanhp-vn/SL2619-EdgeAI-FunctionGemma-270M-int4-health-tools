@@ -1,10 +1,10 @@
 """On-board bench harness for Phase D closed-world health-YAML QA.
 
-Drives Gemma 3 270M-IT against the prompt suite in `tools/data/prompts.yaml`,
+Drives Gemma 3 270M-IT against the prompt suite in `data/prompts.yaml`,
 emits JSONL rows to `/mnt/sdcard/bench/<date>_gemma3-sweep.jsonl` plus a
 companion `.log` of raw stdout.
 
-Runs under the single-process rule (see `15-model-compiler-runtime.md §11.2`)
+Runs under the single-process rule (see `model-compiler-runtime.md §11.2`)
 — one long-lived Python process iterates every prompt; spawning per-query
 corrupts the NPU context within ~3 cycles.
 
@@ -344,7 +344,7 @@ _VALID_CLASSES: frozenset[str] = frozenset(get_args(PromptClass))
 
 @dataclass(frozen=True, slots=True)
 class PromptSpec:
-    """One prompt from tools/data/prompts.yaml, schema-validated.
+    """One prompt from data/prompts.yaml, schema-validated.
 
     `prompt_class` is named with a trailing suffix because `class` is a
     Python keyword; the YAML-side name is preserved as `class`.
@@ -416,8 +416,8 @@ def load_prompt_suite(path: Path) -> list[PromptSpec]:
 class VendorImportError(ImportError):
     """Raised when `Gemma3Static` (from torq-examples) cannot be imported.
 
-    The vendor code lives under `references/Synaptics/torq-examples/`; on-board,
-    the vendor `setup_demos.py` installs a `.pth` file that puts the runner
+    Vendor code is the Synaptics `torq-examples` package; on-board, the
+    vendor `setup_demos.py` installs a `.pth` file that puts the runner
     dirs on `sys.path`. On a dev host without `torq.runtime`, import fails —
     host unit tests exercise everything except the live NPU call.
     """
@@ -448,7 +448,7 @@ def _patched_default_sys_prompt(
     """Temporarily set `runner.DEFAULT_SYS_PROMPT` so `Gemma3Static.__init__`
     doesn't prefill the vendor's generic persona.
 
-    Our directive prompt (`16-slm-system-prompt.md §4`) IS the system-level
+    Our directive prompt (`slm-system-prompt.md §4`) IS the system-level
     instruction. The vendor default ("You are a helpful AI assistant named
     Gemma…") would inject ~24 tokens of contradictory persona into the
     warmed-up KV snapshot that every bench `run()` call rewinds to — a
@@ -566,9 +566,9 @@ def _import_vendor_runner(torq_examples_root: Path | None = None) -> ModuleType:
     except ImportError as e:
         raise VendorImportError(
             f"Cannot import vendor `runner` module: {e}. "
-            f"Ensure torq-examples is installed (see "
-            f"references/Synaptics/torq-examples/README.md §Install) OR pass "
-            f"torq_examples_root=<path>. Host unit tests do not exercise "
+            f"Ensure Synaptics torq-examples is installed (see vendor "
+            f"README §Install) OR pass torq_examples_root=<path>. "
+            f"Host unit tests do not exercise "
             f"this path — the board is the only environment with torq.runtime."
         ) from e
 
@@ -954,7 +954,7 @@ def _build_arg_parser() -> argparse.ArgumentParser:
             "CPU llama.cpp `llama-completion` headless one-shot, "
             "depending on `--adapter`. One process per sweep for "
             "vendor (single-process rule, "
-            "15-model-compiler-runtime.md §11.2); one process per "
+            "model-compiler-runtime.md §11.2); one process per "
             "prompt for llama_completion (per-call mmap is the price "
             "of CPU GGUF on Yocto)."
         ),
@@ -965,7 +965,7 @@ def _build_arg_parser() -> argparse.ArgumentParser:
                         "torq runner (NPU VMFB); llama_completion shells "
                         "out per prompt to llama-completion (A55 CPU GGUF).")
     p.add_argument("--prompts", type=Path, required=True,
-                   help="Path to prompts.yaml (see tools/data/prompts.yaml).")
+                   help="Path to prompts.yaml (see data/prompts.yaml).")
     p.add_argument("--health-table", type=Path, required=True,
                    help="Path to health_table_v1.yaml.")
     p.add_argument("--output", type=Path, required=True,

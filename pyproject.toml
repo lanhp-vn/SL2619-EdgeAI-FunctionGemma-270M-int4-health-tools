@@ -1,7 +1,7 @@
 [project]
 name = "gemma-tools"
 version = "0.1.0"
-description = "Fine-tuning, evaluation, and deployment tools for Gemma 3 270M-IT on SL2619"
+description = "Fine-tuning, evaluation, and deployment tools for Gemma 3 270M-IT"
 requires-python = ">=3.11"
 dependencies = [
     "pyyaml>=6.0",
@@ -24,7 +24,7 @@ bench-eval = "gemma_tools.bench_eval:main"
 bench-remote = "gemma_tools.bench_remote:main"
 chat-probe = "gemma_tools.chat_probe:main"
 sft-build = "gemma_tools.sft_build:main"
-h5-logits-equiv = "gemma_tools.h5_logits_equiv:main"
+logits-equiv = "gemma_tools.logits_equivalence:main"
 
 [build-system]
 requires = ["hatchling"]
