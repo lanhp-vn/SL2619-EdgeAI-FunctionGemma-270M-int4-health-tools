@@ -2,7 +2,11 @@
 	path = docs/references/upstream/llama.cpp
 	url = https://github.com/ggml-org/llama.cpp
 	branch = master
+	shallow = true
+	update = none
 [submodule "docs/references/upstream/gemma"]
 	path = docs/references/upstream/gemma
 	url = https://github.com/google-deepmind/gemma
 	branch = main
+	shallow = true
+	update = none

@@ -1,4 +1,4 @@
-# 14 — Module Layering Discipline
+# Module Layering Discipline
 
 > Every module in `src/gemma_tools/` belongs to exactly one abstraction layer. Dependencies only flow downward. This convention names what the directory layout already does — not a change to it.
 
@@ -12,9 +12,9 @@
 |---|---|---|
 | `primitive` | Stateless helpers, pure math, stdlib-only I/O. No side effects, no network. | `health_table.py` (schema + validator), `bench_eval.py` (scoring functions: WER, F1, ROUGE) |
 | `composite` | Groups primitives into a named mechanism. Owns one external format or protocol. | `prompt_composer.py` (assembles chat turns + system prompt), `sft_dataset.py` (reads YAML + builds JSONL) |
-| `application` | Top-level script logic — reads config, calls composites, writes output. | `bench_remote.py`, `sft_build.py`, `chat_probe.py`, `h5_logits_equiv.py` |
+| `application` | Top-level script logic — reads config, calls composites, writes output. | `bench_remote.py`, `sft_build.py`, `chat_probe.py`, `logits_equivalence.py` |
 
-Entry-point scripts in `scripts/` (`finetune.py`, `merge.py`, `t5_smoke.py`) are the `orchestrator` layer: they wire init order together and own `main()`. They call `application`-layer modules, not composites or primitives directly.
+Entry-point scripts in `scripts/` (`finetune.py`, `merge.py`, `smoke_test.py`) are the `orchestrator` layer: they wire init order together and own `main()`. They call `application`-layer modules, not composites or primitives directly.
 
 ---
 
@@ -90,13 +90,13 @@ src/gemma_tools/
 ├── sft_build.py          # application — build pipeline entry point
 ├── bench_prompt.py       # application — prompt generation for bench runs
 ├── bench_remote.py       # application — bench driver (SSH + llama-server)
-├── h5_logits_equiv.py    # application — H5R logits-equivalence gate
+├── logits_equivalence.py # application — KL-divergence logits-equivalence gate
 └── chat_probe.py         # application — interactive chat probe
 
 scripts/
 ├── finetune.py           # orchestrator — LoRA SFT entry point
 ├── merge.py              # orchestrator — LoRA merge + export
-└── t5_smoke.py           # orchestrator — base vs merged smoke comparison
+└── smoke_test.py         # orchestrator — base vs merged smoke comparison
 ```
 
 If a new module does not fit into any existing layer, ask which layer it belongs to first, then decide where it lives. Do not create a new top-level directory unless it represents a genuinely new layer boundary.
@@ -109,7 +109,7 @@ If a new module does not fit into any existing layer, ask which layer it belongs
   ```bash
   rg "^from gemma_tools|^import gemma_tools" src/gemma_tools/ --no-filename | sort | uniq
   ```
-- No automated CI check yet. A future `tools/lint/check_layers.py` will automate the graph walk.
+- No automated CI check yet. A future linter under `scripts/lint/` may automate the graph walk.
 - Violations that are genuinely necessary must be documented inline with a comment naming the invariant being broken and why.
 
 ---
@@ -122,4 +122,4 @@ It also makes the R2 cadence tractable: because GPU and network contact are forb
 
 ---
 
-*Added: 2026-04-29. Cross-references: `11-testing-verification.md` (testing pyramid), `AGENTS.md` §Discipline (R2 cadence).*
+*Added: 2026-04-29. Cross-references: `testing.md` (testing pyramid), `CLAUDE.md` §Discipline.*

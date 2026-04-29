@@ -69,7 +69,7 @@ cd /home/lanhp-wsl/nouslogic/SynapticSL2619 && mkdir -p .cache/llama-bench && cd
 
 Expected: `231M`, sha256 starts with `e479ea29…`. The download uses your HF token automatically.
 
-> **Why unsloth and not Google's `qat-q4_0-gguf`.** Google publishes the *unquantized* QAT BF16 weights (which we have as a submodule under `references/HuggingFace/`), but the actual GGUF is community-converted. unsloth's conversion is the most cited and the Daily-Dose-of-DS Pi-5 tutorial uses it. If you need bit-deterministic reproducibility, switch the source and reset the SHA expectations in §1 — the rest of the runbook is unchanged.
+> **Why unsloth and not Google's `qat-q4_0-gguf`.** Google publishes the *unquantized* QAT BF16 weights (downloadable directly from `huggingface.co/google/gemma-3-270m-it-qat-q4_0-unquantized`), but the actual GGUF is community-converted. unsloth's conversion is the most cited and the Daily-Dose-of-DS Pi-5 tutorial uses it. If you need bit-deterministic reproducibility, switch the source and reset the SHA expectations in §1 — the rest of the runbook is unchanged.
 
 ### 3.3 Clone llama.cpp at the pinned tag (host)
 
@@ -238,7 +238,7 @@ Use `llama-completion` for headless / scripted runs. `llama-cli` for human chat.
 `-sysf sysprompt.txt --jinja` prints `using custom system prompt`, but the model does not see the file's content. Confirmed by asking "what is my heart rate?" with `heart_rate_bpm: 72` in the file — model replied "I am sorry, I do not have the information." Gemma 3 has no `system` role in its chat template; the unsloth-published template (kv 37 in the GGUF) appears to drop or mis-route the system turn under llama.cpp's `--jinja` path. **This is unfixed and is gate 0 of the prompt-engineering plan.** Workarounds (any of):
 
 1. Compose the entire turn as `-p "<system content>\n\n<user question>"` and skip `--jinja` (manual chat-template wrapping in your prompt file).
-2. Compose user-turn content using the existing `prompt_composer.compose_user_text()` (already follows the directive-form rules in `docs/conventions/16-slm-system-prompt.md`).
+2. Compose user-turn content using the existing `prompt_composer.compose_user_text()` (already follows the directive-form rules in `docs/conventions/slm-system-prompt.md`).
 3. Ship a `--chat-template-file` that explicitly maps `system` → user-prefix.
 
 The plan exercises (1) first because it's zero new code. See `docs/plans/a55-gemma-prompt-engineering.md` G0.
@@ -253,11 +253,11 @@ The plan exercises (1) first because it's zero new code. See `docs/plans/a55-gem
 | `ldd llama-cli` | `readelf -d llama-cli \| grep NEEDED` (BusyBox has no `ldd`) |
 | `grep -P` (PCRE) | `grep -E` (POSIX ERE) |
 
-These are codified in `docs/conventions/10-code-style-shell.md` — when emitting commands for the board, default to long-form GNU flags and check the convention if unsure.
+These are codified in `docs/conventions/code-style-shell.md` — when emitting commands for the board, default to long-form GNU flags and check the convention if unsure.
 
 ### 4.8 Single SSH sessions only for `ssh '…'`
 
-A multi-line `ssh '…body…'` will fragment if any line in the heredoc exceeds the user's terminal soft-wrap (the wrap is rendered as a literal newline inside the single-quoted body, which BusyBox sh then splits at). Always one physical line. See `docs/conventions/10-code-style-shell.md §2.1`.
+A multi-line `ssh '…body…'` will fragment if any line in the heredoc exceeds the user's terminal soft-wrap (the wrap is rendered as a literal newline inside the single-quoted body, which BusyBox sh then splits at). Always one physical line. See `docs/conventions/code-style-shell.md §2.1`.
 
 ---
 
@@ -343,7 +343,7 @@ After Phase 2 (QLoRA SFT on `google/gemma-3-270m-it`) and Phase 3 (Q4_0 GGUF + o
 
 ### 8.1 The failure mode (what NOT to do)
 
-The early bench harness (`tools/src/sl2619_tools/bench_prompt.py` `LlamaCompletionBenchAdapter`) text-wraps the user-turn body with literal `<start_of_turn>user\n…<end_of_turn>\n<start_of_turn>model\n` markers and passes the wrapped string via `llama-completion -f promptfile`. This works for the un-fine-tuned base model (its definitional drift / YAML-echo failure mode dominates either way), but on the **fine-tuned** Q4_0 it produces hallucinated tail content:
+The early bench harness (`src/gemma_tools/bench_prompt.py` `LlamaCompletionBenchAdapter`) text-wraps the user-turn body with literal `<start_of_turn>user\n…<end_of_turn>\n<start_of_turn>model\n` markers and passes the wrapped string via `llama-completion -f promptfile`. This works for the un-fine-tuned base model (its definitional drift / YAML-echo failure mode dominates either way), but on the **fine-tuned** Q4_0 it produces hallucinated tail content:
 
 ```
 $ # Path B body via plain wrap_gemma3_chat_template + -f (Q3b 2026-04-28):
@@ -399,26 +399,26 @@ Throughput on the board (measured 2026-04-28, FT'd Q4_0 over 15-prompt sweep):
 | Per-prompt total wall (incl SSH round-trip) | ~31 s |
 | Memory | ~ 1071 MiB host RSS per `llama-completion` PID (within IL-2's 1.87 GiB) |
 
-### 8.3 One-liner for ad-hoc testing — `tools/scripts/chat_remote.sh`
+### 8.3 One-liner for ad-hoc testing — `scripts/chat_remote.sh`
 
 The above paste is wrapped as a committed script:
 
 ```bash
 # From repo root, ssh-agent already authenticated to nouslogic-sl2619:
-tools/scripts/chat_remote.sh "what is my heart rate?"
-tools/scripts/chat_remote.sh "summarize my current medications"
-tools/scripts/chat_remote.sh "what is my next appointment?"
-echo "what am I allergic to?" | tools/scripts/chat_remote.sh    # stdin form
+scripts/chat_remote.sh "what is my heart rate?"
+scripts/chat_remote.sh "summarize my current medications"
+scripts/chat_remote.sh "what is my next appointment?"
+echo "what am I allergic to?" | scripts/chat_remote.sh    # stdin form
 
 # Override generation params via env vars:
-N_PREDICT=64 SEED=7 tools/scripts/chat_remote.sh "tell me a joke"
+N_PREDICT=64 SEED=7 scripts/chat_remote.sh "tell me a joke"
 ```
 
-Source: `tools/scripts/chat_remote.sh`. Renders body locally via `prompt_composer.compose_user_text`, pipes to the board over SSH stdin, prints model reply only.
+Source: `scripts/chat_remote.sh`. Renders body locally via `prompt_composer.compose_user_text`, pipes to the board over SSH stdin, prints model reply only.
 
 ### 8.4 Full bench sweep — `bench_remote.py`
 
-For a full 15-prompt suite run with JSONL output (the path that produced the Q4 numbers in `docs/tmp/bench/2026-04-28_gemma3-finetuned-q4-sweep.jsonl`):
+For a full 15-prompt suite run with JSONL output (the path that produced the Q4 numbers in `docs/bench/2026-04-28_gemma3-finetuned-q4-sweep.jsonl`):
 
 ```bash
 cd tools
@@ -426,14 +426,14 @@ uv run bench-remote \
     --ssh-host nouslogic-sl2619 \
     --prompts data/prompts.yaml \
     --health-table data/health_table_v1.yaml \
-    --output ../docs/tmp/bench/$(date +%Y-%m-%d)_gemma3-finetuned-resweep.jsonl \
+    --output ../docs/bench/$(date +%Y-%m-%d)_gemma3-finetuned-resweep.jsonl \
     --llama-binary /mnt/sdcard/llama-cpp/llama-completion \
     --llama-model /mnt/sdcard/models/gemma-3-270m-it-q4_0-ft-v1/merged_v1.q4_0.gguf \
     --max-gen-tokens 128 --n-threads 2 --temp 0.0 --top-k 1 --seed 42 \
     --subprocess-timeout-s 180 --now $(date -I)
 ```
 
-Source: `tools/src/sl2619_tools/bench_remote.py` (host-driven SSH-piped, R3-compliant — the agent never writes to the board). Score with `uv run bench-eval --jsonl <path> --prompts data/prompts.yaml`.
+Source: `src/gemma_tools/bench_remote.py` (host-driven SSH-piped, R3-compliant — the agent never writes to the board). Score with `uv run bench-eval --jsonl <path> --prompts data/prompts.yaml`.
 
 ### 8.5 Known v1 limitations (deferred to v2 SFT pass)
 
@@ -441,10 +441,10 @@ The fine-tuned Q4_0 fixes definitional drift but the v1 corpus exposes three fai
 
 1. **Repetitive degeneration**: under greedy / top-k=1 / temp=0, every prompt that doesn't terminate with a clear `<eos>` loops the phrase `not in record.` until the n_predict cap. Workaround at inference: relax to `--top-k 5 --temp 0.2`. Workaround at training (v2): include explicit `<end_of_turn>` after every completion in the SFT corpus.
 2. **Multi-field discrimination weakness**: questions that need to filter the YAML by a sub-field (e.g. P3 "which medications do I take at 8am?", P6 "what am I allergic to?") fail. The 270M attention can't reliably bind a NL filter to a YAML key with the v1 dataset's coverage.
-3. **Refusal canonical-string drift**: D1/D2 (off-topic) emit `not in record` or other refusal-shaped strings instead of the canonical `I answer questions from your health record only` from `16-slm-system-prompt.md §4` R-3. The 119 refusal-class rows in the v1 pool didn't establish a strong enough phrase prior.
+3. **Refusal canonical-string drift**: D1/D2 (off-topic) emit `not in record` or other refusal-shaped strings instead of the canonical `I answer questions from your health record only` from `slm-system-prompt.md §4` R-3. The 119 refusal-class rows in the v1 pool didn't establish a strong enough phrase prior.
 
-Full v1 bench numbers + v2 backlog at [`docs/tmp/bench/2026-04-28_gemma3-finetuned-final.md`](../tmp/bench/2026-04-28_gemma3-finetuned-final.md) and [`docs/plans/backlogs.md §1.21`](../plans/backlogs.md). The v1 demo numbers are 8/15 regex pass, 5/15 manual rubric ≥ 2 grounded; H6 base baseline was 2/15 regex (both spurious YAML-echo coincidences) and 0/15 grounded.
+Full v1 bench numbers + v2 backlog at [`docs/bench/2026-04-28_gemma3-finetuned-final.md`](../tmp/bench/2026-04-28_gemma3-finetuned-final.md) and [`docs/plans/backlogs.md §1.21`](../plans/backlogs.md). The v1 demo numbers are 8/15 regex pass, 5/15 manual rubric ≥ 2 grounded; H6 base baseline was 2/15 regex (both spurious YAML-echo coincidences) and 0/15 grounded.
 
 ---
 
-*Last verified: 2026-04-28. §1-§7 are unchanged from 2026-04-24 base-model bring-up; §8 adds the FT'd-Q4_0 deployment recipe. If `llama.cpp` tag, GGUF SHA, or board core count change, update §1 and §5 and re-run §3.7 to confirm the perf table still holds; for the FT'd model re-run the §8.4 bench sweep and update `docs/tmp/bench/<date>_gemma3-finetuned-final.md`.*
+*Last verified: 2026-04-28. §1-§7 are unchanged from 2026-04-24 base-model bring-up; §8 adds the FT'd-Q4_0 deployment recipe. If `llama.cpp` tag, GGUF SHA, or board core count change, update §1 and §5 and re-run §3.7 to confirm the perf table still holds; for the FT'd model re-run the §8.4 bench sweep and update `docs/bench/<date>_gemma3-finetuned-final.md`.*

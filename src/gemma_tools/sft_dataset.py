@@ -16,7 +16,7 @@ Authority chain:
                     five exact-match bench hits — see §4 D2 leakage gate)
 
 Convention deviation (re-stated from health_table.py): stdlib + PyYAML only —
-no Pydantic — even though docs/conventions/09-code-style-python.md §6 mandates
+no Pydantic — even though docs/conventions/code-style-python.md §6 mandates
 Pydantic for runtime config. This is offline tooling that runs against a
 fixture; matching health_table's schema-parser style keeps the test surface
 flat and the dependency graph small.

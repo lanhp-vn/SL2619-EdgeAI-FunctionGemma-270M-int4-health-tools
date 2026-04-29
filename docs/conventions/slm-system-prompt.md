@@ -1,8 +1,8 @@
-# 16 — SLM System-Prompt Convention (Edge Deployment)
+# SLM System-Prompt Convention (Edge Deployment)
 
-> Normative rules for crafting system prompts when the target is a ≤ 500M-parameter SLM running on-device — specifically Gemma 3 270M-IT on SL2619 via the vendor-published Torq VMFB. Where larger-model prompt-engineering practice differs from SLM-edge practice, this file picks the SLM-edge side with reasons.
+> Normative rules for crafting system prompts when the target is a ≤ 500M-parameter SLM running on-device — specifically Gemma 3 270M-IT (and FunctionGemma when adopted). Where larger-model prompt-engineering practice differs from SLM-edge practice, this file picks the SLM-edge side with reasons.
 >
-> **Canonical ownership** (per `13-documentation-update-protocol.md §10.1`): this file owns the *style* of on-device SLM prompts and the *per-model system-prompt template*. The health data schema it slots into lives in `tools/data/health_v1.yaml` and is loaded via `tools/src/sl2619_tools/health_table.py`. Bench evaluation of how well a given prompt performs lives in `docs/plans/models-testing-plan.md` + `docs/tmp/bench/<date>_*.md`.
+> **Canonical ownership** (per `doc-update.md §8.1`): this file owns the *style* of on-device SLM prompts and the *per-model system-prompt template*. The health data schema it slots into lives in `data/health_table.yaml` and is loaded via `src/gemma_tools/health_table.py`. Bench evaluation of how well a given prompt performs is recorded in `docs/bench/<date>_*.md` (frozen historical records).
 >
 > *Authored 2026-04-24.*
 
@@ -23,7 +23,7 @@ Advice written for GPT-4-class models is actively harmful on ≤500M-param SLMs.
 Gemma 3 has no `system` role. Confirmed from two primary sources:
 
 1. [ai.google.dev/gemma/docs/core/prompt-structure](https://ai.google.dev/gemma/docs/core/prompt-structure) — "Gemma's instruction-tuned models are designed to work with only two roles: `user` and `model`. Therefore, the `system` role or a system turn is not supported."
-2. `references/HuggingFace/gemma-3-270m-it/chat_template.jinja:2-16` — the Jinja template silently **concatenates** a `system` message into the first user turn's prefix rather than emitting a separate system block. If you pass `messages[0]['role'] == 'system'`, its content is prepended (with `\n\n` separator) to the first user message, and `messages[1:]` becomes the loop.
+2. The Jinja template embedded in the model's HF tokenizer silently **concatenates** a `system` message into the first user turn's prefix rather than emitting a separate system block. If you pass `messages[0]['role'] == 'system'`, its content is prepended (with `\n\n` separator) to the first user message, and `messages[1:]` becomes the loop. Verify against the model card's `chat_template.jinja` on HuggingFace (link in §8) or the local copy under `docs/references/upstream/` once the submodule is initialized.
 
 ### 2.1 Resulting on-wire format
 
@@ -47,7 +47,7 @@ Literal tokens to memorize:
 
 ### 2.2 Our runtime wrapper
 
-`tools/src/sl2619_tools/prompt_composer.py:77-78` already emits this exact shape:
+`src/gemma_tools/prompt_composer.py` already emits this exact shape:
 
 ```python
 return f"<start_of_turn>user\n{full}<end_of_turn>\n<start_of_turn>model\n"
@@ -171,7 +171,7 @@ YAML:
 {yaml_block}
 ```
 
-Exact composition is owned by `tools/src/sl2619_tools/prompt_composer.py` (`render_system_prompt`). Unit tests in `tools/tests/test_prompt_composer.py` freeze the template surface — changes to the template must land with test updates in the same commit.
+Exact composition is owned by `src/gemma_tools/prompt_composer.py` (`render_system_prompt`). Unit tests in `tests/test_prompt_composer.py` freeze the template surface — changes to the template must land with test updates in the same commit.
 
 ### 4.1 Why this is the final shape (post-Phase-B iteration)
 
@@ -181,13 +181,13 @@ Exact composition is owned by `tools/src/sl2619_tools/prompt_composer.py` (`rend
 - **`DATE:` on its own line**: the model treats it as a fact to reference (for `when should I take X` questions) rather than background context.
 - **`YAML:` label before the block**: the model's instruction-tuning distribution sees labeled-block patterns during training; explicit label > implicit context.
 
-### 4.2 Divergence from SmolLM2 template (future Linux-server work)
+### 4.2 Divergence from other SLM templates
 
-SmolLM2 uses the ChatML format (`<|im_start|>user` / `<|im_end|>` / `<|im_start|>assistant`). The body of the system prompt (`ROLE/TASK/RULES/FORMAT/INPUT`) is identical — the style rules in §3 are model-agnostic. Only the wrapper tokens differ; `prompt_composer.py` dispatches on `candidate` (`"gemma3"` vs `"smollm2"`).
+ChatML-style models (e.g. SmolLM2, Qwen) use `<|im_start|>user` / `<|im_end|>` / `<|im_start|>assistant`. The body of the system prompt (`ROLE/TASK/RULES/FORMAT/INPUT`) is identical — the style rules in §3 are model-agnostic. Only the wrapper tokens differ; `prompt_composer.py` dispatches on `candidate` (e.g. `"gemma3"`, future `"functiongemma"`).
 
 ## 5. Quality-gate integration
 
-Bench prompts (`tools/data/prompts.yaml`) are stratified into three classes that exercise different parts of the template:
+Bench prompts (`data/prompts.yaml`) are stratified into three classes that exercise different parts of the template:
 
 | Class | What it tests | Example ID |
 |---|---|---|
@@ -196,12 +196,12 @@ Bench prompts (`tools/data/prompts.yaml`) are stratified into three classes that
 | **domain_refusal** | R-3 refusal — when the question is off-topic, does the refusal string fire? | P9, P10 |
 | **summarization** | R-2 + R-4 — multi-fact compression without invention | P5 |
 
-G_QUALITY threshold (per `models-testing-plan.md §7`): average rubric score ≥ 2.0 across all classes, with zero 0-scores in fact_lookup or fact_absence (strict grounding is non-negotiable).
+G_QUALITY threshold (per `docs/plans/models-testing-plan.md §7`, frozen narrative): average rubric score ≥ 2.0 across all classes, with zero 0-scores in fact_lookup or fact_absence (strict grounding is non-negotiable).
 
 ## 6. What this file does NOT cover
 
 - LLM (≥ 7B) prompt engineering — different set of trade-offs; refer to industry guides.
-- Fine-tuning prompts / instruction-tuning — different artifact (training data) with different format rules; covered by future `17-fine-tuning.md` if/when we go that route (not in Phase 1.5).
+- Fine-tuning prompts / instruction-tuning — different artifact (training data) with different format rules; covered by `docs/guides/finetune-best-practices.md` and the SFT prompt-shape contract in `scripts/finetune.py:_to_prompt_completion`.
 - Tool-use / function-calling prompts — not supported by Gemma 3 270M's instruction-tuning (model card is silent on tool-use; IFEval is closer to what the model does).
 - Multi-turn dialog state management — explicitly out-of-scope; Gemma 3 270M is "not designed for complex conversational use cases" per Google.
 - Safety / jailbreak resistance — a 270M model cannot defend a prompt; lean on pre-filters in Python (regex, classifier) for any safety-critical deployment.
@@ -213,9 +213,9 @@ G_QUALITY threshold (per `models-testing-plan.md §7`): average rubric score ≥
 - [ ] At least one refusal string covers off-topic (§3 R-3)
 - [ ] FORMAT caps output length (§3 R-4)
 - [ ] Static system tokens ≤ 150 (§3 R-10)
-- [ ] `prompt_composer.py` template still round-trips after the edit; tests pass
-- [ ] `prompts.yaml` gets coverage in all four classes (fact_lookup / fact_absence / domain_refusal / summarization)
-- [ ] If changing on-wire format: confirm against `chat_template.jinja` in the vendor-submodule reference for whichever candidate
+- [ ] `src/gemma_tools/prompt_composer.py` template still round-trips after the edit; tests pass
+- [ ] `data/prompts.yaml` gets coverage in all four classes (fact_lookup / fact_absence / domain_refusal / summarization)
+- [ ] If changing on-wire format: confirm against `chat_template.jinja` from the model card on HuggingFace (or the local copy under `docs/references/upstream/` if the submodule is initialized) for whichever candidate
 
 ## 8. Sources
 
@@ -227,8 +227,8 @@ Primary:
 - [buildmvpfast — System Prompt Design Best Practices 2026](https://www.buildmvpfast.com/blog/system-prompt-design-best-practices-llm-instructions-engineering-2026)
 
 Repo-local:
-- `references/HuggingFace/gemma-3-270m-it/chat_template.jinja` — source-of-truth Jinja template
-- `references/HuggingFace/gemma-3-270m-it/config.json` — architecture specifics
-- `tools/src/sl2619_tools/prompt_composer.py` — runtime wrapper (the composer this file governs)
+- `src/gemma_tools/prompt_composer.py` — runtime wrapper (the composer this file governs)
 - `models/gemma-3-270m-it/README.md` — per-model best-practice analysis (§5.1 prompt shape lineage)
-- `docs/tmp/bench/2026-04-24_gemma3-summary.md` — Phase B failure modes that drove §3 R-2/R-3
+- `docs/bench/2026-04-24_gemma3-summary.md` — Phase B failure modes that drove §3 R-2/R-3 (frozen)
+- `docs/references/gemma.md` — upstream Gemma 3 / FunctionGemma source pointers
+- `docs/references/upstream/gemma/` — Gemma reference implementation submodule (opt-in init)

@@ -2,7 +2,7 @@
 
 Reads the JSONL output of `bench-prompt`, applies each prompt's
 `pass_pattern` (regex) per `pattern_flags` to `response_text`, and emits
-a Markdown summary that drops into `docs/tmp/bench/<date>_gemma3-*.md`.
+a Markdown summary that drops into `docs/bench/<date>_gemma3-*.md`.
 
 Regex pass/fail is NECESSARY-BUT-NOT-SUFFICIENT per plan §6.2. A human
 rubric (0-3) sits atop these results — the scorer just surfaces every

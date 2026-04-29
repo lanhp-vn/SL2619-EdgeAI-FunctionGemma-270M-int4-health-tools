@@ -86,7 +86,7 @@ class Stopwatch:
     """`time.perf_counter_ns` context manager with an injectable clock.
 
     Injecting `clock_ns` (not `sleep`) is the testability pattern from
-    `docs/conventions/11-testing-verification.md §3.3`: we never sleep in
+    `docs/conventions/testing.md §3.3`: we never sleep in
     tests — we advance a fake clock instead.
     """
 

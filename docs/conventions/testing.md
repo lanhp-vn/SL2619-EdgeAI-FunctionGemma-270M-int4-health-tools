@@ -1,4 +1,4 @@
-# 11 — Testing & Verification
+# Testing & Verification
 
 > How we test this project. Pyramid order: **unit tests first, then server/board integration.** The unit-test discipline and idioms here are adapted from our in-house testing philosophy.
 
@@ -223,9 +223,9 @@ uv run pytest -m hardware tests/integration/test_board_inference.py
 # Pass: /health returns 200, /completion returns a non-empty string in < 30 s
 ```
 
-### 6.3 H5R logits-equivalence gate (on-board)
+### 6.3 Logits-equivalence gate (cross-arch)
 
-Run `h5_logits_equiv.py` with the base and fine-tuned logit files from the board bench run. Pass criterion: delta <= 1.0 pp on the calibration corpus. Full spec: `docs/plans/a55-gemma-h5-logits-equivalence.md`.
+Run `logits_equivalence.py` (CLI: `uv run logits-equiv ...`) with the BF16 reference and quantized GGUF KL-divergence outputs. Pass criterion: same_top_p delta ≤ 1.0 pp, max_delta_p ratio ≤ 3.0× across architectures. Frozen historical spec: `docs/plans/a55-gemma-h5-logits-equivalence.md`.
 
 ## 7. CI Matrix
 

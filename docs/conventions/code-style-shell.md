@@ -1,4 +1,4 @@
-# 10 — Code Style: Shell
+# Code Style: Shell
 
 > Governs all shell scripts in the gemma3-270M-finetune project — host-side data sync helpers (WSL2 Ubuntu), GPU server bootstrap scripts, and deploy/bench wrappers. Baseline: **Google Shell Style Guide** with overrides documented below. **Bash only** — do not write `/bin/sh` portable scripts.
 

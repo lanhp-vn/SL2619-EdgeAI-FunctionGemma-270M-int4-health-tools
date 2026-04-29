@@ -262,7 +262,7 @@ These are not Iron Laws — they are pre-conditions for the H2/H3/H6 gates in `d
 | `nvidia-smi` absent or returns no GPU | All Phase 0+ training (H2 onward) |
 | GPU compute capability ≠ `(12, 0)` for Blackwell | `--use-nightly-pytorch` may be required |
 | NVIDIA driver < 555 (CUDA 12.5+) | sm_120 may not initialize on stable PyTorch |
-| `~/sl2619-finetune/.venv` missing | H2 not yet run — point user at `tools/scripts/server-bootstrap.sh` |
+| `~/sl2619-finetune/.venv` missing | H2 not yet run — point user at `scripts/server-bootstrap.sh` |
 | `torch.cuda.is_available()` False from venv Python | H2 smoke test would fail — investigate driver / wheel mismatch |
 | `bitsandbytes` missing from venv | QLoRA blocked (BF16 LoRA fallback documented in fine-tune plan §3.2 troubleshooting) |
 | `~/llama.cpp/build/bin/llama-quantize` missing | H3+ Q4_0 quantization blocked |

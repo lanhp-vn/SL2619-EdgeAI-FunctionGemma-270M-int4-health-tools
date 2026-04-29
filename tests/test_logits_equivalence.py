@@ -449,7 +449,7 @@ def test_emit_h5r_summary_renders_provenance(tmp_path: Path) -> None:
             "corpus": "/tmp/h5_corpus.txt (sha 1234abcd)",
             "reference_kld": "h5-reference.kld (BF16, sha deadbeef)",
             "x86_command": "llama-perplexity -m … --kl-divergence-base ref.kld",
-            "a55_reused_from": "docs/tmp/bench/2026-04-26_h5-logits-equivalence.md (flags match)",
+            "a55_reused_from": "docs/bench/2026-04-26_h5-logits-equivalence.md (flags match)",
         },
     )
     text = out.read_text()
@@ -548,14 +548,14 @@ def test_cli_classify_h5r_writes_summary(tmp_path: Path) -> None:
         "--summary-out", str(summary),
         "--corpus-path", "/tmp/h5_corpus.txt (35 prompts)",
         "--kld-path", "/tmp/h5_ref.kld (BF16, sha abc123)",
-        "--a55-reused-from", "docs/tmp/bench/2026-04-26_h5-logits-equivalence.md",
+        "--a55-reused-from", "docs/bench/2026-04-26_h5-logits-equivalence.md",
     ])
     assert rc == 0
     assert summary.exists()
     text = summary.read_text()
     assert "**Verdict: GREEN**" in text
     assert "**corpus**: /tmp/h5_corpus.txt" in text
-    assert "**a55_reused_from**: docs/tmp/bench/2026-04-26_h5-logits-equivalence.md" in text
+    assert "**a55_reused_from**: docs/bench/2026-04-26_h5-logits-equivalence.md" in text
 
 
 def test_cli_classify_h5r_custom_thresholds_relax_to_green(tmp_path: Path) -> None:

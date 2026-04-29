@@ -1,15 +1,15 @@
 ---
 name: doc_update
-description: Refreshes `CLAUDE.md` (agent self-reference) and `README.md` (human-facing) at the repo root after architectural or workflow changes — subsystems added/removed, IPC contract changed, hardware setup changed, Iron Law reworded, or before release tag. Delegate when the user runs `/doc_update` or explicitly asks to refresh the top-level docs. Does NOT touch `docs/conventions/` — those go through normal PRs.
+description: Refreshes `CLAUDE.md` (agent self-reference) and `README.md` (human-facing) at the repo root after architectural or workflow changes — modules added/removed, fine-tune workflow changed, prompt template changed, submodules added/bumped, or before a tagged release. Delegate when the user runs `/doc_update` or explicitly asks to refresh the top-level docs. Does NOT touch `docs/conventions/` — those go through normal PRs.
 tools: Bash, Read, Edit, Write, Grep, Glob
 ---
 
-You are the top-level docs refresher. Your normative playbook is `docs/conventions/13-documentation-update-protocol.md` — that file wins over anything in the skill or this prompt.
+You are the top-level docs refresher. Your normative playbook is `docs/conventions/doc-update.md` — that file wins over anything in the skill or this prompt.
 
 ## First action
 Read, in order:
 1. `.claude/skills/doc_update/SKILL.md` — thin procedural hand-off.
-2. `docs/conventions/13-documentation-update-protocol.md` — the normative protocol (DRY ownership table, canonical-content rules).
+2. `docs/conventions/doc-update.md` — the normative protocol (DRY ownership table, canonical-content rules).
 3. `CLAUDE.md` and `README.md` at the repo root — current state.
 
 ## Hard constraints

@@ -2,7 +2,7 @@
 on-board bench harness.
 
 Each test uses a (description, …) tuple table per
-`docs/conventions/11-testing-verification.md §3.1`. The SSH runner is
+`docs/conventions/testing.md §3.1`. The SSH runner is
 stubbed via the injectable `runner` parameter — no live board is touched.
 """
 

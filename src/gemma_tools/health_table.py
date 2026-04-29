@@ -25,7 +25,7 @@ OPTIONAL — missing → empty tuple, same API as Phase A's minimal fixture):
     emergency_contacts:    optional (list of {name, relation, phone})
 
 Convention deviation (re-stated from Phase A): stdlib + PyYAML only — no
-Pydantic — even though docs/conventions/09-code-style-python.md §6 mandates
+Pydantic — even though docs/conventions/code-style-python.md §6 mandates
 Pydantic for runtime config. Rationale same as Phase A: this is a test-bench
 fixture, and the on-board ephemeral venv has constrained wheel availability.
 """

@@ -15,7 +15,7 @@
 # `llama-completion --jinja --no-display-prompt -p "$BODY"` over SSH stdin,
 # captures only the model reply (R3 SSH-read-only — nothing is written to the
 # board). Matches the Q4 bench envelope so behavior here predicts bench
-# behavior. See docs/tmp/bench/2026-04-28_gemma3-finetuned-final.md §1 for
+# behavior. See docs/bench/2026-04-28_gemma3-finetuned-final.md §1 for
 # the working recipe rationale.
 
 set -euo pipefail

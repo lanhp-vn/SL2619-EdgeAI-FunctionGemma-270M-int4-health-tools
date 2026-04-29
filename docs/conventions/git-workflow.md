@@ -1,4 +1,4 @@
-# 12 — Git Workflow
+# Git Workflow
 
 > Branch strategy, commit message format, PR protocol, and release process for this repo.
 
@@ -70,7 +70,7 @@ Subsystem-based, not file-based:
 | `prompt` | `prompt_composer.py`, `prompts.yaml`, `slm-system-prompt.md` |
 | `tools` | `src/gemma_tools/` library modules |
 | `scripts` | `scripts/` shell and Python entry points |
-| `h5r` | `h5_logits_equiv.py`, logits-equivalence gate |
+| `logits` | `logits_equivalence.py`, KL-divergence gate |
 | `deps` | Dependency bumps (`pyproject.toml`, `uv.lock`) |
 | `docs` | Documentation under `docs/` |
 | `ci` | CI pipelines |

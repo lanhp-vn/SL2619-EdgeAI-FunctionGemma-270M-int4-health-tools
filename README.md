@@ -36,14 +36,26 @@ gemma3-270M-finetune/
 │   ├── sft_v1.{train,val,test,audit}.jsonl   # Built SFT dataset (path B)
 │   └── sft_v1_pathA.{train,val,test}.jsonl  # Built SFT dataset (path A)
 ├── docs/
-│   ├── conventions/
-│   │   └── slm-system-prompt.md  # Normative SLM prompt rules R-1…R-10
-│   ├── plans/                # Fine-tune + eval + logits-equivalence plans
-│   ├── bench/                # Frozen bench run records
-│   ├── analysis/             # Model evaluation write-ups
-│   ├── references/           # Curated upstream-source pointers (Gemma, HF, llama.cpp)
+│   ├── conventions/          # Coding/repo/workflow rules (normative)
+│   │   ├── code-style-python.md
+│   │   ├── code-style-shell.md
+│   │   ├── doc-update.md     # DRY registry + AGENTS/README refresh protocol
+│   │   ├── git-workflow.md
+│   │   ├── module-layering.md
+│   │   ├── slm-system-prompt.md  # Normative SLM prompt rules R-1…R-10
+│   │   └── testing.md
+│   ├── references/           # Upstream sources (notes + opt-in submodules)
+│   │   ├── gemma.md
+│   │   ├── llama-cpp.md
+│   │   ├── transformers-trl-peft.md
+│   │   ├── model-compiler-runtime.md
+│   │   └── upstream/         # git submodules (opt-in init)
+│   │       ├── gemma/        # google-deepmind/gemma (shallow)
+│   │       └── llama.cpp/    # ggml-org/llama.cpp (shallow)
+│   ├── guides/               # Human-facing how-tos
 │   ├── deployment/           # Per-target deployment runbooks (SL2619, …)
-│   └── deferred/             # Archived investigation notes
+│   ├── plans/                # Frozen historical narratives (read-only)
+│   └── bench/                # Frozen bench run records (read-only)
 └── models/
     └── gemma-3-270m-it/
         └── README.md         # Per-model analysis: IFEval, quant, prompt strategy
@@ -58,6 +70,18 @@ Requires Python ≥ 3.11 and [uv](https://github.com/astral-sh/uv).
 ```bash
 uv venv .venv && source .venv/bin/activate
 uv pip install -e ".[dev]"
+```
+
+### Optional — initialize upstream submodules
+
+`docs/references/upstream/{gemma,llama.cpp}` are git submodules pinned to
+shallow clones of their respective `main`/`master` branches. They are
+**opt-in** (`update = none` in `.gitmodules`); `git clone` does not pull them.
+Initialize only what you need:
+
+```bash
+git submodule update --init docs/references/upstream/llama.cpp
+git submodule update --init docs/references/upstream/gemma
 ```
 
 ---
@@ -110,7 +134,8 @@ ssh nouslogic-server 'cd ~/llama.cpp && python convert_hf_to_gguf.py \
 ### 4. Logits-equivalence gate
 
 Validates that the fine-tuned Q4_0 GGUF preserves token-rank vs the BF16
-reference before deploying to a target. See `docs/plans/a55-gemma-h5-logits-equivalence.md`.
+reference before deploying to a target. Frozen historical spec:
+`docs/plans/a55-gemma-h5-logits-equivalence.md`.
 
 ```bash
 # Build Q1 corpus (host)

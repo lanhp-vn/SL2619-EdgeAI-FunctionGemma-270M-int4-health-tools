@@ -5,14 +5,16 @@ the SL2619 A55 deployment. GGUF is the on-disk format we ship.
 
 ## Core sources
 
-| Source | URL | Authoritative for |
+| Source | URL / local path | Authoritative for |
 |---|---|---|
-| llama.cpp repo | <https://github.com/ggml-org/llama.cpp> | C/C++ runtime, `llama-cli`, `llama-perplexity`, `llama-quantize` |
-| `convert_hf_to_gguf.py` | <https://github.com/ggml-org/llama.cpp/blob/master/convert_hf_to_gguf.py> | HF → GGUF converter; only authoritative source for supported architectures |
-| `convert_hf_to_gguf_update.py` | <https://github.com/ggml-org/llama.cpp/blob/master/convert_hf_to_gguf_update.py> | tokenizer-pre-tokenizer registration (run after pulling new architectures) |
+| llama.cpp repo | local: [`upstream/llama.cpp/`](upstream/llama.cpp) (submodule, opt-in init); upstream: <https://github.com/ggml-org/llama.cpp> | C/C++ runtime, `llama-cli`, `llama-perplexity`, `llama-quantize` |
+| `convert_hf_to_gguf.py` | local: [`upstream/llama.cpp/convert_hf_to_gguf.py`](upstream/llama.cpp/convert_hf_to_gguf.py); upstream: <https://github.com/ggml-org/llama.cpp/blob/master/convert_hf_to_gguf.py> | HF → GGUF converter; only authoritative source for supported architectures |
+| `convert_hf_to_gguf_update.py` | local: [`upstream/llama.cpp/convert_hf_to_gguf_update.py`](upstream/llama.cpp/convert_hf_to_gguf_update.py); upstream: <https://github.com/ggml-org/llama.cpp/blob/master/convert_hf_to_gguf_update.py> | tokenizer-pre-tokenizer registration (run after pulling new architectures) |
 | GGUF spec | <https://github.com/ggml-org/ggml/blob/master/docs/gguf.md> | binary layout, metadata keys (`tokenizer.chat_template`, etc.) |
 | Conversion tutorial (community) | <https://github.com/ggml-org/llama.cpp/discussions/7927> | step-by-step HF → GGUF (updated thread) |
 | Unsloth — Gemma 3 GGUFs | <https://huggingface.co/unsloth/gemma-3-270m-it-GGUF> | reference quantized variants for parity checking |
+
+> Local submodule paths only resolve after `git submodule update --init docs/references/upstream/llama.cpp`. The submodule is opt-in (`update = none` in `.gitmodules`); on a fresh clone, the directory is empty and the upstream URL is the working source.
 
 ## Verified recipes (this repo)
 

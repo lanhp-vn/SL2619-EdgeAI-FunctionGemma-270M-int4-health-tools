@@ -27,7 +27,7 @@
 #   LLAMA_CPP_DIR         llama.cpp checkout (default: $HOME/llama.cpp)
 #
 # Conventions:
-#   docs/conventions/10-code-style-shell.md (bash 5+, set -euo pipefail, [[ ]], $(...), shellcheck-clean)
+#   docs/conventions/code-style-shell.md (bash 5+, set -euo pipefail, [[ ]], $(...), shellcheck-clean)
 
 set -euo pipefail
 IFS=$'\n\t'

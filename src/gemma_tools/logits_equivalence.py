@@ -332,7 +332,7 @@ def emit_h5r_summary(
 **Verdict: {verdict.result}** -- {verdict.reason}
 
 Same-quant cross-arch delta test (H5R, replaces the absolute H5 gate that was preserved
-verbatim in `docs/tmp/bench/2026-04-26_h5-logits-equivalence.md`). Reference is an
+verbatim in `docs/bench/2026-04-26_h5-logits-equivalence.md`). Reference is an
 x86_64 BF16 `.kld`; both candidates are Q4_0 GGUF compared against that same reference.
 
 ## Raw Metrics

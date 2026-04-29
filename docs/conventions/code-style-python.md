@@ -1,4 +1,4 @@
-# 09 — Code Style: Python
+# Code Style: Python
 
 > Governs Python 3 scripts, training helpers, evaluation harnesses, and library code in the gemma3-270M-finetune project. Baseline: **PEP 8** + **PEP 484** (type hints) + **PEP 621** (pyproject.toml packaging).
 
@@ -47,7 +47,7 @@ src/
 │   ├── bench_eval.py         # eval loop (WER, F1, ROUGE)
 │   ├── bench_prompt.py       # bench prompt generator
 │   ├── bench_remote.py       # bench driver targeting board llama-server
-│   ├── h5_logits_equiv.py    # H5R logits-equivalence gate
+│   ├── logits_equivalence.py # KL-divergence logits-equivalence gate
 │   └── chat_probe.py         # interactive chat probe
 tests/
 ├── __init__.py

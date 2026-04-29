@@ -21,11 +21,14 @@ mounted as a git submodule at `SynapticSL2619/models/gemma-3-270m-it`.
 | `scripts/server-bootstrap.sh` | Idempotent Ubuntu server setup (CUDA + SFT stack) |
 | `scripts/chat_remote.sh` | Interactive chat via llama-server on board |
 | `data/` | Health-QA YAML, SFT datasets (sft_v1*.jsonl), prompt templates |
-| `docs/plans/` | Fine-tune and eval plans |
-| `docs/bench/` | Frozen bench run records |
-| `docs/references/` | Curated upstream sources (Gemma, HF, llama.cpp) |
+| `docs/conventions/` | Normative coding/repo/workflow rules (Python, shell, testing, git, doc-update, module-layering, SLM-prompt) |
+| `docs/references/` | Upstream sources — note files + opt-in submodules under `upstream/{gemma,llama.cpp}` |
+| `docs/guides/` | Human-facing how-tos (e.g. fine-tune best practices) |
+| `docs/plans/` | Frozen historical narratives (read-only; carried over from SynapticSL2619) |
+| `docs/bench/` | Frozen bench run records (read-only) |
 | `docs/deployment/sl2619-board.md` | SL2619 cross-compile + deploy runbook |
 | `docs/conventions/slm-system-prompt.md` | Normative SLM prompt rules (R-1…R-10) |
+| `docs/conventions/doc-update.md` | DRY canonical-ownership registry; CLAUDE.md/README.md refresh protocol |
 | `models/gemma-3-270m-it/README.md` | Per-model analysis: IFEval, quantization, prompt strategy |
 
 ## Workflows
@@ -65,8 +68,12 @@ ssh nouslogic-server 'cd ~/sl2619-finetune && source .venv/bin/activate && pytho
   Use explicit `git add -f` only for intentional small fixtures (e.g. tokenizer config).
 - **Tests before any data pipeline change** — run `uv run pytest` and confirm green
   before editing `sft_dataset.py`, `health_table.py`, or the YAML schema.
-- **SSH to board is read-only** — follow SynapticSL2619 R3; deployment commands
-  are emitted for the user, never run autonomously.
+- **SSH to board is read-only** — deployment commands are emitted for the user
+  to run, never executed autonomously.
 - **Prompt template is the SFT contract** — `scripts/finetune.py:_to_prompt_completion`
   is the single source of truth for training-time prompt shape. `smoke_test.py` and
   `bench_prompt.py` must replicate it exactly; divergence creates a tokenization artifact.
+- **Submodules are opt-in** — `docs/references/upstream/{gemma,llama.cpp}` are
+  shallow git submodules with `update = none`. A fresh clone does not pull them.
+  Initialize on demand with
+  `git submodule update --init docs/references/upstream/<name>`.

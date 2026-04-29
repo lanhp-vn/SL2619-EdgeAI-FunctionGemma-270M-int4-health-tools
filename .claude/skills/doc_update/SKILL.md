@@ -5,7 +5,7 @@ description: Refresh CLAUDE.md (agent self-reference) and README.md (human-facin
 
 # doc_update
 
-Keep `CLAUDE.md` and `README.md` at the repo root synchronized with the current state of the codebase. This skill is the invokable form of the **Documentation Update Protocol** in `docs/conventions/13-documentation-update-protocol.md` — that file holds the normative content. This skill is the thin hand-off.
+Keep `CLAUDE.md` and `README.md` at the repo root synchronized with the current state of the codebase. This skill is the invokable form of the **Documentation Update Protocol** in `docs/conventions/doc-update.md` — that file holds the normative content. This skill is the thin hand-off.
 
 ## Invocation
 
@@ -18,7 +18,7 @@ User runs `/doc_update`. The agent follows the steps below.
 Before doing anything, read the normative protocol once so the behavior matches the written rules:
 
 ```
-docs/conventions/13-documentation-update-protocol.md
+docs/conventions/doc-update.md
 ```
 
 If the procedure below diverges from that file, the file wins. Raise the inconsistency instead of proceeding.
@@ -37,27 +37,26 @@ training data, repo layout, references), skip pre-flight and proceed to §3.
 
 Per §3 of the protocol:
 
-1. Project root is `/home/lanhp-wsl/nouslogic/SynapticSL2619`.
+1. Project root is `/home/lanhp-wsl/nouslogic/gemma3-270M-finetune`.
 2. Read these files in parallel (use batched `Read` calls):
    - `CLAUDE.md` (current content, if any)
    - `README.md` (current content, if any)
-   - `docs/conventions/00-iron-laws.md`
-   - `docs/conventions/01-architecture.md`
-   - `docs/plans/plan.md`
-   - `docs/tmp/sl2619-status.md` (the canonical live-board snapshot; run `/board_probe` first if stale)
+   - `docs/conventions/doc-update.md` (DRY registry + protocol)
+   - `docs/conventions/slm-system-prompt.md` (normative SLM rules)
 3. Scan the codebase:
-   - `ls a55/ m52-firmware/ tools/ scripts/` — which subsystems exist on disk? (Empty means "planned, not yet implemented".)
+   - `ls src/gemma_tools/ scripts/ data/` — which modules / scripts / data files exist?
    - `git log --oneline -20` — recent activity.
    - `git status` — in-flight work.
+   - `git submodule status` — pinned upstream commits.
 4. Identify the gap between current docs and current state. List each discrepancy before drafting.
 
 ### 4. Draft CLAUDE.md updates
 
 Per §4 of the protocol:
 
-- Target length: **≤ 300 lines**.
-- Required sections: project overview, Iron Laws TL;DR, directory tree, dual-domain map, common workflows, testing cheat sheet, tech-debt, pointers into `docs/conventions/`.
-- **Summarize** Iron Laws; do not duplicate normative text. Point to `docs/conventions/00-iron-laws.md` for the full version.
+- Target length: **≤ 150 lines**.
+- Required sections: repository purpose, key paths, workflows, discipline.
+- **Summarize** rules; do not duplicate normative text. Point to `docs/conventions/` for the full version.
 - Distinguish **current** state from **planned** state explicitly.
 - **Format for Notion compatibility** per §6 below — apply before presenting.
 
@@ -117,7 +116,7 @@ On approval:
 
 1. Use the `Write` tool to replace `CLAUDE.md` and `README.md` at the repo root.
 2. Do **not** commit automatically. Prompt the user: "Ready to commit as `docs: refresh CLAUDE.md and README.md for <change summary>`? (y/n)"
-3. On yes, create the commit per `docs/conventions/12-git-workflow.md` conventions.
+3. On yes, create the commit per `docs/conventions/git-workflow.md` conventions.
 
 ## What this skill does NOT do
 
@@ -130,4 +129,4 @@ On approval:
 
 ## Consistency
 
-If the normative protocol in `docs/conventions/13-documentation-update-protocol.md` is updated, this SKILL.md's hand-off instructions are reviewed in the same PR for consistency.
+If the normative protocol in `docs/conventions/doc-update.md` is updated, this SKILL.md's hand-off instructions are reviewed in the same PR for consistency.

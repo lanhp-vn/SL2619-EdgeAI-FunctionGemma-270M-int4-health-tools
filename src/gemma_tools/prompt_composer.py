@@ -14,7 +14,7 @@ The directive-form template below is the single source of truth for SLM
 prompts; changes land with test updates in the same commit.
 
 Time injection: `compose_prompt` accepts `now: date` so date-injection tests
-stay deterministic per docs/conventions/11-testing-verification.md §3.3
+stay deterministic per docs/conventions/testing.md §3.3
 ("inject time, never sleep"). The composer never calls `date.today()`.
 """
 
