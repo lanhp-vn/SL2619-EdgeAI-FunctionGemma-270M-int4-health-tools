@@ -10,3 +10,117 @@
 	branch = main
 	shallow = true
 	update = none
+[submodule "docs/references/upstream/Synaptics/configs"]
+	path = docs/references/upstream/Synaptics/configs
+	url = https://github.com/synaptics-astra/configs
+	update = none
+	shallow = true
+	ignore = dirty
+[submodule "docs/references/upstream/Synaptics/synap-python"]
+	path = docs/references/upstream/Synaptics/synap-python
+	url = https://github.com/synaptics-synap/synap-python
+	update = none
+	shallow = true
+	ignore = dirty
+[submodule "docs/references/upstream/Synaptics/linux-drivers-synaptics"]
+	path = docs/references/upstream/Synaptics/linux-drivers-synaptics
+	url = https://github.com/synaptics-astra/linux_6_12-drivers-synaptics
+	update = none
+	shallow = true
+	ignore = dirty
+[submodule "docs/references/upstream/Synaptics/synap-framework"]
+	path = docs/references/upstream/Synaptics/synap-framework
+	url = https://github.com/synaptics-astra/synap-framework.git
+	update = none
+	shallow = true
+	ignore = dirty
+[submodule "docs/references/upstream/Synaptics/gstreamer-plugins-syna"]
+	path = docs/references/upstream/Synaptics/gstreamer-plugins-syna
+	url = https://github.com/synaptics-astra/application-gstreamer-plugins-syna
+	update = none
+	shallow = true
+	ignore = dirty
+[submodule "docs/references/upstream/Synaptics/torq-examples"]
+	path = docs/references/upstream/Synaptics/torq-examples
+	url = https://github.com/synaptics-torq/torq-examples.git
+	update = none
+	shallow = true
+	ignore = dirty
+[submodule "docs/references/upstream/Synaptics/synap-toolkit"]
+	path = docs/references/upstream/Synaptics/synap-toolkit
+	url = https://github.com/synaptics-synap/toolkit
+	update = none
+	shallow = true
+	ignore = dirty
+[submodule "docs/references/upstream/Synaptics/synap-doc"]
+	path = docs/references/upstream/Synaptics/synap-doc
+	url = https://github.com/synaptics-synap/doc.git
+	update = none
+	shallow = true
+	ignore = dirty
+[submodule "docs/references/upstream/Synaptics/sdk"]
+	path = docs/references/upstream/Synaptics/sdk
+	url = https://github.com/synaptics-astra/sdk.git
+	update = none
+	shallow = true
+	ignore = dirty
+[submodule "docs/references/upstream/Synaptics/astra-update"]
+	path = docs/references/upstream/Synaptics/astra-update
+	url = https://github.com/synaptics-astra/astra-update
+	update = none
+	shallow = true
+	ignore = dirty
+[submodule "docs/references/upstream/Synaptics/synap-runtime"]
+	path = docs/references/upstream/Synaptics/synap-runtime
+	url = https://github.com/synaptics-synap/runtime
+	update = none
+	shallow = true
+	ignore = dirty
+[submodule "docs/references/upstream/Synaptics/astra-doc"]
+	path = docs/references/upstream/Synaptics/astra-doc
+	url = https://github.com/synaptics-astra/doc.git
+	update = none
+	shallow = true
+	ignore = dirty
+[submodule "docs/references/upstream/Synaptics/boot"]
+	path = docs/references/upstream/Synaptics/boot
+	url = https://github.com/synaptics-astra/boot.git
+	update = none
+	shallow = true
+	ignore = dirty
+[submodule "docs/references/upstream/Synaptics/torq-tools"]
+	path = docs/references/upstream/Synaptics/torq-tools
+	url = https://github.com/synaptics-torq/torq-tools.git
+	update = none
+	shallow = true
+	ignore = dirty
+[submodule "docs/references/upstream/Synaptics/usb-tool"]
+	path = docs/references/upstream/Synaptics/usb-tool
+	url = https://github.com/synaptics-astra/usb-tool.git
+	update = none
+	shallow = true
+	ignore = dirty
+[submodule "docs/references/upstream/Synaptics/synap-examples"]
+	path = docs/references/upstream/Synaptics/synap-examples
+	url = https://github.com/synaptics-synap/examples
+	update = none
+	shallow = true
+	ignore = dirty
+[submodule "docs/references/upstream/Synaptics/torq-compiler"]
+	path = docs/references/upstream/Synaptics/torq-compiler
+	url = https://github.com/synaptics-torq/torq-compiler.git
+	update = none
+	shallow = true
+	ignore = dirty
+[submodule "docs/references/upstream/Synaptics/synap-release"]
+	path = docs/references/upstream/Synaptics/synap-release
+	url = https://github.com/synaptics-astra/synap-release
+	update = none
+	shallow = true
+	ignore = dirty
+[submodule "docs/references/upstream/Synaptics/synap-rt"]
+	path = docs/references/upstream/Synaptics/synap-rt
+	url = https://github.com/synaptics-synap/synap-rt
+	update = none
+	shallow = true
+	ignore = dirty
