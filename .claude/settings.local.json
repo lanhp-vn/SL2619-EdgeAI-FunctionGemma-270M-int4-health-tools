@@ -159,7 +159,8 @@
       "Bash(mkdir -p /home/lanhp-wsl/nouslogic/gemma3-270M-finetune/scripts)",
       "Bash(mkdir -p /home/lanhp-wsl/nouslogic/gemma3-270M-finetune/data)",
       "Bash(mkdir -p /home/lanhp-wsl/nouslogic/gemma3-270M-finetune/docs/conventions)",
-      "Bash(mkdir -p /home/lanhp-wsl/nouslogic/gemma3-270M-finetune/docs/plans)"
+      "Bash(mkdir -p /home/lanhp-wsl/nouslogic/gemma3-270M-finetune/docs/plans)",
+      "Bash(chmod +x *)"
     ],
     "deny": [
       "Bash(rm -rf:*)",

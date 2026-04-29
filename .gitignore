@@ -27,3 +27,12 @@ checkpoints/
 # Secrets
 .env
 *.local
+
+# Synaptics reference submodule build artifacts
+# (submodules are update=none; these patterns guard against accidental staging if initialized)
+docs/references/upstream/Synaptics/*/build/
+docs/references/upstream/Synaptics/*/dist/
+docs/references/upstream/Synaptics/*/out/
+docs/references/upstream/Synaptics/*/*.ko
+docs/references/upstream/Synaptics/*/Module.symvers
+docs/references/upstream/Synaptics/*/modules.order
