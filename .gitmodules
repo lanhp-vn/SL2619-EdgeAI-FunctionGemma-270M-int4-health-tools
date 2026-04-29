@@ -1,0 +1,8 @@
+[submodule "docs/references/upstream/llama.cpp"]
+	path = docs/references/upstream/llama.cpp
+	url = https://github.com/ggml-org/llama.cpp
+	branch = master
+[submodule "docs/references/upstream/gemma"]
+	path = docs/references/upstream/gemma
+	url = https://github.com/google-deepmind/gemma
+	branch = main
