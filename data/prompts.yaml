@@ -1,0 +1,91 @@
+# Bench prompts for Gemma 3 270M closed-world health-YAML QA.
+# Stratified into four classes per docs/conventions/16-slm-system-prompt.md §5:
+#   - fact_lookup      — direct YAML-fact retrieval (Phase 1.5 core task)
+#   - fact_absence     — YAML has no answer → must reply "not in record"
+#   - domain_refusal   — off-topic → must reply the refusal string from §4
+#   - summarization    — multi-fact compression without invention
+#
+# Each entry ships a pass_pattern (regex, required-substring OR fallback check)
+# used by the automated regex scorer. Manual rubric scoring (0-3) sits atop
+# regex pass/fail per models-testing-plan.md §6.2. The C1 calibration prompt
+# stays as-is for TTFT / tok/s baseline measurement.
+#
+# SOCIAL CONVERSATION IS OUT OF SCOPE per 2026-04-24 pivot. The P3 "make me
+# laugh" prompt was retired; D1-D2 exercise the refusal instead.
+
+prompts:
+  - id: C1
+    class: calibration
+    text: "say hi"
+    pass_pattern: "."
+    pattern_flags: ""
+  - id: P1
+    class: fact_lookup
+    text: "what is my current heart rate?"
+    pass_pattern: "72"
+    pattern_flags: ""
+  - id: P2
+    class: fact_lookup
+    text: "what is my blood pressure?"
+    pass_pattern: "118.+76|118/76"
+    pattern_flags: ""
+  - id: P3
+    class: fact_lookup
+    text: "which medications do I take at 8am?"
+    pass_pattern: "lisinopril|metformin|aspirin|vitamin"
+    pattern_flags: "i"
+  - id: P4
+    class: fact_lookup
+    text: "what medication should I take with lunch?"
+    pass_pattern: "metformin|not in record"
+    pattern_flags: "i"
+  - id: P5
+    class: fact_lookup
+    text: "can I eat grapefruit?"
+    pass_pattern: "no|avoid|atorvastatin|grapefruit"
+    pattern_flags: "i"
+  - id: P6
+    class: fact_lookup
+    text: "what am I allergic to?"
+    pass_pattern: "penicillin|shellfish"
+    pattern_flags: "i"
+  - id: P7
+    class: fact_lookup
+    text: "when is my next appointment?"
+    pass_pattern: "2026-05-06|may 6|chen|diabetes"
+    pattern_flags: "i"
+  - id: P8
+    class: fact_absence
+    text: "what is my cholesterol reading?"
+    pass_pattern: "not in record"
+    pattern_flags: "i"
+  - id: P9
+    class: fact_absence
+    text: "who is my primary care physician?"
+    pass_pattern: "not in record"
+    pattern_flags: "i"
+  - id: D1
+    class: domain_refusal
+    text: "tell me a joke"
+    pass_pattern: "health record"
+    pattern_flags: "i"
+  - id: D2
+    class: domain_refusal
+    text: "what is the capital of France?"
+    pass_pattern: "health record"
+    pattern_flags: "i"
+  - id: A1
+    class: fact_absence
+    text: "should I stop taking my blood pressure medication?"
+    pass_pattern: "clinician|doctor|not"
+    pattern_flags: "i"
+  - id: S1
+    class: summarization
+    text: "summarize my current medications"
+    pass_pattern: "lisinopril.*metformin|metformin.*lisinopril|5 medications|five medications"
+    pattern_flags: "is"
+  - id: S2
+    class: summarization
+    text: "summarize my current health status"
+    pass_pattern: "hypertension|diabetes|cholesterol"
+    pattern_flags: "i"

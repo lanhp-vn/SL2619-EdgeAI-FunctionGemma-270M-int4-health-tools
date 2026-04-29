@@ -1,0 +1,110 @@
+{"messages": [{"role": "user", "content": "what is my heart rate?"}, {"role": "assistant", "content": "72 bpm."}]}
+{"messages": [{"role": "user", "content": "heart rate pls"}, {"role": "assistant", "content": "72 bpm."}]}
+{"messages": [{"role": "user", "content": "HR?"}, {"role": "assistant", "content": "72 bpm."}]}
+{"messages": [{"role": "user", "content": "what is my blood type"}, {"role": "assistant", "content": "O+."}]}
+{"messages": [{"role": "user", "content": "blood type?"}, {"role": "assistant", "content": "O+."}]}
+{"messages": [{"role": "user", "content": "what is my blood pressure?"}, {"role": "assistant", "content": "118/76 mmHg."}]}
+{"messages": [{"role": "user", "content": "BP reading"}, {"role": "assistant", "content": "118/76 mmHg."}]}
+{"messages": [{"role": "user", "content": "where is my next appointment?"}, {"role": "assistant", "content": "Maple Clinic, Room 204."}]}
+{"messages": [{"role": "user", "content": "what is my LDL number?"}, {"role": "assistant", "content": "not in record"}]}
+{"messages": [{"role": "user", "content": "what is my cholesterol lab value?"}, {"role": "assistant", "content": "not in record"}]}
+{"messages": [{"role": "user", "content": "tell me a joke"}, {"role": "assistant", "content": "I answer questions from your health record only"}]}
+{"messages": [{"role": "user", "content": "what is the capital of France?"}, {"role": "assistant", "content": "I answer questions from your health record only"}]}
+{"messages": [{"role": "user", "content": "summarize my medications"}, {"role": "assistant", "content": "Lisinopril 10 mg at 08:00, Metformin 500 mg at 08:00, 19:00, Atorvastatin 20 mg at 21:00, Aspirin 81 mg at 08:00, and Vitamin D3 1000 IU at 08:00 are listed. Their purposes are blood pressure control, blood sugar control, cholesterol control, cardiovascular protection, and bone health."}]}
+{"messages": [{"role": "user", "content": "what is my blood type?"}, {"role": "assistant", "content": "O+."}]}
+{"messages": [{"role": "user", "content": "blood type pls"}, {"role": "assistant", "content": "O+."}]}
+{"messages": [{"role": "user", "content": "what is my systolic BP?"}, {"role": "assistant", "content": "118."}]}
+{"messages": [{"role": "user", "content": "bp reading?"}, {"role": "assistant", "content": "118/76."}]}
+{"messages": [{"role": "user", "content": "Can I eat grapefruit anyway?"}, {"role": "assistant", "content": "consult your clinician. dietary_restrictions: no grapefruit, reason: atorvastatin interaction."}]}
+{"messages": [{"role": "user", "content": "summarize my medications"}, {"role": "assistant", "content": "Lisinopril 10 mg at 08:00; Metformin 500 mg at 08:00, 19:00; Atorvastatin 20 mg at 21:00; Aspirin 81 mg at 08:00; Vitamin D3 1000 IU at 08:00."}]}
+{"messages": [{"role": "user", "content": "summarize my conditions"}, {"role": "assistant", "content": "Hypertension: moderate, controlled true; Type 2 Diabetes: mild, controlled true; High Cholesterol: mild, controlled true."}]}
+{"messages": [{"role": "user", "content": "what's my blood type"}, {"role": "assistant", "content": "O+."}]}
+{"messages": [{"role": "user", "content": "diabetes appt location"}, {"role": "assistant", "content": "Maple Clinic, Room 204."}]}
+{"messages": [{"role": "user", "content": "blood pressure"}, {"role": "assistant", "content": "118/76 mmHg."}]}
+{"messages": [{"role": "user", "content": "what's the capital of France"}, {"role": "assistant", "content": "I answer questions from your health record only"}]}
+{"messages": [{"role": "user", "content": "summarize my medications"}, {"role": "assistant", "content": "Five daily medications: Lisinopril 10 mg, Metformin 500 mg, Atorvastatin 20 mg, Aspirin 81 mg, and Vitamin D3 1000 IU."}]}
+{"messages": [{"role": "user", "content": "summarize my conditions"}, {"role": "assistant", "content": "Hypertension, Type 2 Diabetes, and High Cholesterol — all controlled."}]}
+{"messages": [{"role": "user", "content": "when is my next visit"}, {"role": "assistant", "content": "2026-05-06 at 10:30 with Dr. Evelyn Chen."}]}
+{"messages": [{"role": "user", "content": "What is my blood type?"}, {"role": "assistant", "content": "Your blood type is O+."}]}
+{"messages": [{"role": "user", "content": "My heart rate?"}, {"role": "assistant", "content": "Your heart rate is 72 bpm."}]}
+{"messages": [{"role": "user", "content": "what is my resting HR"}, {"role": "assistant", "content": "Your heart rate is 72 bpm."}]}
+{"messages": [{"role": "user", "content": "latest bp reading"}, {"role": "assistant", "content": "Your blood pressure is 118/76."}]}
+{"messages": [{"role": "user", "content": "who is my primary care physician"}, {"role": "assistant", "content": "not in record"}]}
+{"messages": [{"role": "user", "content": "what is my exact cholesterol number"}, {"role": "assistant", "content": "not in record"}]}
+{"messages": [{"role": "user", "content": "what is the capital of france"}, {"role": "assistant", "content": "I answer questions from your health record only"}]}
+{"messages": [{"role": "user", "content": "summarize my medical conditions"}, {"role": "assistant", "content": "You have moderate Hypertension, mild Type 2 Diabetes, and mild High Cholesterol, all of which are controlled."}]}
+{"messages": [{"role": "user", "content": "summarize my daily medications"}, {"role": "assistant", "content": "You take Lisinopril, Aspirin, Vitamin D3, and Metformin at 08:00, Metformin again at 19:00, and Atorvastatin at 21:00."}]}
+{"messages": [{"role": "user", "content": "when is my next appointment from today"}, {"role": "assistant", "content": "Your next appointment is on 2026-05-06 at 10:30 with Dr. Evelyn Chen."}]}
+{"messages": [{"role": "user", "content": "Heart rate please"}, {"role": "assistant", "content": "72 bpm."}]}
+{"messages": [{"role": "user", "content": "current HR?"}, {"role": "assistant", "content": "72 bpm."}]}
+{"messages": [{"role": "user", "content": "tell me my blood pressure"}, {"role": "assistant", "content": "118/76 mmHg."}]}
+{"messages": [{"role": "user", "content": "BP reading?"}, {"role": "assistant", "content": "118/76 mmHg."}]}
+{"messages": [{"role": "user", "content": "what is my cholesterol level number"}, {"role": "assistant", "content": "not in record"}]}
+{"messages": [{"role": "user", "content": "summarize my medications"}, {"role": "assistant", "content": "Lisinopril 10 mg 08:00 blood pressure control, Metformin 500 mg 08:00 19:00 blood sugar control, Atorvastatin 20 mg 21:00 cholesterol control, Aspirin 81 mg 08:00 cardiovascular protection, Vitamin D3 1000 IU 08:00 bone health."}]}
+{"messages": [{"role": "user", "content": "what is my heart rate?"}, {"role": "assistant", "content": "Your heart rate is 72 bpm."}]}
+{"messages": [{"role": "user", "content": "whats my HR"}, {"role": "assistant", "content": "Your heart rate is 72 bpm."}]}
+{"messages": [{"role": "user", "content": "tell me my blood type"}, {"role": "assistant", "content": "Your blood type is O+."}]}
+{"messages": [{"role": "user", "content": "what is my blood pressure"}, {"role": "assistant", "content": "Your blood pressure is 118/76."}]}
+{"messages": [{"role": "user", "content": "give me my BP reading"}, {"role": "assistant", "content": "Your blood pressure is 118/76."}]}
+{"messages": [{"role": "user", "content": "what is my next appointment date"}, {"role": "assistant", "content": "Your next appointment is on 2026-05-06 at 10:30."}]}
+{"messages": [{"role": "user", "content": "who is my next appointment with"}, {"role": "assistant", "content": "Your next appointment is with Dr. Evelyn Chen."}]}
+{"messages": [{"role": "user", "content": "where is my next appointment"}, {"role": "assistant", "content": "Your next appointment is at Maple Clinic, Room 204."}]}
+{"messages": [{"role": "user", "content": "what is my cholesterol level"}, {"role": "assistant", "content": "not in record"}]}
+{"messages": [{"role": "user", "content": "summarize all my medications"}, {"role": "assistant", "content": "You take Lisinopril 10 mg (blood pressure), Metformin 500 mg twice daily (blood sugar), Atorvastatin 20 mg at night (cholesterol), Aspirin 81 mg (cardiovascular protection), and Vitamin D3 1000 IU (bone health)."}]}
+{"messages": [{"role": "user", "content": "when is my next appointment"}, {"role": "assistant", "content": "Your next appointment is the quarterly diabetes check-up on 2026-05-06 at 10:30 with Dr. Evelyn Chen at Maple Clinic, Room 204."}]}
+{"messages": [{"role": "user", "content": "heart rate?"}, {"role": "assistant", "content": "72 bpm."}]}
+{"messages": [{"role": "user", "content": "whats my pulse"}, {"role": "assistant", "content": "72 bpm."}]}
+{"messages": [{"role": "user", "content": "how fast is my heart beating"}, {"role": "assistant", "content": "72 bpm."}]}
+{"messages": [{"role": "user", "content": "hr value"}, {"role": "assistant", "content": "72 bpm."}]}
+{"messages": [{"role": "user", "content": "my blood pressure?"}, {"role": "assistant", "content": "118/76 mmHg."}]}
+{"messages": [{"role": "user", "content": "what is my BP reading"}, {"role": "assistant", "content": "118/76 mmHg."}]}
+{"messages": [{"role": "user", "content": "blood type"}, {"role": "assistant", "content": "O+."}]}
+{"messages": [{"role": "user", "content": "type and rh factor"}, {"role": "assistant", "content": "O+."}]}
+{"messages": [{"role": "user", "content": "what is my ldl cholesterol reading?"}, {"role": "assistant", "content": "not in record"}]}
+{"messages": [{"role": "user", "content": "who is my primary care physician?"}, {"role": "assistant", "content": "not in record"}]}
+{"messages": [{"role": "user", "content": "summarize my medications."}, {"role": "assistant", "content": "Lisinopril 10 mg at 08:00 for blood pressure control; Metformin 500 mg at 08:00 and 19:00 with food for blood sugar control; Atorvastatin 20 mg at 21:00 for cholesterol control; Aspirin 81 mg at 08:00 with food for cardiovascular protection; Vitamin D3 1000 IU at 08:00 with food for bone health."}]}
+{"messages": [{"role": "user", "content": "when is my next visit?"}, {"role": "assistant", "content": "2026-05-06 at 10:30 with Dr. Evelyn Chen."}]}
+{"messages": [{"role": "user", "content": "how soon is my next appointment?"}, {"role": "assistant", "content": "Your next appointment is in 11 days on 2026-05-06."}]}
+{"messages": [{"role": "user", "content": "my blood type?"}, {"role": "assistant", "content": "O+."}]}
+{"messages": [{"role": "user", "content": "what's my blood pressure?"}, {"role": "assistant", "content": "118/76."}]}
+{"messages": [{"role": "user", "content": "what is my next appointment for?"}, {"role": "assistant", "content": "Quarterly diabetes check-up."}]}
+{"messages": [{"role": "user", "content": "blood type again?"}, {"role": "assistant", "content": "O+."}]}
+{"messages": [{"role": "user", "content": "what's my pulse?"}, {"role": "assistant", "content": "72 bpm."}]}
+{"messages": [{"role": "user", "content": "systolic bp?"}, {"role": "assistant", "content": "118."}]}
+{"messages": [{"role": "user", "content": "diabetes check-up location?"}, {"role": "assistant", "content": "Maple Clinic, Room 204."}]}
+{"messages": [{"role": "user", "content": "next appointment date and provider?"}, {"role": "assistant", "content": "2026-05-06 at 10:30 with Dr. Evelyn Chen."}]}
+{"messages": [{"role": "user", "content": "what's the capital of France?"}, {"role": "assistant", "content": "I answer questions from your health record only"}]}
+{"messages": [{"role": "user", "content": "summarize my medical conditions"}, {"role": "assistant", "content": "You have Hypertension (moderate), Type 2 Diabetes (mild), and High Cholesterol (mild), all controlled."}]}
+{"messages": [{"role": "user", "content": "when is my next appointment?"}, {"role": "assistant", "content": "2026-05-06 at 10:30 with Dr. Evelyn Chen."}]}
+{"messages": [{"role": "user", "content": "Who is listed as my primary care physician?"}, {"role": "assistant", "content": "not in record"}]}
+{"messages": [{"role": "user", "content": "Summarize my current vital signs."}, {"role": "assistant", "content": "Your vitals show heart rate \"72\" bpm, blood pressure \"118\"/\"76\" mmHg, SpO2 \"98\"%, body temperature \"36.7\" °C, and respiratory rate \"16\" as of \"2026-04-24 08:15\"."}]}
+{"messages": [{"role": "user", "content": "what is my heart rate?"}, {"role": "assistant", "content": "72 bpm"}]}
+{"messages": [{"role": "user", "content": "What's my heart rate?"}, {"role": "assistant", "content": "72 bpm"}]}
+{"messages": [{"role": "user", "content": "heart rate"}, {"role": "assistant", "content": "72 bpm"}]}
+{"messages": [{"role": "user", "content": "my heart rate please"}, {"role": "assistant", "content": "72 bpm"}]}
+{"messages": [{"role": "user", "content": "How many bpm am I at?"}, {"role": "assistant", "content": "72 bpm"}]}
+{"messages": [{"role": "user", "content": "what is my blood type?"}, {"role": "assistant", "content": "O+"}]}
+{"messages": [{"role": "user", "content": "blood type?"}, {"role": "assistant", "content": "O+"}]}
+{"messages": [{"role": "user", "content": "what's my blood type"}, {"role": "assistant", "content": "O+"}]}
+{"messages": [{"role": "user", "content": "tell me my blood type"}, {"role": "assistant", "content": "O+"}]}
+{"messages": [{"role": "user", "content": "my BT is what"}, {"role": "assistant", "content": "O+"}]}
+{"messages": [{"role": "user", "content": "what medications do I take at 08:00?"}, {"role": "assistant", "content": "Lisinopril 10 mg, Aspirin 81 mg, and Vitamin D3 1000 IU"}]}
+{"messages": [{"role": "user", "content": "what is my cholesterol number?"}, {"role": "assistant", "content": "not in record"}]}
+{"messages": [{"role": "user", "content": "can I stop my blood pressure medication?"}, {"role": "assistant", "content": "consult your clinician about your hypertension management; your condition is documented as moderate and controlled with Lisinopril"}]}
+{"messages": [{"role": "user", "content": "should I eat grapefruit?"}, {"role": "assistant", "content": "consult your clinician; no grapefruit is a dietary restriction because of your Atorvastatin interaction"}]}
+{"messages": [{"role": "user", "content": "summarize my medications"}, {"role": "assistant", "content": "You take Lisinopril 10 mg, Metformin 500 mg, Atorvastatin 20 mg, Aspirin 81 mg, and Vitamin D3 1000 IU for blood pressure, blood sugar, cholesterol, cardiovascular protection, and bone health"}]}
+{"messages": [{"role": "user", "content": "summarize my conditions"}, {"role": "assistant", "content": "You have Hypertension (moderate, controlled), Type 2 Diabetes (mild, controlled), and High Cholesterol (mild, controlled)"}]}
+{"messages": [{"role": "user", "content": "recap my current medications"}, {"role": "assistant", "content": "Lisinopril 10 mg at 08:00, Metformin 500 mg at 08:00 and 19:00, Atorvastatin 20 mg at 21:00, Aspirin 81 mg at 08:00, and Vitamin D3 1000 IU at 08:00"}]}
+{"messages": [{"role": "user", "content": "when is my next appointment?"}, {"role": "assistant", "content": "2026-05-06 at 10:30 with Dr. Evelyn Chen for quarterly diabetes check-up"}]}
+{"messages": [{"role": "user", "content": "what's my next appointment date?"}, {"role": "assistant", "content": "2026-05-06"}]}
+{"messages": [{"role": "user", "content": "diabetes check-up date?"}, {"role": "assistant", "content": "2026-05-06"}]}
+{"messages": [{"role": "user", "content": "what medications should I take next?"}, {"role": "assistant", "content": "Lisinopril 10 mg, Aspirin 81 mg, and Vitamin D3 1000 IU at 08:00"}]}
+{"messages": [{"role": "user", "content": "whats my blood type"}, {"role": "assistant", "content": "O+."}]}
+{"messages": [{"role": "user", "content": "systolic bp"}, {"role": "assistant", "content": "118."}]}
+{"messages": [{"role": "user", "content": "summarize my conditions"}, {"role": "assistant", "content": "You have moderate Hypertension, mild Type 2 Diabetes, and mild High Cholesterol, all of which are controlled."}]}
+{"messages": [{"role": "user", "content": "summarize my meds"}, {"role": "assistant", "content": "You take Lisinopril, Metformin, Aspirin, and Vitamin D3 in the morning, Metformin again in the evening, and Atorvastatin at night."}]}
+{"messages": [{"role": "user", "content": "when is my next appointment after may"}, {"role": "assistant", "content": "Your next appointment after May is on 2026-06-15 with Dr. Marcus Patel."}]}
+{"messages": [{"role": "user", "content": "show my blood type"}, {"role": "assistant", "content": "O+."}]}
+{"messages": [{"role": "user", "content": "what is my systolic blood pressure"}, {"role": "assistant", "content": "118."}]}
+{"messages": [{"role": "user", "content": "what is my blood pressure reading"}, {"role": "assistant", "content": "118/76."}]}
+{"messages": [{"role": "user", "content": "summarize my medications"}, {"role": "assistant", "content": "Lisinopril 10 mg at 08:00, Metformin 500 mg at 08:00 and 19:00, Atorvastatin 20 mg at 21:00, Aspirin 81 mg at 08:00, and Vitamin D3 1000 IU at 08:00 are listed. Their purposes are blood pressure control, blood sugar control, cholesterol control, cardiovascular protection, and bone health."}]}

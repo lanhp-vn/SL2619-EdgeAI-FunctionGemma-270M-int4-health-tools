@@ -1,0 +1,113 @@
+# SL2619 closed-world health-record fixture. Single source of truth for the
+# Gemma 3 270M YAML-QA bench. Schema and loader: tools/src/sl2619_tools/health_table.py.
+#
+# Dates are ISO-8601. Times are 24h HH:MM in the patient's local timezone
+# (implicit — no timezone handling on 270M edge path). Dose strings are free-form
+# so the model quotes them verbatim ("10 mg" stays "10 mg", not "10mg") —
+# consistent with docs/conventions/16-slm-system-prompt.md §3 R-2 ("quote verbatim").
+#
+# This fixture is NOT a real patient record. It is designed to exercise each
+# prompt class: fact_lookup, fact_absence, domain_refusal, summarization.
+
+patient:
+  name: "Test Patient"
+  age: 45
+  sex: "F"
+  blood_type: "O+"
+
+vitals:
+  heart_rate_bpm: 72
+  blood_pressure_systolic: 118
+  blood_pressure_diastolic: 76
+  spo2_percent: 98
+  body_temperature_c: 36.7
+  respiratory_rate: 16
+  last_measured: "2026-04-24 08:15"
+
+conditions:
+  - name: "Hypertension"
+    diagnosed_at: "2019-03-12"
+    severity: "moderate"
+    controlled: true
+  - name: "Type 2 Diabetes"
+    diagnosed_at: "2021-06-08"
+    severity: "mild"
+    controlled: true
+  - name: "High Cholesterol"
+    diagnosed_at: "2022-01-20"
+    severity: "mild"
+    controlled: true
+
+allergies:
+  - substance: "Penicillin"
+    severity: "severe"
+    reaction: "anaphylaxis"
+  - substance: "Shellfish"
+    severity: "moderate"
+    reaction: "hives"
+
+medications:
+  - name: "Lisinopril"
+    dose: "10 mg"
+    schedule: "08:00"
+    with_food: false
+    purpose: "blood pressure control"
+    avoid_foods: []
+    avoid_drugs: ["Potassium supplements", "NSAIDs"]
+  - name: "Metformin"
+    dose: "500 mg"
+    schedule: "08:00, 19:00"
+    with_food: true
+    purpose: "blood sugar control"
+    avoid_foods: ["Alcohol"]
+    avoid_drugs: []
+  - name: "Atorvastatin"
+    dose: "20 mg"
+    schedule: "21:00"
+    with_food: false
+    purpose: "cholesterol control"
+    avoid_foods: ["Grapefruit", "Grapefruit juice"]
+    avoid_drugs: ["Erythromycin"]
+  - name: "Aspirin"
+    dose: "81 mg"
+    schedule: "08:00"
+    with_food: true
+    purpose: "cardiovascular protection"
+    avoid_foods: []
+    avoid_drugs: ["Ibuprofen", "Warfarin"]
+  - name: "Vitamin D3"
+    dose: "1000 IU"
+    schedule: "08:00"
+    with_food: true
+    purpose: "bone health"
+    avoid_foods: []
+    avoid_drugs: []
+
+dietary_restrictions:
+  - rule: "low sodium (under 2000 mg per day)"
+    reason: "hypertension management"
+  - rule: "limit added sugar"
+    reason: "diabetes management"
+  - rule: "no grapefruit"
+    reason: "atorvastatin interaction"
+
+appointments:
+  - date: "2026-05-06"
+    time: "10:30"
+    provider: "Dr. Evelyn Chen"
+    purpose: "quarterly diabetes check-up"
+    location: "Maple Clinic, Room 204"
+  - date: "2026-06-15"
+    time: "14:00"
+    provider: "Dr. Marcus Patel"
+    purpose: "annual cardiology review"
+    location: "Cardiology Dept, 3rd floor"
+
+emergency_contacts:
+  - name: "Jane Doe"
+    relation: "daughter"
+    phone: "+1-555-0142"
+
+notes:
+  - "Vitals within nominal range"
+  - "No medication interactions flagged"

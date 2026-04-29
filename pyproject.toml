@@ -1,0 +1,63 @@
+[project]
+name = "gemma-tools"
+version = "0.1.0"
+description = "Fine-tuning, evaluation, and deployment tools for Gemma 3 270M-IT on SL2619"
+requires-python = ">=3.11"
+dependencies = [
+    "pyyaml>=6.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "ruff>=0.4",
+    "mypy>=1.10",
+    "pytest>=8.0",
+    "pytest-ruff>=0.3",
+    "pytest-mypy>=0.10",
+    "hypothesis>=6.100",
+    "types-PyYAML>=6.0",
+]
+
+[project.scripts]
+bench-prompt = "gemma_tools.bench_prompt:main"
+bench-eval = "gemma_tools.bench_eval:main"
+bench-remote = "gemma_tools.bench_remote:main"
+chat-probe = "gemma_tools.chat_probe:main"
+sft-build = "gemma_tools.sft_build:main"
+h5-logits-equiv = "gemma_tools.h5_logits_equiv:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/gemma_tools"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+src = ["src"]
+cache-dir = ".cache/ruff"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "N", "UP", "B", "A", "C4", "PT", "SIM", "RUF"]
+ignore = ["E501"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+
+[tool.mypy]
+python_version = "3.11"
+strict = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+disallow_any_generics = true
+warn_return_any = true
+no_implicit_optional = true
+cache_dir = ".cache/mypy"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+cache_dir = ".cache/pytest"

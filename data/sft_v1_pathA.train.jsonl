@@ -1,0 +1,1023 @@
+{"messages": [{"role": "user", "content": "how old am i?"}, {"role": "assistant", "content": "45."}]}
+{"messages": [{"role": "user", "content": "my age"}, {"role": "assistant", "content": "45."}]}
+{"messages": [{"role": "user", "content": "sex in record?"}, {"role": "assistant", "content": "F."}]}
+{"messages": [{"role": "user", "content": "what was my oxygen saturation?"}, {"role": "assistant", "content": "98%."}]}
+{"messages": [{"role": "user", "content": "spo2?"}, {"role": "assistant", "content": "98%."}]}
+{"messages": [{"role": "user", "content": "temperature reading"}, {"role": "assistant", "content": "36.7 C."}]}
+{"messages": [{"role": "user", "content": "body temp?"}, {"role": "assistant", "content": "36.7 C."}]}
+{"messages": [{"role": "user", "content": "respiratory rate"}, {"role": "assistant", "content": "16."}]}
+{"messages": [{"role": "user", "content": "when were my vitals last measured?"}, {"role": "assistant", "content": "2026-04-24 08:15."}]}
+{"messages": [{"role": "user", "content": "last vitals time"}, {"role": "assistant", "content": "2026-04-24 08:15."}]}
+{"messages": [{"role": "user", "content": "what is my BP med?"}, {"role": "assistant", "content": "Lisinopril."}]}
+{"messages": [{"role": "user", "content": "dose for Lisinopril"}, {"role": "assistant", "content": "10 mg."}]}
+{"messages": [{"role": "user", "content": "metformin dose"}, {"role": "assistant", "content": "500 mg."}]}
+{"messages": [{"role": "user", "content": "metformin timing"}, {"role": "assistant", "content": "08:00, 19:00."}]}
+{"messages": [{"role": "user", "content": "when is atorvastatin scheduled"}, {"role": "assistant", "content": "21:00."}]}
+{"messages": [{"role": "user", "content": "aspirin dose pls"}, {"role": "assistant", "content": "81 mg."}]}
+{"messages": [{"role": "user", "content": "what time is aspirin"}, {"role": "assistant", "content": "08:00."}]}
+{"messages": [{"role": "user", "content": "vitamin d3 dose"}, {"role": "assistant", "content": "1000 IU."}]}
+{"messages": [{"role": "user", "content": "when do i take Vitamin D3?"}, {"role": "assistant", "content": "08:00."}]}
+{"messages": [{"role": "user", "content": "does Lisinopril need food?"}, {"role": "assistant", "content": "false."}]}
+{"messages": [{"role": "user", "content": "what is my diabetes condition called?"}, {"role": "assistant", "content": "Type 2 Diabetes."}]}
+{"messages": [{"role": "user", "content": "cholesterol condition name"}, {"role": "assistant", "content": "High Cholesterol."}]}
+{"messages": [{"role": "user", "content": "my bp condition?"}, {"role": "assistant", "content": "Hypertension."}]}
+{"messages": [{"role": "user", "content": "who is my next provider?"}, {"role": "assistant", "content": "Dr. Evelyn Chen."}]}
+{"messages": [{"role": "user", "content": "next appointment date"}, {"role": "assistant", "content": "2026-05-06."}]}
+{"messages": [{"role": "user", "content": "next appointment time"}, {"role": "assistant", "content": "10:30."}]}
+{"messages": [{"role": "user", "content": "emergency contact name"}, {"role": "assistant", "content": "Jane Doe."}]}
+{"messages": [{"role": "user", "content": "emergency contact phone"}, {"role": "assistant", "content": "+1-555-0142."}]}
+{"messages": [{"role": "user", "content": "what is the reaction to penicillin?"}, {"role": "assistant", "content": "anaphylaxis."}]}
+{"messages": [{"role": "user", "content": "what meds do i take at 08:00 and what are they for?"}, {"role": "assistant", "content": "Lisinopril at 08:00 for blood pressure control, Metformin at 08:00, 19:00 for blood sugar control, Aspirin at 08:00 for cardiovascular protection, and Vitamin D3 at 08:00 for bone health."}]}
+{"messages": [{"role": "user", "content": "list my allergies with severity"}, {"role": "assistant", "content": "Penicillin is severe with anaphylaxis, and Shellfish is moderate with hives."}]}
+{"messages": [{"role": "user", "content": "which medicine is for cholesterol and when do i take it?"}, {"role": "assistant", "content": "Atorvastatin is for cholesterol control and is scheduled at 21:00."}]}
+{"messages": [{"role": "user", "content": "what should i avoid with aspirin?"}, {"role": "assistant", "content": "Aspirin avoids Ibuprofen and Warfarin."}]}
+{"messages": [{"role": "user", "content": "tell me my blood pressure and heart rate"}, {"role": "assistant", "content": "118/76 mmHg and 72 bpm."}]}
+{"messages": [{"role": "user", "content": "what is my next appointment with provider and location?"}, {"role": "assistant", "content": "2026-05-06 10:30 with Dr. Evelyn Chen at Maple Clinic, Room 204."}]}
+{"messages": [{"role": "user", "content": "which conditions are controlled?"}, {"role": "assistant", "content": "Hypertension is controlled true, Type 2 Diabetes is controlled true, and High Cholesterol is controlled true."}]}
+{"messages": [{"role": "user", "content": "give my conditions with diagnosed dates"}, {"role": "assistant", "content": "Hypertension was diagnosed_at 2019-03-12, Type 2 Diabetes was diagnosed_at 2021-06-08, and High Cholesterol was diagnosed_at 2022-01-20."}]}
+{"messages": [{"role": "user", "content": "which meds need food and what are their doses?"}, {"role": "assistant", "content": "Metformin 500 mg with_food true, Aspirin 81 mg with_food true, and Vitamin D3 1000 IU with_food true."}]}
+{"messages": [{"role": "user", "content": "which meds do not need food and what are their schedules?"}, {"role": "assistant", "content": "Lisinopril with_food false at 08:00, and Atorvastatin with_food false at 21:00."}]}
+{"messages": [{"role": "user", "content": "what are my dietary restrictions and reasons?"}, {"role": "assistant", "content": "low sodium (under 2000 mg per day) for hypertension management, limit added sugar for diabetes management, and no grapefruit for atorvastatin interaction."}]}
+{"messages": [{"role": "user", "content": "who is my emergency contact and relation?"}, {"role": "assistant", "content": "Jane Doe, daughter."}]}
+{"messages": [{"role": "user", "content": "what is the shellfish allergy severity and reaction?"}, {"role": "assistant", "content": "Shellfish is moderate with hives."}]}
+{"messages": [{"role": "user", "content": "what is the penicillin allergy severity and reaction?"}, {"role": "assistant", "content": "Penicillin is severe with anaphylaxis."}]}
+{"messages": [{"role": "user", "content": "tell me the diabetes appointment date time and purpose"}, {"role": "assistant", "content": "2026-05-06 at 10:30 for quarterly diabetes check-up."}]}
+{"messages": [{"role": "user", "content": "give the cardiology review date time and provider"}, {"role": "assistant", "content": "2026-06-15 at 14:00 with Dr. Marcus Patel."}]}
+{"messages": [{"role": "user", "content": "which medication has a grapefruit rule and what is the dose?"}, {"role": "assistant", "content": "Atorvastatin has avoid_foods Grapefruit and Grapefruit juice, and the dose is 20 mg."}]}
+{"messages": [{"role": "user", "content": "what medicine is for blood pressure control and what drug interactions are listed?"}, {"role": "assistant", "content": "Lisinopril is for blood pressure control and avoids Potassium supplements and NSAIDs."}]}
+{"messages": [{"role": "user", "content": "what medicine is for blood sugar control and what food should i avoid?"}, {"role": "assistant", "content": "Metformin is for blood sugar control and avoids Alcohol."}]}
+{"messages": [{"role": "user", "content": "what is my last A1c?"}, {"role": "assistant", "content": "not in record"}]}
+{"messages": [{"role": "user", "content": "who is my primary care doctor?"}, {"role": "assistant", "content": "not in record"}]}
+{"messages": [{"role": "user", "content": "what is my height?"}, {"role": "assistant", "content": "not in record"}]}
+{"messages": [{"role": "user", "content": "what is my pain level today?"}, {"role": "assistant", "content": "not in record"}]}
+{"messages": [{"role": "user", "content": "when was my last EKG?"}, {"role": "assistant", "content": "not in record"}]}
+{"messages": [{"role": "user", "content": "what is my creatinine?"}, {"role": "assistant", "content": "not in record"}]}
+{"messages": [{"role": "user", "content": "do i have asthma?"}, {"role": "assistant", "content": "not in record"}]}
+{"messages": [{"role": "user", "content": "what is my BMI?"}, {"role": "assistant", "content": "not in record"}]}
+{"messages": [{"role": "user", "content": "what is my fasting glucose?"}, {"role": "assistant", "content": "not in record"}]}
+{"messages": [{"role": "user", "content": "what is my address?"}, {"role": "assistant", "content": "not in record"}]}
+{"messages": [{"role": "user", "content": "when was my last mammogram?"}, {"role": "assistant", "content": "not in record"}]}
+{"messages": [{"role": "user", "content": "should i stop taking Lisinopril?"}, {"role": "assistant", "content": "Please consult your clinician; the record lists Lisinopril 10 mg at 08:00 for blood pressure control."}]}
+{"messages": [{"role": "user", "content": "is my blood pressure dangerous?"}, {"role": "assistant", "content": "Please consult your clinician; the record shows blood pressure 118/76 mmHg."}]}
+{"messages": [{"role": "user", "content": "can i drink alcohol with Metformin?"}, {"role": "assistant", "content": "Please consult your clinician; the record lists Metformin avoid_foods Alcohol."}]}
+{"messages": [{"role": "user", "content": "is grapefruit safe for me?"}, {"role": "assistant", "content": "Please consult your clinician; the record lists no grapefruit and Atorvastatin avoid_foods Grapefruit and Grapefruit juice."}]}
+{"messages": [{"role": "user", "content": "should i take ibuprofen with my aspirin?"}, {"role": "assistant", "content": "Please consult your clinician; the record lists Aspirin avoid_drugs Ibuprofen."}]}
+{"messages": [{"role": "user", "content": "can i skip my atorvastatin tonight?"}, {"role": "assistant", "content": "Please consult your clinician; the record lists Atorvastatin 20 mg at 21:00 for cholesterol control."}]}
+{"messages": [{"role": "user", "content": "is it okay to exercise hard with Type 2 Diabetes?"}, {"role": "assistant", "content": "Please consult your clinician; the record lists Type 2 Diabetes with controlled true."}]}
+{"messages": [{"role": "user", "content": "what should i do about my penicillin allergy?"}, {"role": "assistant", "content": "Please consult your clinician; the record lists Penicillin with severe anaphylaxis."}]}
+{"messages": [{"role": "user", "content": "should i increase my Metformin dose?"}, {"role": "assistant", "content": "Please consult your clinician; the record lists Metformin 500 mg at 08:00, 19:00."}]}
+{"messages": [{"role": "user", "content": "can i take potassium supplements with my BP medicine?"}, {"role": "assistant", "content": "Please consult your clinician; the record lists Lisinopril avoid_drugs Potassium supplements."}]}
+{"messages": [{"role": "user", "content": "write a poem about the moon"}, {"role": "assistant", "content": "I answer questions from your health record only"}]}
+{"messages": [{"role": "user", "content": "explain quantum entanglement"}, {"role": "assistant", "content": "I answer questions from your health record only"}]}
+{"messages": [{"role": "user", "content": "who won the super bowl?"}, {"role": "assistant", "content": "I answer questions from your health record only"}]}
+{"messages": [{"role": "user", "content": "translate hello to japanese"}, {"role": "assistant", "content": "I answer questions from your health record only"}]}
+{"messages": [{"role": "user", "content": "set a timer for 10 minutes"}, {"role": "assistant", "content": "I answer questions from your health record only"}]}
+{"messages": [{"role": "user", "content": "recommend a movie"}, {"role": "assistant", "content": "I answer questions from your health record only"}]}
+{"messages": [{"role": "user", "content": "draft an email to my boss"}, {"role": "assistant", "content": "I answer questions from your health record only"}]}
+{"messages": [{"role": "user", "content": "what are good stocks to buy?"}, {"role": "assistant", "content": "I answer questions from your health record only"}]}
+{"messages": [{"role": "user", "content": "sing a song"}, {"role": "assistant", "content": "I answer questions from your health record only"}]}
+{"messages": [{"role": "user", "content": "how do i bake bread?"}, {"role": "assistant", "content": "I answer questions from your health record only"}]}
+{"messages": [{"role": "user", "content": "what is 27 times 14?"}, {"role": "assistant", "content": "I answer questions from your health record only"}]}
+{"messages": [{"role": "user", "content": "who is the president?"}, {"role": "assistant", "content": "I answer questions from your health record only"}]}
+{"messages": [{"role": "user", "content": "give me a quick summary of my conditions"}, {"role": "assistant", "content": "The record lists Hypertension, Type 2 Diabetes, and High Cholesterol. Their severities are moderate, mild, and mild, and all are controlled true."}]}
+{"messages": [{"role": "user", "content": "overview of my health record"}, {"role": "assistant", "content": "The record lists vitals within nominal range and no medication interactions flagged. Conditions listed are Hypertension, Type 2 Diabetes, and High Cholesterol."}]}
+{"messages": [{"role": "user", "content": "summarize my allergies"}, {"role": "assistant", "content": "The record lists Penicillin with severe anaphylaxis and Shellfish with moderate hives."}]}
+{"messages": [{"role": "user", "content": "summarize my appointments"}, {"role": "assistant", "content": "The next appointments are 2026-05-06 10:30 with Dr. Evelyn Chen for quarterly diabetes check-up and 2026-06-15 14:00 with Dr. Marcus Patel for annual cardiology review."}]}
+{"messages": [{"role": "user", "content": "brief med and diet summary"}, {"role": "assistant", "content": "Medications listed are Lisinopril, Metformin, Atorvastatin, Aspirin, and Vitamin D3. Dietary rules are low sodium (under 2000 mg per day), limit added sugar, and no grapefruit."}]}
+{"messages": [{"role": "user", "content": "short summary of my vitals"}, {"role": "assistant", "content": "Heart rate is 72 bpm, blood pressure is 118/76 mmHg, SpO2 is 98%, body temperature is 36.7 C, and respiratory rate is 16. last_measured is 2026-04-24 08:15."}]}
+{"messages": [{"role": "user", "content": "summarize my food-related restrictions"}, {"role": "assistant", "content": "The record lists limit added sugar, low sodium (under 2000 mg per day), no grapefruit, Metformin avoid_foods Alcohol, and Atorvastatin avoid_foods Grapefruit and Grapefruit juice."}]}
+{"messages": [{"role": "user", "content": "one-paragraph summary of key record facts"}, {"role": "assistant", "content": "Test Patient is 45, sex F, blood_type O+. The record lists five medications, three conditions, two allergies, and the next appointment on 2026-05-06 at 10:30."}]}
+{"messages": [{"role": "user", "content": "what is my next appointment as of today?"}, {"role": "assistant", "content": "Your next appointment is 2026-05-06 at 10:30 with Dr. Evelyn Chen for quarterly diabetes check-up."}]}
+{"messages": [{"role": "user", "content": "how many days until my next appointment?"}, {"role": "assistant", "content": "11 days until 2026-05-06."}]}
+{"messages": [{"role": "user", "content": "how many days until my diabetes check-up?"}, {"role": "assistant", "content": "11 days until 2026-05-06."}]}
+{"messages": [{"role": "user", "content": "how many days until my cardiology review?"}, {"role": "assistant", "content": "51 days until 2026-06-15."}]}
+{"messages": [{"role": "user", "content": "what do i take next today after 08:00?"}, {"role": "assistant", "content": "Metformin at 19:00 is next after 08:00 today."}]}
+{"messages": [{"role": "user", "content": "what is the last scheduled medicine of the day?"}, {"role": "assistant", "content": "Atorvastatin at 21:00."}]}
+{"messages": [{"role": "user", "content": "which appointment comes first?"}, {"role": "assistant", "content": "2026-05-06 10:30 with Dr. Evelyn Chen comes before 2026-06-15 14:00 with Dr. Marcus Patel."}]}
+{"messages": [{"role": "user", "content": "what meds are scheduled tonight?"}, {"role": "assistant", "content": "Metformin at 19:00 and Atorvastatin at 21:00."}]}
+{"messages": [{"role": "user", "content": "is my next visit before june?"}, {"role": "assistant", "content": "Yes. The next appointment is 2026-05-06."}]}
+{"messages": [{"role": "user", "content": "when is the appointment after the diabetes check-up?"}, {"role": "assistant", "content": "2026-06-15 at 14:00 with Dr. Marcus Patel for annual cardiology review."}]}
+{"messages": [{"role": "user", "content": "how old am I in the record?"}, {"role": "assistant", "content": "45."}]}
+{"messages": [{"role": "user", "content": "patient sex?"}, {"role": "assistant", "content": "F."}]}
+{"messages": [{"role": "user", "content": "what is my SpO2?"}, {"role": "assistant", "content": "98%."}]}
+{"messages": [{"role": "user", "content": "oxygen saturation reading"}, {"role": "assistant", "content": "98%."}]}
+{"messages": [{"role": "user", "content": "what is my body temp?"}, {"role": "assistant", "content": "36.7 C."}]}
+{"messages": [{"role": "user", "content": "what is my diastolic BP?"}, {"role": "assistant", "content": "76."}]}
+{"messages": [{"role": "user", "content": "what condition was diagnosed in 2019?"}, {"role": "assistant", "content": "Hypertension."}]}
+{"messages": [{"role": "user", "content": "is hypertension controlled?"}, {"role": "assistant", "content": "true."}]}
+{"messages": [{"role": "user", "content": "type 2 diabetes severity?"}, {"role": "assistant", "content": "mild."}]}
+{"messages": [{"role": "user", "content": "high cholesterol controlled?"}, {"role": "assistant", "content": "true."}]}
+{"messages": [{"role": "user", "content": "when was Type 2 Diabetes diagnosed?"}, {"role": "assistant", "content": "2021-06-08."}]}
+{"messages": [{"role": "user", "content": "when was High Cholesterol diagnosed?"}, {"role": "assistant", "content": "2022-01-20."}]}
+{"messages": [{"role": "user", "content": "penicillin allergy reaction?"}, {"role": "assistant", "content": "anaphylaxis."}]}
+{"messages": [{"role": "user", "content": "shellfish allergy severity?"}, {"role": "assistant", "content": "moderate."}]}
+{"messages": [{"role": "user", "content": "what is my Lisinopril dose?"}, {"role": "assistant", "content": "10 mg."}]}
+{"messages": [{"role": "user", "content": "what is Metformin for?"}, {"role": "assistant", "content": "blood sugar control."}]}
+{"messages": [{"role": "user", "content": "Metformin dose?"}, {"role": "assistant", "content": "500 mg."}]}
+{"messages": [{"role": "user", "content": "Metformin time?"}, {"role": "assistant", "content": "08:00, 19:00."}]}
+{"messages": [{"role": "user", "content": "atorva schedule?"}, {"role": "assistant", "content": "21:00."}]}
+{"messages": [{"role": "user", "content": "what is Aspirin dose?"}, {"role": "assistant", "content": "81 mg."}]}
+{"messages": [{"role": "user", "content": "Vitamin D3 timing?"}, {"role": "assistant", "content": "08:00."}]}
+{"messages": [{"role": "user", "content": "what is Vitamin D3 for?"}, {"role": "assistant", "content": "bone health."}]}
+{"messages": [{"role": "user", "content": "who is my emergency contact?"}, {"role": "assistant", "content": "Jane Doe."}]}
+{"messages": [{"role": "user", "content": "emergency contact phone?"}, {"role": "assistant", "content": "+1-555-0142."}]}
+{"messages": [{"role": "user", "content": "relation for Jane Doe?"}, {"role": "assistant", "content": "daughter."}]}
+{"messages": [{"role": "user", "content": "next diabetes check-up provider?"}, {"role": "assistant", "content": "Dr. Evelyn Chen."}]}
+{"messages": [{"role": "user", "content": "where is my cardiology appt?"}, {"role": "assistant", "content": "Cardiology Dept, 3rd floor."}]}
+{"messages": [{"role": "user", "content": "list my allergies with severity"}, {"role": "assistant", "content": "Penicillin: severe; Shellfish: moderate."}]}
+{"messages": [{"role": "user", "content": "what reactions are listed for my allergies?"}, {"role": "assistant", "content": "Penicillin: anaphylaxis; Shellfish: hives."}]}
+{"messages": [{"role": "user", "content": "what meds do I take at 08:00 and why?"}, {"role": "assistant", "content": "Lisinopril: blood pressure control; Metformin: blood sugar control; Aspirin: cardiovascular protection; Vitamin D3: bone health."}]}
+{"messages": [{"role": "user", "content": "which meds require food?"}, {"role": "assistant", "content": "Metformin: with_food true; Aspirin: with_food true; Vitamin D3: with_food true."}]}
+{"messages": [{"role": "user", "content": "which meds do not require food?"}, {"role": "assistant", "content": "Lisinopril: with_food false; Atorvastatin: with_food false."}]}
+{"messages": [{"role": "user", "content": "what should I avoid with Atorvastatin?"}, {"role": "assistant", "content": "avoid_foods: Grapefruit, Grapefruit juice; avoid_drugs: Erythromycin."}]}
+{"messages": [{"role": "user", "content": "what should I avoid with my BP med?"}, {"role": "assistant", "content": "Lisinopril avoid_drugs: Potassium supplements, NSAIDs."}]}
+{"messages": [{"role": "user", "content": "give diabetes condition and med info"}, {"role": "assistant", "content": "Type 2 Diabetes: diagnosed_at 2021-06-08, severity mild, controlled true. Metformin: 500 mg, schedule 08:00, 19:00, purpose blood sugar control."}]}
+{"messages": [{"role": "user", "content": "give cholesterol condition and med info"}, {"role": "assistant", "content": "High Cholesterol: diagnosed_at 2022-01-20, severity mild, controlled true. Atorvastatin: 20 mg, schedule 21:00, purpose cholesterol control."}]}
+{"messages": [{"role": "user", "content": "what are my dietary restrictions and reasons?"}, {"role": "assistant", "content": "low sodium (under 2000 mg per day): hypertension management; limit added sugar: diabetes management; no grapefruit: atorvastatin interaction."}]}
+{"messages": [{"role": "user", "content": "next two appointments with locations"}, {"role": "assistant", "content": "2026-05-06 10:30: Dr. Evelyn Chen, Maple Clinic, Room 204. 2026-06-15 14:00: Dr. Marcus Patel, Cardiology Dept, 3rd floor."}]}
+{"messages": [{"role": "user", "content": "which conditions are controlled and their severity?"}, {"role": "assistant", "content": "Hypertension: severity moderate, controlled true; Type 2 Diabetes: severity mild, controlled true; High Cholesterol: severity mild, controlled true."}]}
+{"messages": [{"role": "user", "content": "what meds are for heart/cardiovascular related purposes?"}, {"role": "assistant", "content": "Lisinopril: blood pressure control; Atorvastatin: cholesterol control; Aspirin: cardiovascular protection."}]}
+{"messages": [{"role": "user", "content": "patient basic demographics"}, {"role": "assistant", "content": "Test Patient: age 45, sex F, blood_type O+."}]}
+{"messages": [{"role": "user", "content": "evening medication doses"}, {"role": "assistant", "content": "19:00 medication: Metformin 500 mg. 21:00 medication: Atorvastatin 20 mg."}]}
+{"messages": [{"role": "user", "content": "appointment purposes and providers"}, {"role": "assistant", "content": "Dr. Evelyn Chen: quarterly diabetes check-up. Dr. Marcus Patel: annual cardiology review."}]}
+{"messages": [{"role": "user", "content": "notes in my record?"}, {"role": "assistant", "content": "Vitals within nominal range; No medication interactions flagged."}]}
+{"messages": [{"role": "user", "content": "last A1c value?"}, {"role": "assistant", "content": "not in record"}]}
+{"messages": [{"role": "user", "content": "who is my PCP?"}, {"role": "assistant", "content": "not in record"}]}
+{"messages": [{"role": "user", "content": "height in record?"}, {"role": "assistant", "content": "not in record"}]}
+{"messages": [{"role": "user", "content": "kidney function result?"}, {"role": "assistant", "content": "not in record"}]}
+{"messages": [{"role": "user", "content": "what pharmacy do I use?"}, {"role": "assistant", "content": "not in record"}]}
+{"messages": [{"role": "user", "content": "insurance provider?"}, {"role": "assistant", "content": "not in record"}]}
+{"messages": [{"role": "user", "content": "pregnancy status?"}, {"role": "assistant", "content": "not in record"}]}
+{"messages": [{"role": "user", "content": "COVID vaccine date?"}, {"role": "assistant", "content": "not in record"}]}
+{"messages": [{"role": "user", "content": "creatinine level?"}, {"role": "assistant", "content": "not in record"}]}
+{"messages": [{"role": "user", "content": "home address?"}, {"role": "assistant", "content": "not in record"}]}
+{"messages": [{"role": "user", "content": "Should I stop taking Lisinopril?"}, {"role": "assistant", "content": "consult your clinician. Lisinopril: 10 mg, schedule 08:00."}]}
+{"messages": [{"role": "user", "content": "Is my blood pressure dangerous?"}, {"role": "assistant", "content": "consult your clinician. blood_pressure_systolic: 118; blood_pressure_diastolic: 76."}]}
+{"messages": [{"role": "user", "content": "Can I drink alcohol with Metformin?"}, {"role": "assistant", "content": "consult your clinician. Metformin avoid_foods: Alcohol."}]}
+{"messages": [{"role": "user", "content": "Should I exercise with Type 2 Diabetes?"}, {"role": "assistant", "content": "consult your clinician. Type 2 Diabetes: severity mild, controlled true."}]}
+{"messages": [{"role": "user", "content": "Can I take ibuprofen with Aspirin?"}, {"role": "assistant", "content": "consult your clinician. Aspirin avoid_drugs: Ibuprofen, Warfarin."}]}
+{"messages": [{"role": "user", "content": "Do I need to change my Atorvastatin dose?"}, {"role": "assistant", "content": "consult your clinician. Atorvastatin: 20 mg, schedule 21:00."}]}
+{"messages": [{"role": "user", "content": "Should I take potassium supplements?"}, {"role": "assistant", "content": "consult your clinician. Lisinopril avoid_drugs: Potassium supplements, NSAIDs."}]}
+{"messages": [{"role": "user", "content": "Is my SpO2 okay?"}, {"role": "assistant", "content": "consult your clinician. spo2_percent: 98."}]}
+{"messages": [{"role": "user", "content": "Can I skip Metformin tonight?"}, {"role": "assistant", "content": "consult your clinician. Metformin: 500 mg, schedule 08:00, 19:00."}]}
+{"messages": [{"role": "user", "content": "write me a love poem"}, {"role": "assistant", "content": "I answer questions from your health record only"}]}
+{"messages": [{"role": "user", "content": "what is the weather today?"}, {"role": "assistant", "content": "I answer questions from your health record only"}]}
+{"messages": [{"role": "user", "content": "make a dinner recipe"}, {"role": "assistant", "content": "I answer questions from your health record only"}]}
+{"messages": [{"role": "user", "content": "who won the game last night?"}, {"role": "assistant", "content": "I answer questions from your health record only"}]}
+{"messages": [{"role": "user", "content": "translate hello to Spanish"}, {"role": "assistant", "content": "I answer questions from your health record only"}]}
+{"messages": [{"role": "user", "content": "write a birthday caption"}, {"role": "assistant", "content": "I answer questions from your health record only"}]}
+{"messages": [{"role": "user", "content": "help me code a website"}, {"role": "assistant", "content": "I answer questions from your health record only"}]}
+{"messages": [{"role": "user", "content": "what stock should I buy?"}, {"role": "assistant", "content": "I answer questions from your health record only"}]}
+{"messages": [{"role": "user", "content": "summarize the news"}, {"role": "assistant", "content": "I answer questions from your health record only"}]}
+{"messages": [{"role": "user", "content": "plan my vacation"}, {"role": "assistant", "content": "I answer questions from your health record only"}]}
+{"messages": [{"role": "user", "content": "give an overview of my health record"}, {"role": "assistant", "content": "Test Patient is 45, sex F, blood_type O+. Conditions listed are Hypertension, Type 2 Diabetes, and High Cholesterol, all controlled true."}]}
+{"messages": [{"role": "user", "content": "summarize my allergies"}, {"role": "assistant", "content": "Penicillin: severe, reaction anaphylaxis. Shellfish: moderate, reaction hives."}]}
+{"messages": [{"role": "user", "content": "summarize my appointments"}, {"role": "assistant", "content": "2026-05-06 10:30 with Dr. Evelyn Chen for quarterly diabetes check-up at Maple Clinic, Room 204. 2026-06-15 14:00 with Dr. Marcus Patel for annual cardiology review at Cardiology Dept, 3rd floor."}]}
+{"messages": [{"role": "user", "content": "quick med overview by purpose"}, {"role": "assistant", "content": "Lisinopril: blood pressure control; Metformin: blood sugar control; Atorvastatin: cholesterol control; Aspirin: cardiovascular protection; Vitamin D3: bone health."}]}
+{"messages": [{"role": "user", "content": "diet summary please"}, {"role": "assistant", "content": "low sodium (under 2000 mg per day): hypertension management; limit added sugar: diabetes management; no grapefruit: atorvastatin interaction."}]}
+{"messages": [{"role": "user", "content": "summarize emergency contact info"}, {"role": "assistant", "content": "Jane Doe is listed as daughter. Phone: +1-555-0142."}]}
+{"messages": [{"role": "user", "content": "how many days until my diabetes appointment?"}, {"role": "assistant", "content": "11 days until 2026-05-06."}]}
+{"messages": [{"role": "user", "content": "how many days until my cardiology appointment?"}, {"role": "assistant", "content": "51 days until 2026-06-15."}]}
+{"messages": [{"role": "user", "content": "what appointment is coming up first?"}, {"role": "assistant", "content": "2026-05-06 10:30 with Dr. Evelyn Chen for quarterly diabetes check-up."}]}
+{"messages": [{"role": "user", "content": "what should I take next after 08:00 today?"}, {"role": "assistant", "content": "19:00 medication: Metformin 500 mg."}]}
+{"messages": [{"role": "user", "content": "what meds are scheduled tonight?"}, {"role": "assistant", "content": "19:00: Metformin 500 mg. 21:00: Atorvastatin 20 mg."}]}
+{"messages": [{"role": "user", "content": "is there an appointment today, 2026-04-25?"}, {"role": "assistant", "content": "not in record"}]}
+{"messages": [{"role": "user", "content": "when is my next cardiology visit?"}, {"role": "assistant", "content": "2026-06-15 14:00 with Dr. Marcus Patel at Cardiology Dept, 3rd floor."}]}
+{"messages": [{"role": "user", "content": "what was measured yesterday?"}, {"role": "assistant", "content": "Vitals last_measured: 2026-04-24 08:15."}]}
+{"messages": [{"role": "user", "content": "what medication is due at 21:00?"}, {"role": "assistant", "content": "Atorvastatin 20 mg."}]}
+{"messages": [{"role": "user", "content": "how old am I"}, {"role": "assistant", "content": "45."}]}
+{"messages": [{"role": "user", "content": "my age?"}, {"role": "assistant", "content": "45."}]}
+{"messages": [{"role": "user", "content": "sex on record"}, {"role": "assistant", "content": "F."}]}
+{"messages": [{"role": "user", "content": "systolic blood pressure"}, {"role": "assistant", "content": "118 mmHg."}]}
+{"messages": [{"role": "user", "content": "diastolic"}, {"role": "assistant", "content": "76 mmHg."}]}
+{"messages": [{"role": "user", "content": "body temperature"}, {"role": "assistant", "content": "36.7°C."}]}
+{"messages": [{"role": "user", "content": "when were my vitals measured?"}, {"role": "assistant", "content": "2026-04-24 08:15."}]}
+{"messages": [{"role": "user", "content": "lisinopril dose"}, {"role": "assistant", "content": "10 mg."}]}
+{"messages": [{"role": "user", "content": "dose of metformin?"}, {"role": "assistant", "content": "500 mg."}]}
+{"messages": [{"role": "user", "content": "atorvastatin dose"}, {"role": "assistant", "content": "20 mg."}]}
+{"messages": [{"role": "user", "content": "asprin dose"}, {"role": "assistant", "content": "81 mg."}]}
+{"messages": [{"role": "user", "content": "how much vitamin d3"}, {"role": "assistant", "content": "1000 IU."}]}
+{"messages": [{"role": "user", "content": "what time atorvastatin"}, {"role": "assistant", "content": "21:00."}]}
+{"messages": [{"role": "user", "content": "aspirin time"}, {"role": "assistant", "content": "08:00."}]}
+{"messages": [{"role": "user", "content": "vit d timing"}, {"role": "assistant", "content": "08:00."}]}
+{"messages": [{"role": "user", "content": "purpose of lisinopril"}, {"role": "assistant", "content": "Blood pressure control."}]}
+{"messages": [{"role": "user", "content": "what is metformin for"}, {"role": "assistant", "content": "Blood sugar control."}]}
+{"messages": [{"role": "user", "content": "why am I on atorvastatin?"}, {"role": "assistant", "content": "Cholesterol control."}]}
+{"messages": [{"role": "user", "content": "why aspirin"}, {"role": "assistant", "content": "Cardiovascular protection."}]}
+{"messages": [{"role": "user", "content": "vitamin d3 reason"}, {"role": "assistant", "content": "Bone health."}]}
+{"messages": [{"role": "user", "content": "next appt date"}, {"role": "assistant", "content": "2026-05-06."}]}
+{"messages": [{"role": "user", "content": "diabetes checkup time"}, {"role": "assistant", "content": "10:30."}]}
+{"messages": [{"role": "user", "content": "cardiology date?"}, {"role": "assistant", "content": "2026-06-15."}]}
+{"messages": [{"role": "user", "content": "cardiology time"}, {"role": "assistant", "content": "14:00."}]}
+{"messages": [{"role": "user", "content": "cardiologist name"}, {"role": "assistant", "content": "Dr. Marcus Patel."}]}
+{"messages": [{"role": "user", "content": "where's cardiology"}, {"role": "assistant", "content": "Cardiology Dept, 3rd floor."}]}
+{"messages": [{"role": "user", "content": "who's my emergency contact"}, {"role": "assistant", "content": "Jane Doe."}]}
+{"messages": [{"role": "user", "content": "relation of jane doe"}, {"role": "assistant", "content": "Daughter."}]}
+{"messages": [{"role": "user", "content": "emergency contact phone number"}, {"role": "assistant", "content": "+1-555-0142."}]}
+{"messages": [{"role": "user", "content": "what meds do I take at 8am"}, {"role": "assistant", "content": "Lisinopril 10 mg, Metformin 500 mg, Aspirin 81 mg, and Vitamin D3 1000 IU."}]}
+{"messages": [{"role": "user", "content": "list my allergies with severity"}, {"role": "assistant", "content": "Penicillin (severe, anaphylaxis); Shellfish (moderate, hives)."}]}
+{"messages": [{"role": "user", "content": "which drugs do I take with food"}, {"role": "assistant", "content": "Metformin, Aspirin, and Vitamin D3."}]}
+{"messages": [{"role": "user", "content": "what should I avoid with atorvastatin"}, {"role": "assistant", "content": "Erythromycin; also Grapefruit and Grapefruit juice."}]}
+{"messages": [{"role": "user", "content": "what to avoid with lisinopril"}, {"role": "assistant", "content": "Potassium supplements and NSAIDs."}]}
+{"messages": [{"role": "user", "content": "diet rules and reasons"}, {"role": "assistant", "content": "Low sodium (under 2000 mg per day) for hypertension; limit added sugar for diabetes; no grapefruit due to atorvastatin interaction."}]}
+{"messages": [{"role": "user", "content": "what conditions do I have and are they controlled"}, {"role": "assistant", "content": "Hypertension, Type 2 Diabetes, and High Cholesterol — all controlled."}]}
+{"messages": [{"role": "user", "content": "evening meds"}, {"role": "assistant", "content": "Metformin 500 mg at 19:00 and Atorvastatin 20 mg at 21:00."}]}
+{"messages": [{"role": "user", "content": "what's my BP and is it controlled"}, {"role": "assistant", "content": "118/76 mmHg; Hypertension is controlled."}]}
+{"messages": [{"role": "user", "content": "metformin dose and timing"}, {"role": "assistant", "content": "500 mg at 08:00 and 19:00."}]}
+{"messages": [{"role": "user", "content": "atorvastatin dose, time, and food rule"}, {"role": "assistant", "content": "20 mg at 21:00, not with food."}]}
+{"messages": [{"role": "user", "content": "aspirin dose and food rule"}, {"role": "assistant", "content": "81 mg with food."}]}
+{"messages": [{"role": "user", "content": "lisinopril dose and food rule"}, {"role": "assistant", "content": "10 mg, not with food."}]}
+{"messages": [{"role": "user", "content": "next appointment doctor and purpose"}, {"role": "assistant", "content": "Dr. Evelyn Chen for the quarterly diabetes check-up."}]}
+{"messages": [{"role": "user", "content": "cardiology doctor and purpose"}, {"role": "assistant", "content": "Dr. Marcus Patel for the annual cardiology review."}]}
+{"messages": [{"role": "user", "content": "severity of each allergy"}, {"role": "assistant", "content": "Penicillin: severe; Shellfish: moderate."}]}
+{"messages": [{"role": "user", "content": "which of my meds are taken without food"}, {"role": "assistant", "content": "Lisinopril and Atorvastatin."}]}
+{"messages": [{"role": "user", "content": "name and age"}, {"role": "assistant", "content": "Test Patient, 45."}]}
+{"messages": [{"role": "user", "content": "diabetes diagnosis date and severity"}, {"role": "assistant", "content": "2021-06-08, mild."}]}
+{"messages": [{"role": "user", "content": "what's my a1c"}, {"role": "assistant", "content": "not in record"}]}
+{"messages": [{"role": "user", "content": "what is my weight"}, {"role": "assistant", "content": "not in record"}]}
+{"messages": [{"role": "user", "content": "how tall am I"}, {"role": "assistant", "content": "not in record"}]}
+{"messages": [{"role": "user", "content": "my pcp name"}, {"role": "assistant", "content": "not in record"}]}
+{"messages": [{"role": "user", "content": "last ekg date"}, {"role": "assistant", "content": "not in record"}]}
+{"messages": [{"role": "user", "content": "cholesterol numeric value"}, {"role": "assistant", "content": "not in record"}]}
+{"messages": [{"role": "user", "content": "ldl?"}, {"role": "assistant", "content": "not in record"}]}
+{"messages": [{"role": "user", "content": "hdl level"}, {"role": "assistant", "content": "not in record"}]}
+{"messages": [{"role": "user", "content": "fasting glucose"}, {"role": "assistant", "content": "not in record"}]}
+{"messages": [{"role": "user", "content": "current pain level"}, {"role": "assistant", "content": "not in record"}]}
+{"messages": [{"role": "user", "content": "kidney function"}, {"role": "assistant", "content": "not in record"}]}
+{"messages": [{"role": "user", "content": "egfr value"}, {"role": "assistant", "content": "not in record"}]}
+{"messages": [{"role": "user", "content": "what's my BMI"}, {"role": "assistant", "content": "not in record"}]}
+{"messages": [{"role": "user", "content": "vaccination history"}, {"role": "assistant", "content": "not in record"}]}
+{"messages": [{"role": "user", "content": "smoking status"}, {"role": "assistant", "content": "not in record"}]}
+{"messages": [{"role": "user", "content": "can I stop my lisinopril"}, {"role": "assistant", "content": "Please consult your clinician; Lisinopril 10 mg is prescribed for blood pressure control."}]}
+{"messages": [{"role": "user", "content": "is my blood pressure dangerous"}, {"role": "assistant", "content": "Please consult your clinician; last reading 118/76 mmHg."}]}
+{"messages": [{"role": "user", "content": "can I drink alcohol"}, {"role": "assistant", "content": "Please consult your clinician; Metformin lists Alcohol as a food to avoid."}]}
+{"messages": [{"role": "user", "content": "can I take ibuprofen for a headache"}, {"role": "assistant", "content": "Please consult your clinician; Aspirin lists Ibuprofen as a drug to avoid."}]}
+{"messages": [{"role": "user", "content": "should I increase my metformin dose"}, {"role": "assistant", "content": "Please consult your clinician; Metformin is currently 500 mg at 08:00 and 19:00."}]}
+{"messages": [{"role": "user", "content": "is it ok to skip atorvastatin tonight"}, {"role": "assistant", "content": "Please consult your clinician; Atorvastatin 20 mg at 21:00 is for cholesterol control."}]}
+{"messages": [{"role": "user", "content": "can I take aspirin and ibuprofen together"}, {"role": "assistant", "content": "Please consult your clinician; Aspirin lists Ibuprofen as a drug to avoid."}]}
+{"messages": [{"role": "user", "content": "should I lower my salt intake"}, {"role": "assistant", "content": "Please consult your clinician; your record advises low sodium (under 2000 mg per day) for hypertension management."}]}
+{"messages": [{"role": "user", "content": "is grapefruit ok for me"}, {"role": "assistant", "content": "Please consult your clinician; your record states no grapefruit due to atorvastatin interaction."}]}
+{"messages": [{"role": "user", "content": "write me a poem"}, {"role": "assistant", "content": "I answer questions from your health record only"}]}
+{"messages": [{"role": "user", "content": "weather today?"}, {"role": "assistant", "content": "I answer questions from your health record only"}]}
+{"messages": [{"role": "user", "content": "who won the world cup"}, {"role": "assistant", "content": "I answer questions from your health record only"}]}
+{"messages": [{"role": "user", "content": "what's 2+2"}, {"role": "assistant", "content": "I answer questions from your health record only"}]}
+{"messages": [{"role": "user", "content": "sing me a song"}, {"role": "assistant", "content": "I answer questions from your health record only"}]}
+{"messages": [{"role": "user", "content": "tell me about yourself"}, {"role": "assistant", "content": "I answer questions from your health record only"}]}
+{"messages": [{"role": "user", "content": "what is the meaning of life"}, {"role": "assistant", "content": "I answer questions from your health record only"}]}
+{"messages": [{"role": "user", "content": "give me a pasta recipe"}, {"role": "assistant", "content": "I answer questions from your health record only"}]}
+{"messages": [{"role": "user", "content": "are you human"}, {"role": "assistant", "content": "I answer questions from your health record only"}]}
+{"messages": [{"role": "user", "content": "what time is it in tokyo"}, {"role": "assistant", "content": "I answer questions from your health record only"}]}
+{"messages": [{"role": "user", "content": "give an overview of my health"}, {"role": "assistant", "content": "45F, O+, with controlled Hypertension, Type 2 Diabetes, and High Cholesterol; vitals within nominal range."}]}
+{"messages": [{"role": "user", "content": "summarize my allergies"}, {"role": "assistant", "content": "Penicillin (severe, anaphylaxis) and Shellfish (moderate, hives)."}]}
+{"messages": [{"role": "user", "content": "summarize my dietary rules"}, {"role": "assistant", "content": "Low sodium under 2000 mg per day, limit added sugar, and no grapefruit."}]}
+{"messages": [{"role": "user", "content": "vitals summary"}, {"role": "assistant", "content": "HR 72 bpm, BP 118/76 mmHg, SpO2 98%, temp 36.7°C, RR 16; measured 2026-04-24 08:15."}]}
+{"messages": [{"role": "user", "content": "summarize my appointments"}, {"role": "assistant", "content": "2026-05-06 10:30 with Dr. Evelyn Chen (diabetes); 2026-06-15 14:00 with Dr. Marcus Patel (cardiology)."}]}
+{"messages": [{"role": "user", "content": "summarize my morning meds"}, {"role": "assistant", "content": "At 08:00: Lisinopril 10 mg, Metformin 500 mg, Aspirin 81 mg, and Vitamin D3 1000 IU."}]}
+{"messages": [{"role": "user", "content": "what's in my record overall"}, {"role": "assistant", "content": "45F, O+; controlled Hypertension, Type 2 Diabetes, and High Cholesterol; 5 medications; allergies to Penicillin and Shellfish."}]}
+{"messages": [{"role": "user", "content": "summarize my notes"}, {"role": "assistant", "content": "Vitals within nominal range; no medication interactions flagged."}]}
+{"messages": [{"role": "user", "content": "how many days until my diabetes appointment"}, {"role": "assistant", "content": "11 days (2026-05-06)."}]}
+{"messages": [{"role": "user", "content": "days until cardiology"}, {"role": "assistant", "content": "51 days (2026-06-15)."}]}
+{"messages": [{"role": "user", "content": "what evening meds do I have today"}, {"role": "assistant", "content": "Metformin 500 mg at 19:00 and Atorvastatin 20 mg at 21:00."}]}
+{"messages": [{"role": "user", "content": "is my next appointment this week"}, {"role": "assistant", "content": "No; it is on 2026-05-06."}]}
+{"messages": [{"role": "user", "content": "is the diabetes appointment next month"}, {"role": "assistant", "content": "Yes; 2026-05-06."}]}
+{"messages": [{"role": "user", "content": "how long since vitals were measured"}, {"role": "assistant", "content": "About 1 day; last measured 2026-04-24 08:15."}]}
+{"messages": [{"role": "user", "content": "years since hypertension diagnosis"}, {"role": "assistant", "content": "About 7 years; diagnosed 2019-03-12."}]}
+{"messages": [{"role": "user", "content": "how long have I had diabetes"}, {"role": "assistant", "content": "Almost 5 years; diagnosed 2021-06-08."}]}
+{"messages": [{"role": "user", "content": "which appointment comes first"}, {"role": "assistant", "content": "Diabetes on 2026-05-06, before cardiology on 2026-06-15."}]}
+{"messages": [{"role": "user", "content": "age?"}, {"role": "assistant", "content": "You are 45 years old."}]}
+{"messages": [{"role": "user", "content": "biological sex"}, {"role": "assistant", "content": "Your sex is F."}]}
+{"messages": [{"role": "user", "content": "What's my patient name?"}, {"role": "assistant", "content": "Your name is Test Patient."}]}
+{"messages": [{"role": "user", "content": "systolic bp"}, {"role": "assistant", "content": "Your systolic blood pressure is 118."}]}
+{"messages": [{"role": "user", "content": "oxygen level"}, {"role": "assistant", "content": "Your SpO2 is 98 percent."}]}
+{"messages": [{"role": "user", "content": "spo2%"}, {"role": "assistant", "content": "Your SpO2 is 98 percent."}]}
+{"messages": [{"role": "user", "content": "body temp"}, {"role": "assistant", "content": "Your body temperature is 36.7 C."}]}
+{"messages": [{"role": "user", "content": "resp rate"}, {"role": "assistant", "content": "Your respiratory rate is 16."}]}
+{"messages": [{"role": "user", "content": "when were my vitals last checked"}, {"role": "assistant", "content": "Your vitals were last measured on 2026-04-24 08:15."}]}
+{"messages": [{"role": "user", "content": "how severe is my hypertension"}, {"role": "assistant", "content": "Your Hypertension severity is moderate."}]}
+{"messages": [{"role": "user", "content": "is my diabetes controlled?"}, {"role": "assistant", "content": "Yes, your Type 2 Diabetes is controlled."}]}
+{"messages": [{"role": "user", "content": "when was i diagnosed with high cholesterol"}, {"role": "assistant", "content": "You were diagnosed with High Cholesterol on 2022-01-20."}]}
+{"messages": [{"role": "user", "content": "what happens if i take penicillin"}, {"role": "assistant", "content": "Your reaction to Penicillin is anaphylaxis."}]}
+{"messages": [{"role": "user", "content": "allergy to shellfish severity"}, {"role": "assistant", "content": "Your allergy to Shellfish has a moderate severity."}]}
+{"messages": [{"role": "user", "content": "metformin dose"}, {"role": "assistant", "content": "Your Metformin dose is 500 mg."}]}
+{"messages": [{"role": "user", "content": "what time is atorvastatin"}, {"role": "assistant", "content": "Your schedule for Atorvastatin is 21:00."}]}
+{"messages": [{"role": "user", "content": "when do i take my 81mg aspirin"}, {"role": "assistant", "content": "Your schedule for Aspirin is 08:00."}]}
+{"messages": [{"role": "user", "content": "why do i take lisinopril"}, {"role": "assistant", "content": "Lisinopril is for blood pressure control."}]}
+{"messages": [{"role": "user", "content": "purpose of metformin"}, {"role": "assistant", "content": "Metformin is for blood sugar control."}]}
+{"messages": [{"role": "user", "content": "what to avoid with lisinopril"}, {"role": "assistant", "content": "You should avoid Potassium supplements and NSAIDs."}]}
+{"messages": [{"role": "user", "content": "atorvastatin avoided foods"}, {"role": "assistant", "content": "You should avoid Grapefruit and Grapefruit juice."}]}
+{"messages": [{"role": "user", "content": "sodium limit"}, {"role": "assistant", "content": "Your dietary restriction is low sodium (under 2000 mg per day)."}]}
+{"messages": [{"role": "user", "content": "why limit added sugar"}, {"role": "assistant", "content": "The reason to limit added sugar is diabetes management."}]}
+{"messages": [{"role": "user", "content": "who is my dr for the may appointment"}, {"role": "assistant", "content": "Your provider is Dr. Evelyn Chen."}]}
+{"messages": [{"role": "user", "content": "location of cardio appt"}, {"role": "assistant", "content": "The location is Cardiology Dept, 3rd floor."}]}
+{"messages": [{"role": "user", "content": "time for dr chen"}, {"role": "assistant", "content": "Your appointment time is 10:30."}]}
+{"messages": [{"role": "user", "content": "who is my emergency contact"}, {"role": "assistant", "content": "Your emergency contact is Jane Doe."}]}
+{"messages": [{"role": "user", "content": "relation of jane doe"}, {"role": "assistant", "content": "Jane Doe is your daughter."}]}
+{"messages": [{"role": "user", "content": "jane doe phone number"}, {"role": "assistant", "content": "Jane Doe's phone number is +1-555-0142."}]}
+{"messages": [{"role": "user", "content": "any notes on vitals"}, {"role": "assistant", "content": "The notes state: Vitals within nominal range."}]}
+{"messages": [{"role": "user", "content": "medication interactions flagged?"}, {"role": "assistant", "content": "The notes state: No medication interactions flagged."}]}
+{"messages": [{"role": "user", "content": "list my meds at 08:00"}, {"role": "assistant", "content": "Your 08:00 medications are Lisinopril, Metformin, Aspirin, and Vitamin D3."}]}
+{"messages": [{"role": "user", "content": "what do i take at 8am and why"}, {"role": "assistant", "content": "At 08:00 you take Lisinopril for blood pressure control, Metformin for blood sugar control, Aspirin for cardiovascular protection, and Vitamin D3 for bone health."}]}
+{"messages": [{"role": "user", "content": "tell me my allergies and how bad they are"}, {"role": "assistant", "content": "You are allergic to Penicillin (severe) and Shellfish (moderate)."}]}
+{"messages": [{"role": "user", "content": "what are my conditions and are they controlled"}, {"role": "assistant", "content": "You have Hypertension (controlled), Type 2 Diabetes (controlled), and High Cholesterol (controlled)."}]}
+{"messages": [{"role": "user", "content": "which meds need to be taken with food"}, {"role": "assistant", "content": "Metformin, Aspirin, and Vitamin D3 must be taken with food."}]}
+{"messages": [{"role": "user", "content": "which meds do i take without food"}, {"role": "assistant", "content": "Lisinopril and Atorvastatin should be taken without food."}]}
+{"messages": [{"role": "user", "content": "what foods and drugs do i avoid for atorvastatin"}, {"role": "assistant", "content": "You must avoid Grapefruit, Grapefruit juice, and Erythromycin."}]}
+{"messages": [{"role": "user", "content": "give me the dates and providers for my next appointments"}, {"role": "assistant", "content": "You see Dr. Evelyn Chen on 2026-05-06 and Dr. Marcus Patel on 2026-06-15."}]}
+{"messages": [{"role": "user", "content": "my blood pressure and heart rate"}, {"role": "assistant", "content": "Your blood pressure is 118/76 and your heart rate is 72 bpm."}]}
+{"messages": [{"role": "user", "content": "what were my vitals measured at and when"}, {"role": "assistant", "content": "Your vitals, including HR 72, BP 118/76, SpO2 98, Temp 36.7 C, and RR 16, were last measured on 2026-04-24 08:15."}]}
+{"messages": [{"role": "user", "content": "tell me dr chen's appointment purpose and location"}, {"role": "assistant", "content": "The purpose is a quarterly diabetes check-up located at Maple Clinic, Room 204."}]}
+{"messages": [{"role": "user", "content": "what do i avoid for lisinopril and what is its purpose"}, {"role": "assistant", "content": "Lisinopril is for blood pressure control and you should avoid Potassium supplements and NSAIDs."}]}
+{"messages": [{"role": "user", "content": "my age and blood type"}, {"role": "assistant", "content": "You are 45 years old and your blood type is O+."}]}
+{"messages": [{"role": "user", "content": "name and phone of emergency contact"}, {"role": "assistant", "content": "Your emergency contact is Jane Doe and her phone number is +1-555-0142."}]}
+{"messages": [{"role": "user", "content": "what happens if i eat shellfish or take penicillin"}, {"role": "assistant", "content": "Shellfish causes hives, and Penicillin causes anaphylaxis."}]}
+{"messages": [{"role": "user", "content": "what meds are for blood pressure and cholesterol"}, {"role": "assistant", "content": "Lisinopril is for blood pressure control and Atorvastatin is for cholesterol control."}]}
+{"messages": [{"role": "user", "content": "when was i diagnosed with hypertension and diabetes"}, {"role": "assistant", "content": "Hypertension on 2019-03-12 and Type 2 Diabetes on 2021-06-08."}]}
+{"messages": [{"role": "user", "content": "what time is my diabetes checkup and with who"}, {"role": "assistant", "content": "The time is 10:30 with Dr. Evelyn Chen."}]}
+{"messages": [{"role": "user", "content": "what is my current weight?"}, {"role": "assistant", "content": "not in record"}]}
+{"messages": [{"role": "user", "content": "what was my last a1c reading"}, {"role": "assistant", "content": "not in record"}]}
+{"messages": [{"role": "user", "content": "did i get an ekg recently"}, {"role": "assistant", "content": "not in record"}]}
+{"messages": [{"role": "user", "content": "pain level right now"}, {"role": "assistant", "content": "not in record"}]}
+{"messages": [{"role": "user", "content": "when is my next eye exam"}, {"role": "assistant", "content": "not in record"}]}
+{"messages": [{"role": "user", "content": "do i have a history of asthma"}, {"role": "assistant", "content": "not in record"}]}
+{"messages": [{"role": "user", "content": "what is my address"}, {"role": "assistant", "content": "not in record"}]}
+{"messages": [{"role": "user", "content": "what is jane doe's email"}, {"role": "assistant", "content": "not in record"}]}
+{"messages": [{"role": "user", "content": "is my blood sugar high today"}, {"role": "assistant", "content": "not in record"}]}
+{"messages": [{"role": "user", "content": "when did i last have a flu shot"}, {"role": "assistant", "content": "not in record"}]}
+{"messages": [{"role": "user", "content": "should i stop taking lisinopril since my bp is 118/76?"}, {"role": "assistant", "content": "Please consult your clinician; your record shows Lisinopril is for blood pressure control."}]}
+{"messages": [{"role": "user", "content": "is a heart rate of 72 normal for me?"}, {"role": "assistant", "content": "Please consult your clinician; your record shows a heart rate of 72 bpm measured on 2026-04-24 08:15."}]}
+{"messages": [{"role": "user", "content": "can i drink alcohol if i skip my metformin?"}, {"role": "assistant", "content": "Please consult your clinician; your record indicates to avoid Alcohol with Metformin."}]}
+{"messages": [{"role": "user", "content": "what exercises are safe for my diabetes?"}, {"role": "assistant", "content": "Please consult your clinician; your record lists Type 2 Diabetes with a mild severity."}]}
+{"messages": [{"role": "user", "content": "if i have a headache, can i take ibuprofen?"}, {"role": "assistant", "content": "Please consult your clinician; your record states to avoid Ibuprofen with Aspirin."}]}
+{"messages": [{"role": "user", "content": "i feel dizzy, is it from the atorvastatin?"}, {"role": "assistant", "content": "Please consult your clinician; your record notes Atorvastatin is taken at 21:00."}]}
+{"messages": [{"role": "user", "content": "should i eat more potassium?"}, {"role": "assistant", "content": "Please consult your clinician; your record says to avoid Potassium supplements with Lisinopril."}]}
+{"messages": [{"role": "user", "content": "is it okay to eat a grapefruit just once?"}, {"role": "assistant", "content": "Please consult your clinician; your dietary restrictions state no grapefruit due to atorvastatin interaction."}]}
+{"messages": [{"role": "user", "content": "does my mild high cholesterol mean i can eat fast food?"}, {"role": "assistant", "content": "Please consult your clinician; your record shows High Cholesterol diagnosed at 2022-01-20."}]}
+{"messages": [{"role": "user", "content": "write a poem about diabetes"}, {"role": "assistant", "content": "I answer questions from your health record only"}]}
+{"messages": [{"role": "user", "content": "how do i bake a cake"}, {"role": "assistant", "content": "I answer questions from your health record only"}]}
+{"messages": [{"role": "user", "content": "what is the best movie of all time"}, {"role": "assistant", "content": "I answer questions from your health record only"}]}
+{"messages": [{"role": "user", "content": "can you write a python script for me"}, {"role": "assistant", "content": "I answer questions from your health record only"}]}
+{"messages": [{"role": "user", "content": "what is 250 multiplied by 14"}, {"role": "assistant", "content": "I answer questions from your health record only"}]}
+{"messages": [{"role": "user", "content": "give me travel tips for paris"}, {"role": "assistant", "content": "I answer questions from your health record only"}]}
+{"messages": [{"role": "user", "content": "how do i fix a flat tire"}, {"role": "assistant", "content": "I answer questions from your health record only"}]}
+{"messages": [{"role": "user", "content": "what are my dietary rules"}, {"role": "assistant", "content": "Your dietary rules include a low sodium (under 2000 mg per day) diet, limiting added sugar, and eating no grapefruit."}]}
+{"messages": [{"role": "user", "content": "briefly describe my cardiovascular health data"}, {"role": "assistant", "content": "Your blood pressure is 118/76, heart rate is 72 bpm, and you have controlled Hypertension and High Cholesterol."}]}
+{"messages": [{"role": "user", "content": "summarize things i should avoid"}, {"role": "assistant", "content": "You should avoid Potassium supplements, NSAIDs, Alcohol, Grapefruit, Grapefruit juice, Erythromycin, Ibuprofen, and Warfarin."}]}
+{"messages": [{"role": "user", "content": "what is my basic profile information"}, {"role": "assistant", "content": "You are a 45-year-old female, blood type O+, named Test Patient."}]}
+{"messages": [{"role": "user", "content": "summarize my emergency contact info"}, {"role": "assistant", "content": "Your emergency contact is your daughter, Jane Doe, reachable at +1-555-0142."}]}
+{"messages": [{"role": "user", "content": "how many days until my diabetes checkup on may 6th"}, {"role": "assistant", "content": "Your appointment on 2026-05-06 is 11 days from today, 2026-04-25."}]}
+{"messages": [{"role": "user", "content": "what is my next medication today after 10am"}, {"role": "assistant", "content": "Your next scheduled medications are Metformin at 19:00 and Atorvastatin at 21:00."}]}
+{"messages": [{"role": "user", "content": "how many days until my cardio review?"}, {"role": "assistant", "content": "Your appointment on 2026-06-15 is 51 days from today, 2026-04-25."}]}
+{"messages": [{"role": "user", "content": "when was i diagnosed with diabetes compared to today"}, {"role": "assistant", "content": "You were diagnosed on 2021-06-08, which is before today's date of 2026-04-25."}]}
+{"messages": [{"role": "user", "content": "how many appointments do i have after today"}, {"role": "assistant", "content": "You have two appointments scheduled after 2026-04-25."}]}
+{"messages": [{"role": "user", "content": "SpO2 level"}, {"role": "assistant", "content": "98%."}]}
+{"messages": [{"role": "user", "content": "body temperature"}, {"role": "assistant", "content": "36.7 C."}]}
+{"messages": [{"role": "user", "content": "when were vitals last measured"}, {"role": "assistant", "content": "2026-04-24 08:15."}]}
+{"messages": [{"role": "user", "content": "sex listed"}, {"role": "assistant", "content": "F."}]}
+{"messages": [{"role": "user", "content": "name of patient"}, {"role": "assistant", "content": "Test Patient."}]}
+{"messages": [{"role": "user", "content": "what time do I take Metformin"}, {"role": "assistant", "content": "08:00, 19:00."}]}
+{"messages": [{"role": "user", "content": "Atorvastatin schedule"}, {"role": "assistant", "content": "21:00."}]}
+{"messages": [{"role": "user", "content": "Aspirin dose and time"}, {"role": "assistant", "content": "81 mg at 08:00."}]}
+{"messages": [{"role": "user", "content": "Vitamin D3 amount"}, {"role": "assistant", "content": "1000 IU."}]}
+{"messages": [{"role": "user", "content": "conditions I have"}, {"role": "assistant", "content": "Hypertension, Type 2 Diabetes, High Cholesterol."}]}
+{"messages": [{"role": "user", "content": "Hypertension diagnosed when"}, {"role": "assistant", "content": "2019-03-12."}]}
+{"messages": [{"role": "user", "content": "severity of diabetes"}, {"role": "assistant", "content": "mild."}]}
+{"messages": [{"role": "user", "content": "is hypertension controlled"}, {"role": "assistant", "content": "true."}]}
+{"messages": [{"role": "user", "content": "allergies"}, {"role": "assistant", "content": "Penicillin, Shellfish."}]}
+{"messages": [{"role": "user", "content": "Penicillin reaction"}, {"role": "assistant", "content": "anaphylaxis."}]}
+{"messages": [{"role": "user", "content": "who is my emergency contact"}, {"role": "assistant", "content": "Jane Doe."}]}
+{"messages": [{"role": "user", "content": "phone for daughter"}, {"role": "assistant", "content": "+1-555-0142."}]}
+{"messages": [{"role": "user", "content": "avoid for Atorvastatin"}, {"role": "assistant", "content": "Grapefruit, Grapefruit juice."}]}
+{"messages": [{"role": "user", "content": "Aspirin avoid drugs"}, {"role": "assistant", "content": "Ibuprofen, Warfarin."}]}
+{"messages": [{"role": "user", "content": "dietary restrictions"}, {"role": "assistant", "content": "low sodium (under 2000 mg per day), limit added sugar, no grapefruit."}]}
+{"messages": [{"role": "user", "content": "reason for low sodium"}, {"role": "assistant", "content": "hypertension management."}]}
+{"messages": [{"role": "user", "content": "appointment with Dr. Evelyn Chen"}, {"role": "assistant", "content": "2026-05-06 at 10:30, Maple Clinic, Room 204."}]}
+{"messages": [{"role": "user", "content": "cardiology review date"}, {"role": "assistant", "content": "2026-06-15."}]}
+{"messages": [{"role": "user", "content": "notes in record"}, {"role": "assistant", "content": "Vitals within nominal range. No medication interactions flagged."}]}
+{"messages": [{"role": "user", "content": "last measured vitals time"}, {"role": "assistant", "content": "2026-04-24 08:15."}]}
+{"messages": [{"role": "user", "content": "my BP med dose"}, {"role": "assistant", "content": "10 mg."}]}
+{"messages": [{"role": "user", "content": "what meds at 08:00 and their purpose"}, {"role": "assistant", "content": "Lisinopril 10 mg for blood pressure control, Metformin 500 mg for blood sugar control, Aspirin 81 mg for cardiovascular protection, Vitamin D3 1000 IU for bone health."}]}
+{"messages": [{"role": "user", "content": "list allergies with severity"}, {"role": "assistant", "content": "Penicillin severe anaphylaxis, Shellfish moderate hives."}]}
+{"messages": [{"role": "user", "content": "Metformin plus food rule"}, {"role": "assistant", "content": "Metformin 500 mg at 08:00, 19:00 with food true, avoid foods Alcohol."}]}
+{"messages": [{"role": "user", "content": "Atorvastatin and avoid"}, {"role": "assistant", "content": "Atorvastatin 20 mg at 21:00, avoid foods Grapefruit, Grapefruit juice, avoid drugs Erythromycin."}]}
+{"messages": [{"role": "user", "content": "conditions and control status"}, {"role": "assistant", "content": "Hypertension moderate controlled true, Type 2 Diabetes mild controlled true, High Cholesterol mild controlled true."}]}
+{"messages": [{"role": "user", "content": "medications with schedule"}, {"role": "assistant", "content": "Lisinopril 10 mg 08:00, Metformin 500 mg 08:00 19:00, Atorvastatin 20 mg 21:00, Aspirin 81 mg 08:00, Vitamin D3 1000 IU 08:00."}]}
+{"messages": [{"role": "user", "content": "allergy to penicillin details"}, {"role": "assistant", "content": "Penicillin severe anaphylaxis."}]}
+{"messages": [{"role": "user", "content": "diet rules and reasons"}, {"role": "assistant", "content": "low sodium (under 2000 mg per day) for hypertension management, limit added sugar for diabetes management, no grapefruit for atorvastatin interaction."}]}
+{"messages": [{"role": "user", "content": "next appointment and provider"}, {"role": "assistant", "content": "2026-05-06 10:30 with Dr. Evelyn Chen for quarterly diabetes check-up at Maple Clinic, Room 204."}]}
+{"messages": [{"role": "user", "content": "who is my primary care doctor"}, {"role": "assistant", "content": "not in record"}]}
+{"messages": [{"role": "user", "content": "last A1c result"}, {"role": "assistant", "content": "not in record"}]}
+{"messages": [{"role": "user", "content": "when was my last EKG"}, {"role": "assistant", "content": "not in record"}]}
+{"messages": [{"role": "user", "content": "current weight"}, {"role": "assistant", "content": "not in record"}]}
+{"messages": [{"role": "user", "content": "height in record"}, {"role": "assistant", "content": "not in record"}]}
+{"messages": [{"role": "user", "content": "pain level today"}, {"role": "assistant", "content": "not in record"}]}
+{"messages": [{"role": "user", "content": "any recent lab results"}, {"role": "assistant", "content": "not in record"}]}
+{"messages": [{"role": "user", "content": "BMI value"}, {"role": "assistant", "content": "not in record"}]}
+{"messages": [{"role": "user", "content": "family history of heart disease"}, {"role": "assistant", "content": "not in record"}]}
+{"messages": [{"role": "user", "content": "current blood sugar reading"}, {"role": "assistant", "content": "not in record"}]}
+{"messages": [{"role": "user", "content": "insurance provider"}, {"role": "assistant", "content": "not in record"}]}
+{"messages": [{"role": "user", "content": "should I stop taking Lisinopril"}, {"role": "assistant", "content": "Consult your clinician. Lisinopril 10 mg for blood pressure control."}]}
+{"messages": [{"role": "user", "content": "is my blood pressure dangerous right now"}, {"role": "assistant", "content": "Consult your clinician. blood pressure 118/76 mmHg."}]}
+{"messages": [{"role": "user", "content": "can I exercise with my diabetes"}, {"role": "assistant", "content": "Consult your clinician. Type 2 Diabetes mild controlled true."}]}
+{"messages": [{"role": "user", "content": "should I take extra Metformin today"}, {"role": "assistant", "content": "Consult your clinician. Metformin 500 mg for blood sugar control."}]}
+{"messages": [{"role": "user", "content": "is it safe to eat shellfish"}, {"role": "assistant", "content": "Consult your clinician. Shellfish moderate hives."}]}
+{"messages": [{"role": "user", "content": "how is the weather today"}, {"role": "assistant", "content": "I answer questions from your health record only"}]}
+{"messages": [{"role": "user", "content": "hello how are you"}, {"role": "assistant", "content": "I answer questions from your health record only"}]}
+{"messages": [{"role": "user", "content": "tell me a story"}, {"role": "assistant", "content": "I answer questions from your health record only"}]}
+{"messages": [{"role": "user", "content": "what time is it"}, {"role": "assistant", "content": "I answer questions from your health record only"}]}
+{"messages": [{"role": "user", "content": "recipe for cake"}, {"role": "assistant", "content": "I answer questions from your health record only"}]}
+{"messages": [{"role": "user", "content": "who won the election"}, {"role": "assistant", "content": "I answer questions from your health record only"}]}
+{"messages": [{"role": "user", "content": "overview of my conditions"}, {"role": "assistant", "content": "Hypertension moderate controlled true diagnosed 2019-03-12, Type 2 Diabetes mild controlled true diagnosed 2021-06-08, High Cholesterol mild controlled true diagnosed 2022-01-20."}]}
+{"messages": [{"role": "user", "content": "summarize my health record"}, {"role": "assistant", "content": "Vitals within nominal range. No medication interactions flagged. Conditions controlled."}]}
+{"messages": [{"role": "user", "content": "give summary of allergies and diet"}, {"role": "assistant", "content": "Allergies Penicillin severe anaphylaxis, Shellfish moderate hives. Dietary restrictions low sodium (under 2000 mg per day) hypertension management, limit added sugar diabetes management, no grapefruit atorvastatin interaction."}]}
+{"messages": [{"role": "user", "content": "brief overview of appointments"}, {"role": "assistant", "content": "2026-05-06 10:30 Dr. Evelyn Chen quarterly diabetes check-up Maple Clinic Room 204, 2026-06-15 14:00 Dr. Marcus Patel annual cardiology review."}]}
+{"messages": [{"role": "user", "content": "days until diabetes appointment"}, {"role": "assistant", "content": "11 days."}]}
+{"messages": [{"role": "user", "content": "when is next visit"}, {"role": "assistant", "content": "2026-05-06."}]}
+{"messages": [{"role": "user", "content": "how many days to cardiology review"}, {"role": "assistant", "content": "51 days."}]}
+{"messages": [{"role": "user", "content": "what meds today 2026-04-25"}, {"role": "assistant", "content": "Lisinopril 10 mg 08:00, Metformin 500 mg 08:00 19:00, Aspirin 81 mg 08:00, Vitamin D3 1000 IU 08:00, Atorvastatin 20 mg 21:00."}]}
+{"messages": [{"role": "user", "content": "time until next appointment"}, {"role": "assistant", "content": "2026-05-06 10:30."}]}
+{"messages": [{"role": "user", "content": "what to take at 8am on 2026-04-25"}, {"role": "assistant", "content": "Lisinopril 10 mg, Metformin 500 mg, Aspirin 81 mg, Vitamin D3 1000 IU."}]}
+{"messages": [{"role": "user", "content": "how far is cardiology appt"}, {"role": "assistant", "content": "2026-06-15 14:00."}]}
+{"messages": [{"role": "user", "content": "how old am i"}, {"role": "assistant", "content": "You are 45 years old."}]}
+{"messages": [{"role": "user", "content": "what is my name in the record"}, {"role": "assistant", "content": "The name on file is Test Patient."}]}
+{"messages": [{"role": "user", "content": "what is my oxygen saturation"}, {"role": "assistant", "content": "Your SpO2 is 98%."}]}
+{"messages": [{"role": "user", "content": "what is my spo2"}, {"role": "assistant", "content": "Your SpO2 is 98%."}]}
+{"messages": [{"role": "user", "content": "what is my body temperature"}, {"role": "assistant", "content": "Your body temperature is 36.7 °C."}]}
+{"messages": [{"role": "user", "content": "what is my respiratory rate"}, {"role": "assistant", "content": "Your respiratory rate is 16."}]}
+{"messages": [{"role": "user", "content": "when were my vitals last recorded"}, {"role": "assistant", "content": "Your vitals were last measured on 2026-04-24 at 08:15."}]}
+{"messages": [{"role": "user", "content": "what is the dose of lisinopril"}, {"role": "assistant", "content": "Lisinopril is dosed at 10 mg."}]}
+{"messages": [{"role": "user", "content": "how much metformin do i take"}, {"role": "assistant", "content": "Your Metformin dose is 500 mg."}]}
+{"messages": [{"role": "user", "content": "what dose is my atorvastatin"}, {"role": "assistant", "content": "Atorvastatin is dosed at 20 mg."}]}
+{"messages": [{"role": "user", "content": "how many mg of aspirin am i on"}, {"role": "assistant", "content": "Your Aspirin dose is 81 mg."}]}
+{"messages": [{"role": "user", "content": "what is my vitamin d3 dosage"}, {"role": "assistant", "content": "Your Vitamin D3 dose is 1000 IU."}]}
+{"messages": [{"role": "user", "content": "when do i take lisinopril"}, {"role": "assistant", "content": "Lisinopril is scheduled at 08:00."}]}
+{"messages": [{"role": "user", "content": "what time do i take my metformin"}, {"role": "assistant", "content": "Metformin is scheduled at 08:00 and 19:00."}]}
+{"messages": [{"role": "user", "content": "when should i take atorvastatin"}, {"role": "assistant", "content": "Atorvastatin is scheduled at 21:00."}]}
+{"messages": [{"role": "user", "content": "what time is my aspirin dose"}, {"role": "assistant", "content": "Aspirin is scheduled at 08:00."}]}
+{"messages": [{"role": "user", "content": "wen do i take vitd3"}, {"role": "assistant", "content": "Vitamin D3 is scheduled at 08:00."}]}
+{"messages": [{"role": "user", "content": "why am i taking metformin"}, {"role": "assistant", "content": "Metformin is prescribed for blood sugar control."}]}
+{"messages": [{"role": "user", "content": "what is atorvastatin for"}, {"role": "assistant", "content": "Atorvastatin is prescribed for cholesterol control."}]}
+{"messages": [{"role": "user", "content": "purpose of my vitamin d supplement"}, {"role": "assistant", "content": "Vitamin D3 is prescribed for bone health."}]}
+{"messages": [{"role": "user", "content": "how severe is my penicillin allergy"}, {"role": "assistant", "content": "Your Penicillin allergy is severe, with a reaction of anaphylaxis."}]}
+{"messages": [{"role": "user", "content": "what happens if i have shellfish"}, {"role": "assistant", "content": "Your Shellfish allergy is moderate; the recorded reaction is hives."}]}
+{"messages": [{"role": "user", "content": "when was my hypertension diagnosed"}, {"role": "assistant", "content": "Hypertension was diagnosed on 2019-03-12."}]}
+{"messages": [{"role": "user", "content": "when did i get diagnosed with type 2 diabetes"}, {"role": "assistant", "content": "Type 2 Diabetes was diagnosed on 2021-06-08."}]}
+{"messages": [{"role": "user", "content": "when was high cholesterol added to my record"}, {"role": "assistant", "content": "High Cholesterol was diagnosed on 2022-01-20."}]}
+{"messages": [{"role": "user", "content": "what severity is my hypertension"}, {"role": "assistant", "content": "Your Hypertension is classified as moderate severity."}]}
+{"messages": [{"role": "user", "content": "when is my cardiology appointment"}, {"role": "assistant", "content": "Your cardiology review is on 2026-06-15 at 14:00."}]}
+{"messages": [{"role": "user", "content": "what is my emergency contact's phone number"}, {"role": "assistant", "content": "Your emergency contact Jane Doe can be reached at +1-555-0142."}]}
+{"messages": [{"role": "user", "content": "which medications do i take at 8am and what are they for"}, {"role": "assistant", "content": "At 08:00 you take Lisinopril 10 mg (blood pressure control), Metformin 500 mg (blood sugar control), Aspirin 81 mg (cardiovascular protection), and Vitamin D3 1000 IU (bone health)."}]}
+{"messages": [{"role": "user", "content": "list all my allergies with their severity and reaction"}, {"role": "assistant", "content": "Penicillin: severe, anaphylaxis; Shellfish: moderate, hives."}]}
+{"messages": [{"role": "user", "content": "which of my meds must be taken with food"}, {"role": "assistant", "content": "Metformin 500 mg, Aspirin 81 mg, and Vitamin D3 1000 IU must all be taken with food."}]}
+{"messages": [{"role": "user", "content": "what is the dose and drug interactions for lisinopril"}, {"role": "assistant", "content": "Lisinopril is 10 mg at 08:00; avoid Potassium supplements and NSAIDs."}]}
+{"messages": [{"role": "user", "content": "atorvastatin dose, schedule and food to avoid"}, {"role": "assistant", "content": "Atorvastatin 20 mg at 21:00; avoid Grapefruit and Grapefruit juice."}]}
+{"messages": [{"role": "user", "content": "when do i take metformin and what food should i avoid with it"}, {"role": "assistant", "content": "Metformin 500 mg is taken at 08:00 and 19:00 with food; avoid Alcohol."}]}
+{"messages": [{"role": "user", "content": "full details of my next appointment"}, {"role": "assistant", "content": "2026-05-06 at 10:30 with Dr. Evelyn Chen for a quarterly diabetes check-up at Maple Clinic, Room 204."}]}
+{"messages": [{"role": "user", "content": "what are both my BP numbers"}, {"role": "assistant", "content": "Your systolic blood pressure is 118 and diastolic is 76."}]}
+{"messages": [{"role": "user", "content": "list my conditions with diagnosis dates"}, {"role": "assistant", "content": "Hypertension (2019-03-12), Type 2 Diabetes (2021-06-08), High Cholesterol (2022-01-20)."}]}
+{"messages": [{"role": "user", "content": "what are all my dietary restrictions and why"}, {"role": "assistant", "content": "Low sodium under 2000 mg per day (hypertension management); limit added sugar (diabetes management); no grapefruit (atorvastatin interaction)."}]}
+{"messages": [{"role": "user", "content": "what drugs interact with my aspirin"}, {"role": "assistant", "content": "Aspirin 81 mg should not be combined with Ibuprofen or Warfarin."}]}
+{"messages": [{"role": "user", "content": "tell me the dose, time, and food rule for vitamin d3"}, {"role": "assistant", "content": "Vitamin D3 is 1000 IU at 08:00 and should be taken with food."}]}
+{"messages": [{"role": "user", "content": "what is my emergency contact's name and number"}, {"role": "assistant", "content": "Jane Doe (daughter) can be reached at +1-555-0142."}]}
+{"messages": [{"role": "user", "content": "which meds are NOT taken with food"}, {"role": "assistant", "content": "Lisinopril 10 mg and Atorvastatin 20 mg are taken without food."}]}
+{"messages": [{"role": "user", "content": "what drugs must i avoid while on atorvastatin"}, {"role": "assistant", "content": "Avoid Erythromycin while taking Atorvastatin 20 mg, and also avoid Grapefruit and Grapefruit juice."}]}
+{"messages": [{"role": "user", "content": "give me all medication names and their doses"}, {"role": "assistant", "content": "Lisinopril 10 mg, Metformin 500 mg, Atorvastatin 20 mg, Aspirin 81 mg, Vitamin D3 1000 IU."}]}
+{"messages": [{"role": "user", "content": "full details of my cardiology appointment"}, {"role": "assistant", "content": "2026-06-15 at 14:00 with Dr. Marcus Patel for an annual cardiology review at Cardiology Dept, 3rd floor."}]}
+{"messages": [{"role": "user", "content": "list all conditions and their severity"}, {"role": "assistant", "content": "Hypertension: moderate; Type 2 Diabetes: mild; High Cholesterol: mild."}]}
+{"messages": [{"role": "user", "content": "what medications am i taking and at what times"}, {"role": "assistant", "content": "Lisinopril 10 mg, Metformin 500 mg, Aspirin 81 mg, and Vitamin D3 1000 IU at 08:00; Metformin 500 mg again at 19:00; Atorvastatin 20 mg at 21:00."}]}
+{"messages": [{"role": "user", "content": "what was my last A1c result"}, {"role": "assistant", "content": "not in record"}]}
+{"messages": [{"role": "user", "content": "how much do i weigh"}, {"role": "assistant", "content": "not in record"}]}
+{"messages": [{"role": "user", "content": "what is my height"}, {"role": "assistant", "content": "not in record"}]}
+{"messages": [{"role": "user", "content": "what is my current pain level"}, {"role": "assistant", "content": "not in record"}]}
+{"messages": [{"role": "user", "content": "what was my last fasting glucose reading"}, {"role": "assistant", "content": "not in record"}]}
+{"messages": [{"role": "user", "content": "what insurance do i have"}, {"role": "assistant", "content": "not in record"}]}
+{"messages": [{"role": "user", "content": "what pharmacy do i use"}, {"role": "assistant", "content": "not in record"}]}
+{"messages": [{"role": "user", "content": "when was my last blood test"}, {"role": "assistant", "content": "not in record"}]}
+{"messages": [{"role": "user", "content": "what is my BMI"}, {"role": "assistant", "content": "not in record"}]}
+{"messages": [{"role": "user", "content": "what medications have i taken in the past"}, {"role": "assistant", "content": "not in record"}]}
+{"messages": [{"role": "user", "content": "what is my family medical history"}, {"role": "assistant", "content": "not in record"}]}
+{"messages": [{"role": "user", "content": "do i have any current symptoms"}, {"role": "assistant", "content": "not in record"}]}
+{"messages": [{"role": "user", "content": "should i stop taking lisinopril"}, {"role": "assistant", "content": "Please consult your clinician before changing any medication; your record shows Lisinopril 10 mg prescribed for blood pressure control."}]}
+{"messages": [{"role": "user", "content": "can i exercise with type 2 diabetes"}, {"role": "assistant", "content": "Please consult your clinician for personalised guidance; your record shows Type 2 Diabetes is mild and currently controlled."}]}
+{"messages": [{"role": "user", "content": "should i increase my metformin dose"}, {"role": "assistant", "content": "Please consult your clinician before adjusting doses; your current Metformin dose is 500 mg taken at 08:00 and 19:00."}]}
+{"messages": [{"role": "user", "content": "is a heart rate of 72 normal for me"}, {"role": "assistant", "content": "Please consult your clinician to assess your heart rate in clinical context; your recorded heart rate is 72 bpm."}]}
+{"messages": [{"role": "user", "content": "should i stop aspirin before my surgery"}, {"role": "assistant", "content": "Please consult your clinician regarding pre-surgical medication adjustments; your record shows Aspirin 81 mg taken for cardiovascular protection."}]}
+{"messages": [{"role": "user", "content": "is 98 percent spo2 okay"}, {"role": "assistant", "content": "Please consult your clinician to evaluate your oxygen saturation in full clinical context; your recorded SpO2 is 98%."}]}
+{"messages": [{"role": "user", "content": "should i change the time i take atorvastatin"}, {"role": "assistant", "content": "Please consult your clinician before changing your medication schedule; Atorvastatin 20 mg is currently prescribed at 21:00."}]}
+{"messages": [{"role": "user", "content": "what is the weather today"}, {"role": "assistant", "content": "I answer questions from your health record only"}]}
+{"messages": [{"role": "user", "content": "who won the last world cup"}, {"role": "assistant", "content": "I answer questions from your health record only"}]}
+{"messages": [{"role": "user", "content": "what is 2 plus 2"}, {"role": "assistant", "content": "I answer questions from your health record only"}]}
+{"messages": [{"role": "user", "content": "recommend a good restaurant near me"}, {"role": "assistant", "content": "I answer questions from your health record only"}]}
+{"messages": [{"role": "user", "content": "what movies are showing this weekend"}, {"role": "assistant", "content": "I answer questions from your health record only"}]}
+{"messages": [{"role": "user", "content": "how do i invest in index funds"}, {"role": "assistant", "content": "I answer questions from your health record only"}]}
+{"messages": [{"role": "user", "content": "tell me a fun fact about space"}, {"role": "assistant", "content": "I answer questions from your health record only"}]}
+{"messages": [{"role": "user", "content": "translate hello into spanish"}, {"role": "assistant", "content": "I answer questions from your health record only"}]}
+{"messages": [{"role": "user", "content": "what is the speed of light"}, {"role": "assistant", "content": "I answer questions from your health record only"}]}
+{"messages": [{"role": "user", "content": "write a haiku about autumn"}, {"role": "assistant", "content": "I answer questions from your health record only"}]}
+{"messages": [{"role": "user", "content": "give me a quick summary of my allergies"}, {"role": "assistant", "content": "You have two recorded allergies: Penicillin (severe, anaphylaxis) and Shellfish (moderate, hives)."}]}
+{"messages": [{"role": "user", "content": "what are all my dietary restrictions"}, {"role": "assistant", "content": "Your restrictions are: low sodium under 2000 mg per day (hypertension), limit added sugar (diabetes), and no grapefruit (atorvastatin interaction)."}]}
+{"messages": [{"role": "user", "content": "summarize my upcoming appointments"}, {"role": "assistant", "content": "You have a quarterly diabetes check-up with Dr. Evelyn Chen on 2026-05-06 at 10:30 (Maple Clinic, Room 204) and an annual cardiology review with Dr. Marcus Patel on 2026-06-15 at 14:00 (Cardiology Dept, 3rd floor)."}]}
+{"messages": [{"role": "user", "content": "give me a summary of my current vitals"}, {"role": "assistant", "content": "As of 2026-04-24 08:15: heart rate 72 bpm, blood pressure 118/76, SpO2 98%, temperature 36.7 °C, respiratory rate 16 — all within nominal range."}]}
+{"messages": [{"role": "user", "content": "summarize what each medication is for"}, {"role": "assistant", "content": "Lisinopril controls blood pressure, Metformin manages blood sugar, Atorvastatin manages cholesterol, Aspirin provides cardiovascular protection, and Vitamin D3 supports bone health."}]}
+{"messages": [{"role": "user", "content": "quick health snapshot"}, {"role": "assistant", "content": "You are a 45-year-old female (blood type O+) with three controlled chronic conditions, five active medications, two allergies, and vitals last confirmed within nominal range on 2026-04-24."}]}
+{"messages": [{"role": "user", "content": "how many days until my diabetes appointment"}, {"role": "assistant", "content": "Your quarterly diabetes check-up with Dr. Evelyn Chen is on 2026-05-06, which is 11 days from today (2026-04-25)."}]}
+{"messages": [{"role": "user", "content": "how many days until my cardiology review"}, {"role": "assistant", "content": "Your annual cardiology review with Dr. Marcus Patel is on 2026-06-15, which is 51 days from today (2026-04-25)."}]}
+{"messages": [{"role": "user", "content": "what medications do i take this morning"}, {"role": "assistant", "content": "This morning at 08:00 take Lisinopril 10 mg (without food), Metformin 500 mg (with food), Aspirin 81 mg (with food), and Vitamin D3 1000 IU (with food)."}]}
+{"messages": [{"role": "user", "content": "what do i take at 9pm tonight"}, {"role": "assistant", "content": "At 21:00 tonight take Atorvastatin 20 mg without food."}]}
+{"messages": [{"role": "user", "content": "what do i take at 7pm"}, {"role": "assistant", "content": "At 19:00 take Metformin 500 mg with food."}]}
+{"messages": [{"role": "user", "content": "is my diabetes appointment this month"}, {"role": "assistant", "content": "Yes, your quarterly diabetes check-up is on 2026-05-06 — 11 days from today (2026-04-25)."}]}
+{"messages": [{"role": "user", "content": "how many weeks until my cardiology appointment"}, {"role": "assistant", "content": "Your cardiology review is on 2026-06-15, which is 51 days (approximately 7 weeks) from today (2026-04-25)."}]}
+{"messages": [{"role": "user", "content": "what appointment comes after my diabetes check-up"}, {"role": "assistant", "content": "After your diabetes check-up on 2026-05-06, the next appointment is the annual cardiology review on 2026-06-15 with Dr. Marcus Patel."}]}
+{"messages": [{"role": "user", "content": "how long until my next doctor visit"}, {"role": "assistant", "content": "Your next appointment is in 11 days on 2026-05-06 with Dr. Evelyn Chen at Maple Clinic, Room 204."}]}
+{"messages": [{"role": "user", "content": "systolic pressure"}, {"role": "assistant", "content": "118 mmHg."}]}
+{"messages": [{"role": "user", "content": "diastolic bp"}, {"role": "assistant", "content": "76 mmHg."}]}
+{"messages": [{"role": "user", "content": "spo2 reading"}, {"role": "assistant", "content": "98%."}]}
+{"messages": [{"role": "user", "content": "oxygen level"}, {"role": "assistant", "content": "98%."}]}
+{"messages": [{"role": "user", "content": "my temp?"}, {"role": "assistant", "content": "36.7°C."}]}
+{"messages": [{"role": "user", "content": "what is my temperature"}, {"role": "assistant", "content": "36.7°C."}]}
+{"messages": [{"role": "user", "content": "respiratory rate"}, {"role": "assistant", "content": "16 breaths per minute."}]}
+{"messages": [{"role": "user", "content": "how many breaths per minute"}, {"role": "assistant", "content": "16."}]}
+{"messages": [{"role": "user", "content": "rr"}, {"role": "assistant", "content": "16."}]}
+{"messages": [{"role": "user", "content": "last vitals timestamp"}, {"role": "assistant", "content": "2026-04-24 08:15."}]}
+{"messages": [{"role": "user", "content": "patient age"}, {"role": "assistant", "content": "45."}]}
+{"messages": [{"role": "user", "content": "what is my sex"}, {"role": "assistant", "content": "F."}]}
+{"messages": [{"role": "user", "content": "gender"}, {"role": "assistant", "content": "F."}]}
+{"messages": [{"role": "user", "content": "how much lisinopril"}, {"role": "assistant", "content": "10 mg."}]}
+{"messages": [{"role": "user", "content": "atorvastatin dosage"}, {"role": "assistant", "content": "20 mg."}]}
+{"messages": [{"role": "user", "content": "what time is lisinopril"}, {"role": "assistant", "content": "08:00."}]}
+{"messages": [{"role": "user", "content": "when do i take metformin"}, {"role": "assistant", "content": "08:00, 19:00."}]}
+{"messages": [{"role": "user", "content": "atorvastatin timing"}, {"role": "assistant", "content": "21:00."}]}
+{"messages": [{"role": "user", "content": "aspirin schedule"}, {"role": "assistant", "content": "08:00."}]}
+{"messages": [{"role": "user", "content": "vitamin d3 time"}, {"role": "assistant", "content": "08:00."}]}
+{"messages": [{"role": "user", "content": "what medications do i take at 08:00 and what are they for?"}, {"role": "assistant", "content": "Lisinopril 10 mg for blood pressure control; Metformin 500 mg for blood sugar control; Aspirin 81 mg for cardiovascular protection; Vitamin D3 1000 IU for bone health."}]}
+{"messages": [{"role": "user", "content": "which medications avoid grapefruit and why?"}, {"role": "assistant", "content": "Atorvastatin 20 mg for cholesterol control requires no grapefruit or grapefruit juice."}]}
+{"messages": [{"role": "user", "content": "what conditions are controlled and their severity?"}, {"role": "assistant", "content": "Hypertension: moderate, controlled; Type 2 Diabetes: mild, controlled; High Cholesterol: mild, controlled."}]}
+{"messages": [{"role": "user", "content": "what is my next appointment and with whom?"}, {"role": "assistant", "content": "2026-05-06 at 10:30 with Dr. Evelyn Chen for quarterly diabetes check-up at Maple Clinic, Room 204."}]}
+{"messages": [{"role": "user", "content": "what should i avoid with lisinopril and why?"}, {"role": "assistant", "content": "Avoid Potassium supplements and NSAIDs; purpose is blood pressure control."}]}
+{"messages": [{"role": "user", "content": "what is my bp med and its dose?"}, {"role": "assistant", "content": "Lisinopril 10 mg."}]}
+{"messages": [{"role": "user", "content": "which med is for cholesterol, how much, and when?"}, {"role": "assistant", "content": "Atorvastatin 20 mg at 21:00."}]}
+{"messages": [{"role": "user", "content": "what allergy causes anaphylaxis?"}, {"role": "assistant", "content": "Penicillin: severe reaction anaphylaxis."}]}
+{"messages": [{"role": "user", "content": "diabetes med schedule and food requirement"}, {"role": "assistant", "content": "Metformin 500 mg at 08:00 and 19:00 with food."}]}
+{"messages": [{"role": "user", "content": "cardiology appointment details"}, {"role": "assistant", "content": "2026-06-15 at 14:00 with Dr. Marcus Patel for annual cardiology review at Cardiology Dept, 3rd floor."}]}
+{"messages": [{"role": "user", "content": "what drugs should i avoid with aspirin?"}, {"role": "assistant", "content": "Avoid Ibuprofen and Warfarin."}]}
+{"messages": [{"role": "user", "content": "my diabetes medication and dietary rule"}, {"role": "assistant", "content": "Metformin 500 mg for blood sugar control; limit added sugar."}]}
+{"messages": [{"role": "user", "content": "what is the sodium rule for and what is the limit?"}, {"role": "assistant", "content": "Low sodium under 2000 mg per day for hypertension management."}]}
+{"messages": [{"role": "user", "content": "blood pressure med timing and food?"}, {"role": "assistant", "content": "Lisinopril 10 mg at 08:00 without food."}]}
+{"messages": [{"role": "user", "content": "what did i take for diabetes, when was it diagnosed, and is it controlled?"}, {"role": "assistant", "content": "Type 2 Diabetes diagnosed 2021-06-08, mild, controlled; medication Metformin 500 mg."}]}
+{"messages": [{"role": "user", "content": "who is my emergency contact and relation?"}, {"role": "assistant", "content": "Jane Doe, daughter, +1-555-0142."}]}
+{"messages": [{"role": "user", "content": "vitals summary: heart rate, bp, and spo2"}, {"role": "assistant", "content": "Heart rate 72 bpm; blood pressure 118/76 mmHg; SpO2 98%."}]}
+{"messages": [{"role": "user", "content": "when was my last ekg performed?"}, {"role": "assistant", "content": "not in record"}]}
+{"messages": [{"role": "user", "content": "how tall am i?"}, {"role": "assistant", "content": "not in record"}]}
+{"messages": [{"role": "user", "content": "what is my pain level right now?"}, {"role": "assistant", "content": "not in record"}]}
+{"messages": [{"role": "user", "content": "do i have a family history of heart disease?"}, {"role": "assistant", "content": "not in record"}]}
+{"messages": [{"role": "user", "content": "what is my egfr?"}, {"role": "assistant", "content": "not in record"}]}
+{"messages": [{"role": "user", "content": "what is my triglyceride level?"}, {"role": "assistant", "content": "not in record"}]}
+{"messages": [{"role": "user", "content": "when was my last lipid panel?"}, {"role": "assistant", "content": "not in record"}]}
+{"messages": [{"role": "user", "content": "can i stop taking lisinopril?"}, {"role": "assistant", "content": "You should consult your clinician before stopping Lisinopril 10 mg prescribed for blood pressure control."}]}
+{"messages": [{"role": "user", "content": "is my blood pressure dangerous?"}, {"role": "assistant", "content": "Consult your clinician to interpret your blood pressure 118/76 mmHg; vitals are noted as within nominal range."}]}
+{"messages": [{"role": "user", "content": "should i exercise with diabetes?"}, {"role": "assistant", "content": "Consult your clinician about exercise with Type 2 Diabetes diagnosed 2021-06-08, currently mild and controlled."}]}
+{"messages": [{"role": "user", "content": "can i drink alcohol while taking metformin?"}, {"role": "assistant", "content": "Consult your clinician; Metformin 500 mg lists avoid Alcohol."}]}
+{"messages": [{"role": "user", "content": "is it safe to take ibuprofen for a headache?"}, {"role": "assistant", "content": "Consult your clinician; Aspirin 81 mg lists avoid Ibuprofen."}]}
+{"messages": [{"role": "user", "content": "should i eat less salt?"}, {"role": "assistant", "content": "Consult your clinician; your record includes low sodium under 2000 mg per day for hypertension management."}]}
+{"messages": [{"role": "user", "content": "can i switch atorvastatin to morning?"}, {"role": "assistant", "content": "Consult your clinician before changing Atorvastatin 20 mg schedule from 21:00."}]}
+{"messages": [{"role": "user", "content": "is my penicillin allergy life-threatening?"}, {"role": "assistant", "content": "Consult your clinician; Penicillin allergy is noted as severe with reaction anaphylaxis."}]}
+{"messages": [{"role": "user", "content": "do i need to increase my aspirin dose?"}, {"role": "assistant", "content": "Consult your clinician before changing Aspirin 81 mg prescribed for cardiovascular protection."}]}
+{"messages": [{"role": "user", "content": "who won the world series"}, {"role": "assistant", "content": "I answer questions from your health record only"}]}
+{"messages": [{"role": "user", "content": "how do i bake sourdough bread"}, {"role": "assistant", "content": "I answer questions from your health record only"}]}
+{"messages": [{"role": "user", "content": "what is blockchain"}, {"role": "assistant", "content": "I answer questions from your health record only"}]}
+{"messages": [{"role": "user", "content": "how are you doing today"}, {"role": "assistant", "content": "I answer questions from your health record only"}]}
+{"messages": [{"role": "user", "content": "solve this math problem: 2+2"}, {"role": "assistant", "content": "I answer questions from your health record only"}]}
+{"messages": [{"role": "user", "content": "list my conditions."}, {"role": "assistant", "content": "Hypertension diagnosed 2019-03-12, moderate, controlled; Type 2 Diabetes diagnosed 2021-06-08, mild, controlled; High Cholesterol diagnosed 2022-01-20, mild, controlled."}]}
+{"messages": [{"role": "user", "content": "summarize my allergies."}, {"role": "assistant", "content": "Allergic to Penicillin with severe anaphylaxis and Shellfish with moderate hives."}]}
+{"messages": [{"role": "user", "content": "what are my dietary restrictions?"}, {"role": "assistant", "content": "Low sodium under 2000 mg per day for hypertension management; limit added sugar for diabetes management; no grapefruit due to atorvastatin interaction."}]}
+{"messages": [{"role": "user", "content": "summarize my appointments."}, {"role": "assistant", "content": "Quarterly diabetes check-up with Dr. Evelyn Chen on 2026-05-06 at 10:30 at Maple Clinic, Room 204; annual cardiology review with Dr. Marcus Patel on 2026-06-15 at 14:00 at Cardiology Dept, 3rd floor."}]}
+{"messages": [{"role": "user", "content": "summarize emergency info."}, {"role": "assistant", "content": "Emergency contact is Jane Doe, daughter, +1-555-0142."}]}
+{"messages": [{"role": "user", "content": "what are my medication avoidance rules?"}, {"role": "assistant", "content": "Lisinopril: avoid Potassium supplements and NSAIDs; Metformin: avoid Alcohol; Atorvastatin: avoid Grapefruit, Grapefruit juice, and Erythromycin; Aspirin: avoid Ibuprofen and Warfarin."}]}
+{"messages": [{"role": "user", "content": "list all my 08:00 medications and their purposes."}, {"role": "assistant", "content": "Lisinopril 10 mg blood pressure control; Metformin 500 mg blood sugar control; Aspirin 81 mg cardiovascular protection; Vitamin D3 1000 IU bone health."}]}
+{"messages": [{"role": "user", "content": "how many days until my next appointment?"}, {"role": "assistant", "content": "11 days until your next appointment on 2026-05-06."}]}
+{"messages": [{"role": "user", "content": "what do i take next based on my schedule?"}, {"role": "assistant", "content": "Based on today 2026-04-25, your next scheduled medications are at 08:00: Lisinopril 10 mg, Metformin 500 mg, Aspirin 81 mg, Vitamin D3 1000 IU."}]}
+{"messages": [{"role": "user", "content": "is my diabetes appointment this week?"}, {"role": "assistant", "content": "No; your quarterly diabetes check-up is on 2026-05-06."}]}
+{"messages": [{"role": "user", "content": "when were my vitals taken relative to today?"}, {"role": "assistant", "content": "Vitals were last measured 2026-04-24 08:15, yesterday."}]}
+{"messages": [{"role": "user", "content": "what is the date today and when is my diabetes check?"}, {"role": "assistant", "content": "Today is 2026-04-25; your diabetes check-up is 2026-05-06."}]}
+{"messages": [{"role": "user", "content": "how many days between my two upcoming appointments?"}, {"role": "assistant", "content": "40 days between 2026-05-06 and 2026-06-15."}]}
+{"messages": [{"role": "user", "content": "what should i take this evening?"}, {"role": "assistant", "content": "Atorvastatin 20 mg at 21:00."}]}
+{"messages": [{"role": "user", "content": "body temp?"}, {"role": "assistant", "content": "36.7°C."}]}
+{"messages": [{"role": "user", "content": "when were my vitals last taken?"}, {"role": "assistant", "content": "2026-04-24 08:15."}]}
+{"messages": [{"role": "user", "content": "age?"}, {"role": "assistant", "content": "45."}]}
+{"messages": [{"role": "user", "content": "sex?"}, {"role": "assistant", "content": "F."}]}
+{"messages": [{"role": "user", "content": "what's my name?"}, {"role": "assistant", "content": "Test Patient."}]}
+{"messages": [{"role": "user", "content": "lisinopril dose?"}, {"role": "assistant", "content": "10 mg."}]}
+{"messages": [{"role": "user", "content": "when do I take metformin?"}, {"role": "assistant", "content": "08:00 and 19:00."}]}
+{"messages": [{"role": "user", "content": "penicillin allergy severity?"}, {"role": "assistant", "content": "Severe, reaction anaphylaxis."}]}
+{"messages": [{"role": "user", "content": "when diagnosed with hypertension?"}, {"role": "assistant", "content": "2019-03-12."}]}
+{"messages": [{"role": "user", "content": "is my diabetes controlled?"}, {"role": "assistant", "content": "Yes, controlled."}]}
+{"messages": [{"role": "user", "content": "who is my emergency contact?"}, {"role": "assistant", "content": "Jane Doe, daughter, at +1-555-0142."}]}
+{"messages": [{"role": "user", "content": "does lisinopril need food?"}, {"role": "assistant", "content": "No."}]}
+{"messages": [{"role": "user", "content": "foods to avoid with atorvastatin?"}, {"role": "assistant", "content": "Grapefruit and grapefruit juice."}]}
+{"messages": [{"role": "user", "content": "reaction to shellfish?"}, {"role": "assistant", "content": "Hives."}]}
+{"messages": [{"role": "user", "content": "who is dr evelyn chen?"}, {"role": "assistant", "content": "Provider for the quarterly diabetes check-up."}]}
+{"messages": [{"role": "user", "content": "lisinopril schedule?"}, {"role": "assistant", "content": "08:00."}]}
+{"messages": [{"role": "user", "content": "high cholesterol diagnosis date?"}, {"role": "assistant", "content": "2022-01-20."}]}
+{"messages": [{"role": "user", "content": "sodium restriction?"}, {"role": "assistant", "content": "low sodium (under 2000 mg per day)."}]}
+{"messages": [{"role": "user", "content": "vitamin d3 dose?"}, {"role": "assistant", "content": "1000 IU."}]}
+{"messages": [{"role": "user", "content": "why do I take aspirin?"}, {"role": "assistant", "content": "cardiovascular protection."}]}
+{"messages": [{"role": "user", "content": "diastolic bp?"}, {"role": "assistant", "content": "76."}]}
+{"messages": [{"role": "user", "content": "cardiology appointment time?"}, {"role": "assistant", "content": "14:00."}]}
+{"messages": [{"role": "user", "content": "diabetes check-up date?"}, {"role": "assistant", "content": "2026-05-06."}]}
+{"messages": [{"role": "user", "content": "do I have allergies?"}, {"role": "assistant", "content": "Penicillin and Shellfish."}]}
+{"messages": [{"role": "user", "content": "what meds at 8am and why?"}, {"role": "assistant", "content": "Lisinopril (blood pressure), Metformin (blood sugar), Aspirin (cardiovascular), Vitamin D3 (bone health)."}]}
+{"messages": [{"role": "user", "content": "which med requires no alcohol?"}, {"role": "assistant", "content": "Metformin. Avoid alcohol while taking Metformin."}]}
+{"messages": [{"role": "user", "content": "food rules for my bp and cholesterol meds together?"}, {"role": "assistant", "content": "Avoid grapefruit with atorvastatin, and maintain low sodium diet for hypertension."}]}
+{"messages": [{"role": "user", "content": "which conditions are mild and when were they diagnosed?"}, {"role": "assistant", "content": "Type 2 Diabetes diagnosed 2021-06-08 and High Cholesterol diagnosed 2022-01-20 are mild. Hypertension is moderate, diagnosed 2019-03-12."}]}
+{"messages": [{"role": "user", "content": "what do I take with food and why?"}, {"role": "assistant", "content": "Metformin (blood sugar), Aspirin (cardiovascular), Vitamin D3 (bone health) with food."}]}
+{"messages": [{"role": "user", "content": "how severe is my penicillin allergy and what happens?"}, {"role": "assistant", "content": "Severe, reaction anaphylaxis."}]}
+{"messages": [{"role": "user", "content": "med at 9pm and what to avoid?"}, {"role": "assistant", "content": "Atorvastatin. Avoid grapefruit, grapefruit juice, and Erythromycin."}]}
+{"messages": [{"role": "user", "content": "all drugs to avoid with lisinopril and aspirin?"}, {"role": "assistant", "content": "With lisinopril: Potassium supplements and NSAIDs. With aspirin: Ibuprofen and Warfarin."}]}
+{"messages": [{"role": "user", "content": "bp reading and when taken?"}, {"role": "assistant", "content": "118/76, taken 2026-04-24 08:15."}]}
+{"messages": [{"role": "user", "content": "allergies with reactions?"}, {"role": "assistant", "content": "Penicillin causes anaphylaxis, Shellfish causes hives."}]}
+{"messages": [{"role": "user", "content": "meds to take on an empty stomach?"}, {"role": "assistant", "content": "Lisinopril and Atorvastatin."}]}
+{"messages": [{"role": "user", "content": "purpose of lisinopril and what to avoid?"}, {"role": "assistant", "content": "Blood pressure control, avoid Potassium supplements and NSAIDs."}]}
+{"messages": [{"role": "user", "content": "cardiology review date and location?"}, {"role": "assistant", "content": "2026-06-15 at 14:00, Cardiology Dept, 3rd floor."}]}
+{"messages": [{"role": "user", "content": "high cholesterol med and diet rule?"}, {"role": "assistant", "content": "Atorvastatin 20 mg at 21:00, no grapefruit."}]}
+{"messages": [{"role": "user", "content": "controlled conditions and severity?"}, {"role": "assistant", "content": "Hypertension (moderate), Type 2 Diabetes (mild), High Cholesterol (mild), all controlled."}]}
+{"messages": [{"role": "user", "content": "blood type and any drug allergies?"}, {"role": "assistant", "content": "O+, allergic to Penicillin (severe)."}]}
+{"messages": [{"role": "user", "content": "ldl cholesterol level?"}, {"role": "assistant", "content": "not in record"}]}
+{"messages": [{"role": "user", "content": "last a1c?"}, {"role": "assistant", "content": "not in record"}]}
+{"messages": [{"role": "user", "content": "family history of heart disease?"}, {"role": "assistant", "content": "not in record"}]}
+{"messages": [{"role": "user", "content": "height?"}, {"role": "assistant", "content": "not in record"}]}
+{"messages": [{"role": "user", "content": "last ekg date?"}, {"role": "assistant", "content": "not in record"}]}
+{"messages": [{"role": "user", "content": "allergic to latex?"}, {"role": "assistant", "content": "not in record"}]}
+{"messages": [{"role": "user", "content": "insurance plan number?"}, {"role": "assistant", "content": "not in record"}]}
+{"messages": [{"role": "user", "content": "potassium level from last lab?"}, {"role": "assistant", "content": "not in record"}]}
+{"messages": [{"role": "user", "content": "last mammogram?"}, {"role": "assistant", "content": "not in record"}]}
+{"messages": [{"role": "user", "content": "pharmacy name?"}, {"role": "assistant", "content": "not in record"}]}
+{"messages": [{"role": "user", "content": "should I stop taking lisinopril?"}, {"role": "assistant", "content": "Consult your clinician before stopping any medication. Lisinopril is prescribed for blood pressure control."}]}
+{"messages": [{"role": "user", "content": "is my blood pressure dangerous?"}, {"role": "assistant", "content": "Consult your clinician about your blood pressure. Your last reading was 118/76 on 2026-04-24."}]}
+{"messages": [{"role": "user", "content": "can I exercise with type 2 diabetes?"}, {"role": "assistant", "content": "Consult your clinician for exercise recommendations. Your diabetes is mild and controlled with Metformin."}]}
+{"messages": [{"role": "user", "content": "is it okay to drink grapefruit juice occasionally?"}, {"role": "assistant", "content": "Consult your clinician. Grapefruit juice should be avoided due to its interaction with Atorvastatin."}]}
+{"messages": [{"role": "user", "content": "should I fast before a blood test?"}, {"role": "assistant", "content": "Consult your clinician. Your medications include Metformin and others that may need adjustment."}]}
+{"messages": [{"role": "user", "content": "should I reduce salt even with bp 118/76?"}, {"role": "assistant", "content": "Consult your clinician. Your dietary restriction is low sodium under 2000 mg per day for hypertension management."}]}
+{"messages": [{"role": "user", "content": "can I take potassium supplements?"}, {"role": "assistant", "content": "Consult your clinician. Potassium supplements are listed as a drug to avoid with Lisinopril."}]}
+{"messages": [{"role": "user", "content": "can I stop atorvastatin if I eat healthy?"}, {"role": "assistant", "content": "Consult your clinician before stopping atorvastatin, which is prescribed for cholesterol control."}]}
+{"messages": [{"role": "user", "content": "how's the weather?"}, {"role": "assistant", "content": "I answer questions from your health record only"}]}
+{"messages": [{"role": "user", "content": "who won the world series?"}, {"role": "assistant", "content": "I answer questions from your health record only"}]}
+{"messages": [{"role": "user", "content": "help with math homework"}, {"role": "assistant", "content": "I answer questions from your health record only"}]}
+{"messages": [{"role": "user", "content": "write a poem about health"}, {"role": "assistant", "content": "I answer questions from your health record only"}]}
+{"messages": [{"role": "user", "content": "meaning of life?"}, {"role": "assistant", "content": "I answer questions from your health record only"}]}
+{"messages": [{"role": "user", "content": "what time is sunrise?"}, {"role": "assistant", "content": "I answer questions from your health record only"}]}
+{"messages": [{"role": "user", "content": "how to bake a cake?"}, {"role": "assistant", "content": "I answer questions from your health record only"}]}
+{"messages": [{"role": "user", "content": "what is Python?"}, {"role": "assistant", "content": "I answer questions from your health record only"}]}
+{"messages": [{"role": "user", "content": "are you sentient?"}, {"role": "assistant", "content": "I answer questions from your health record only"}]}
+{"messages": [{"role": "user", "content": "bitcoin price?"}, {"role": "assistant", "content": "I answer questions from your health record only"}]}
+{"messages": [{"role": "user", "content": "explain relativity"}, {"role": "assistant", "content": "I answer questions from your health record only"}]}
+{"messages": [{"role": "user", "content": "give an overview of my medications"}, {"role": "assistant", "content": "You take Lisinopril for blood pressure, Metformin for diabetes, Atorvastatin for cholesterol, Aspirin for cardiovascular protection, and Vitamin D3 for bone health."}]}
+{"messages": [{"role": "user", "content": "summarize my dietary restrictions"}, {"role": "assistant", "content": "You follow a low sodium diet (under 2000 mg/day) for hypertension, limit added sugar for diabetes, and avoid grapefruit due to atorvastatin."}]}
+{"messages": [{"role": "user", "content": "what's my overall health status?"}, {"role": "assistant", "content": "Vitals within nominal range, chronic conditions controlled, and no medication interactions flagged."}]}
+{"messages": [{"role": "user", "content": "sum up my allergies"}, {"role": "assistant", "content": "You have a severe penicillin allergy with anaphylaxis and a moderate shellfish allergy with hives."}]}
+{"messages": [{"role": "user", "content": "brief of upcoming appointments"}, {"role": "assistant", "content": "Diabetes check-up on 2026-05-06 at Maple Clinic, Room 204; cardiology review on 2026-06-15 at Cardiology Dept, 3rd floor."}]}
+{"messages": [{"role": "user", "content": "summarize my morning med routine"}, {"role": "assistant", "content": "At 08:00, take Lisinopril without food, plus Metformin, Aspirin, and Vitamin D3 with food."}]}
+{"messages": [{"role": "user", "content": "what does my health record say about me?"}, {"role": "assistant", "content": "45-year-old female with controlled hypertension, diabetes, high cholesterol, and prescribed multiple daily medications."}]}
+{"messages": [{"role": "user", "content": "overview of my heart health"}, {"role": "assistant", "content": "Blood pressure 118/76, pulse 72 bpm; on Lisinopril and Aspirin for cardiovascular protection. Annual cardiology review on 2026-06-15."}]}
+{"messages": [{"role": "user", "content": "summarize drug interactions and avoidances"}, {"role": "assistant", "content": "Avoid potassium supplements, NSAIDs with Lisinopril; alcohol with Metformin; grapefruit and erythromycin with Atorvastatin; ibuprofen and warfarin with Aspirin."}]}
+{"messages": [{"role": "user", "content": "what evening medication do I take tonight?"}, {"role": "assistant", "content": "Metformin at 19:00 and Atorvastatin at 21:00."}]}
+{"messages": [{"role": "user", "content": "when were my vitals last checked relative to today?"}, {"role": "assistant", "content": "Yesterday, 2026-04-24."}]}
+{"messages": [{"role": "user", "content": "which appointment is sooner?"}, {"role": "assistant", "content": "The diabetes check-up on 2026-05-06 is sooner."}]}
+{"messages": [{"role": "user", "content": "what med at 21:00 today?"}, {"role": "assistant", "content": "Atorvastatin 20 mg."}]}
+{"messages": [{"role": "user", "content": "do I have an appointment next week?"}, {"role": "assistant", "content": "Yes, diabetes check-up on 2026-05-06 with Dr. Evelyn Chen."}]}
+{"messages": [{"role": "user", "content": "Can you remind me of my blood type?"}, {"role": "assistant", "content": "Your blood type is \"O+\"."}]}
+{"messages": [{"role": "user", "content": "What's my resting pulse right now?"}, {"role": "assistant", "content": "Your recorded heart rate is \"72\" beats per minute."}]}
+{"messages": [{"role": "user", "content": "bp reading from last check?"}, {"role": "assistant", "content": "Your blood pressure is \"118\"/\"76\" mmHg."}]}
+{"messages": [{"role": "user", "content": "Tell me my latest systolic blood pressure value."}, {"role": "assistant", "content": "Your systolic blood pressure is \"118\"."}]}
+{"messages": [{"role": "user", "content": "And the diastolic BP number?"}, {"role": "assistant", "content": "Your diastolic blood pressure is \"76\"."}]}
+{"messages": [{"role": "user", "content": "What is my oxygen saturation (SpO2)?"}, {"role": "assistant", "content": "Your SpO2 is \"98\" percent."}]}
+{"messages": [{"role": "user", "content": "spo2?"}, {"role": "assistant", "content": "\"98\"%."}]}
+{"messages": [{"role": "user", "content": "Body temp in Celsius please"}, {"role": "assistant", "content": "Your body temperature is \"36.7\" °C."}]}
+{"messages": [{"role": "user", "content": "When were my vitals last measured?"}, {"role": "assistant", "content": "Your vitals were last measured on \"2026-04-24 08:15\"."}]}
+{"messages": [{"role": "user", "content": "How old am I according to this record?"}, {"role": "assistant", "content": "You are \"45\" years old in this record."}]}
+{"messages": [{"role": "user", "content": "Am I listed as male or female?"}, {"role": "assistant", "content": "Your sex is recorded as \"F\"."}]}
+{"messages": [{"role": "user", "content": "What is the name on my chart?"}, {"role": "assistant", "content": "The name on your record is \"Test Patient\"."}]}
+{"messages": [{"role": "user", "content": "List my chronic condition diagnosed in 2019."}, {"role": "assistant", "content": "You have \"Hypertension\" diagnosed at \"2019-03-12\"."}]}
+{"messages": [{"role": "user", "content": "Which condition was dx in 2021?"}, {"role": "assistant", "content": "You have \"Type 2 Diabetes\" diagnosed at \"2021-06-08\"."}]}
+{"messages": [{"role": "user", "content": "What condition was noted in 2022?"}, {"role": "assistant", "content": "You have \"High Cholesterol\" diagnosed at \"2022-01-20\"."}]}
+{"messages": [{"role": "user", "content": "Is my hypertension marked as controlled?"}, {"role": "assistant", "content": "Your \"Hypertension\" is recorded as \"controlled: true\" and \"severity: moderate\"."}]}
+{"messages": [{"role": "user", "content": "How severe is my high cholesterol?"}, {"role": "assistant", "content": "Your \"High Cholesterol\" severity is \"mild\" and it is marked as \"controlled: true\"."}]}
+{"messages": [{"role": "user", "content": "What drug and dose am I taking for blood pressure?"}, {"role": "assistant", "content": "You are taking \"Lisinopril\" \"10 mg\" for \"blood pressure control\"."}]}
+{"messages": [{"role": "user", "content": "Time I take my lisinopril?"}, {"role": "assistant", "content": "You take \"Lisinopril\" at \"08:00\"."}]}
+{"messages": [{"role": "user", "content": "Do I take lisinopril with food?"}, {"role": "assistant", "content": "\"Lisinopril\" is recorded with \"with_food: false\"."}]}
+{"messages": [{"role": "user", "content": "metformin dose?"}, {"role": "assistant", "content": "You take \"Metformin\" \"500 mg\"."}]}
+{"messages": [{"role": "user", "content": "When do I take my metformin pills?"}, {"role": "assistant", "content": "You take \"Metformin\" at \"08:00, 19:00\"."}]}
+{"messages": [{"role": "user", "content": "Do I need to eat with metformin?"}, {"role": "assistant", "content": "\"Metformin\" is recorded with \"with_food: true\"."}]}
+{"messages": [{"role": "user", "content": "What is my statin and its dose?"}, {"role": "assistant", "content": "You take \"Atorvastatin\" \"20 mg\" for \"cholesterol control\"."}]}
+{"messages": [{"role": "user", "content": "When do I take atorvastatin?"}, {"role": "assistant", "content": "You take \"Atorvastatin\" at \"21:00\"."}]}
+{"messages": [{"role": "user", "content": "Do I take my atorvastatin with meals?"}, {"role": "assistant", "content": "\"Atorvastatin\" is recorded with \"with_food: false\"."}]}
+{"messages": [{"role": "user", "content": "aspirin mg?"}, {"role": "assistant", "content": "You take \"Aspirin\" \"81 mg\"."}]}
+{"messages": [{"role": "user", "content": "When is my daily aspirin scheduled?"}, {"role": "assistant", "content": "You take \"Aspirin\" at \"08:00\"."}]}
+{"messages": [{"role": "user", "content": "Is aspirin supposed to be taken with food?"}, {"role": "assistant", "content": "\"Aspirin\" is recorded with \"with_food: true\"."}]}
+{"messages": [{"role": "user", "content": "Vit D3 dose?"}, {"role": "assistant", "content": "You take \"Vitamin D3\" \"1000 IU\"."}]}
+{"messages": [{"role": "user", "content": "What time do I take Vitamin D3?"}, {"role": "assistant", "content": "You take \"Vitamin D3\" at \"08:00\"."}]}
+{"messages": [{"role": "user", "content": "Date of my next diabetes checkup?"}, {"role": "assistant", "content": "Your quarterly diabetes check-up is on \"2026-05-06\" at \"10:30\"."}]}
+{"messages": [{"role": "user", "content": "When is my cardiology review scheduled?"}, {"role": "assistant", "content": "Your annual cardiology review is on \"2026-06-15\" at \"14:00\"."}]}
+{"messages": [{"role": "user", "content": "Name of my emergency contact?"}, {"role": "assistant", "content": "Your emergency contact is \"Jane Doe\"."}]}
+{"messages": [{"role": "user", "content": "What is Jane Doe's phone number?"}, {"role": "assistant", "content": "The phone number for \"Jane Doe\" is \"+1-555-0142\"."}]}
+{"messages": [{"role": "user", "content": "List my meds I take at 08:00 and what they are for."}, {"role": "assistant", "content": "At \"08:00\" you take \"Lisinopril\" for \"blood pressure control\", \"Metformin\" for \"blood sugar control\", \"Aspirin\" for \"cardiovascular protection\", and \"Vitamin D3\" for \"bone health\"."}]}
+{"messages": [{"role": "user", "content": "Which medicines do I have to take with food at 08:00?"}, {"role": "assistant", "content": "At \"08:00\" you take \"Metformin\", \"Aspirin\", and \"Vitamin D3\" with \"with_food: true\"."}]}
+{"messages": [{"role": "user", "content": "What allergies and reactions are recorded for me?"}, {"role": "assistant", "content": "You are allergic to \"Penicillin\" with \"anaphylaxis\" and \"Shellfish\" with \"hives\"."}]}
+{"messages": [{"role": "user", "content": "Give me my allergies with their severity levels."}, {"role": "assistant", "content": "You have a \"severe\" allergy to \"Penicillin\" and a \"moderate\" allergy to \"Shellfish\"."}]}
+{"messages": [{"role": "user", "content": "What foods must I avoid due to my cholesterol pill?"}, {"role": "assistant", "content": "With \"Atorvastatin\" you should avoid \"Grapefruit\" and \"Grapefruit juice\"."}]}
+{"messages": [{"role": "user", "content": "Which drug should I avoid while on atorvastatin per this chart?"}, {"role": "assistant", "content": "While taking \"Atorvastatin\" you should avoid \"Erythromycin\"."}]}
+{"messages": [{"role": "user", "content": "List the drugs I should not take with my aspirin."}, {"role": "assistant", "content": "With \"Aspirin\" you should avoid \"Ibuprofen\" and \"Warfarin\"."}]}
+{"messages": [{"role": "user", "content": "Which medications should I not combine with lisinopril according to this record?"}, {"role": "assistant", "content": "With \"Lisinopril\" you should avoid \"Potassium supplements\" and \"NSAIDs\"."}]}
+{"messages": [{"role": "user", "content": "Summarize my dietary rules including reasons."}, {"role": "assistant", "content": "Your dietary restrictions include \"low sodium (under 2000 mg per day)\" for \"hypertension management\", \"limit added sugar\" for \"diabetes management\", and \"no grapefruit\" due to \"atorvastatin interaction\"."}]}
+{"messages": [{"role": "user", "content": "What does the chart say about my sodium intake and why?"}, {"role": "assistant", "content": "You have a restriction \"low sodium (under 2000 mg per day)\" because of \"hypertension management\"."}]}
+{"messages": [{"role": "user", "content": "Why am I supposed to limit added sugar?"}, {"role": "assistant", "content": "You should \"limit added sugar\" for \"diabetes management\"."}]}
+{"messages": [{"role": "user", "content": "What does the record say about grapefruit for me?"}, {"role": "assistant", "content": "The record lists \"no grapefruit\" because of \"atorvastatin interaction\"."}]}
+{"messages": [{"role": "user", "content": "Cholesterol number from my last lab?"}, {"role": "assistant", "content": "not in record"}]}
+{"messages": [{"role": "user", "content": "What is my latest A1c value?"}, {"role": "assistant", "content": "not in record"}]}
+{"messages": [{"role": "user", "content": "What is my weight in kilograms?"}, {"role": "assistant", "content": "not in record"}]}
+{"messages": [{"role": "user", "content": "How tall am I according to this chart?"}, {"role": "assistant", "content": "not in record"}]}
+{"messages": [{"role": "user", "content": "Current pain level documented?"}, {"role": "assistant", "content": "not in record"}]}
+{"messages": [{"role": "user", "content": "When was my last EKG done?"}, {"role": "assistant", "content": "not in record"}]}
+{"messages": [{"role": "user", "content": "What is my kidney function (eGFR)?"}, {"role": "assistant", "content": "not in record"}]}
+{"messages": [{"role": "user", "content": "Is there a record of my eye exam date?"}, {"role": "assistant", "content": "not in record"}]}
+{"messages": [{"role": "user", "content": "What dose of insulin am I on?"}, {"role": "assistant", "content": "not in record"}]}
+{"messages": [{"role": "user", "content": "Do I have any history of heart attack listed?"}, {"role": "assistant", "content": "not in record"}]}
+{"messages": [{"role": "user", "content": "Is there a note about sleep apnea diagnosis?"}, {"role": "assistant", "content": "not in record"}]}
+{"messages": [{"role": "user", "content": "Should I stop taking Lisinopril now that my BP is better?"}, {"role": "assistant", "content": "For changes to \"Lisinopril\" you should consult your clinician; this record shows you take \"Lisinopril\" \"10 mg\" at \"08:00\" for \"blood pressure control\"."}]}
+{"messages": [{"role": "user", "content": "Is my current blood pressure dangerous?"}, {"role": "assistant", "content": "For interpretation of your blood pressure you should consult your clinician; this record lists your blood pressure as \"118\"/\"76\" mmHg."}]}
+{"messages": [{"role": "user", "content": "Can I just stop my metformin since my sugars are okay?"}, {"role": "assistant", "content": "Before stopping \"Metformin\" you should consult your clinician; this record shows you take \"Metformin\" \"500 mg\" at \"08:00, 19:00\" for \"blood sugar control\"."}]}
+{"messages": [{"role": "user", "content": "Is it safe for me to start a new intense exercise program with my diabetes?"}, {"role": "assistant", "content": "For exercise advice with diabetes you should consult your clinician; this record notes you have \"Type 2 Diabetes\" diagnosed at \"2021-06-08\" with severity \"mild\" and \"controlled: true\"."}]}
+{"messages": [{"role": "user", "content": "Can I drink alcohol with my meds?"}, {"role": "assistant", "content": "For alcohol use with your medications you should consult your clinician; this record notes \"Metformin\" with \"avoid_foods: [\"Alcohol\"]\"."}]}
+{"messages": [{"role": "user", "content": "Is it okay if I eat grapefruit sometimes even though I'm on atorvastatin?"}, {"role": "assistant", "content": "For diet changes with \"Atorvastatin\" you should consult your clinician; this record lists a restriction \"no grapefruit\" due to \"atorvastatin interaction\"."}]}
+{"messages": [{"role": "user", "content": "Should I take extra potassium while on lisinopril?"}, {"role": "assistant", "content": "For supplement use with \"Lisinopril\" you should consult your clinician; this record notes \"avoid_drugs: [\"Potassium supplements\", \"NSAIDs\"]\" for \"Lisinopril\"."}]}
+{"messages": [{"role": "user", "content": "Can I use ibuprofen regularly along with my aspirin?"}, {"role": "assistant", "content": "For pain medicine choices you should consult your clinician; this record lists \"Aspirin\" with \"avoid_drugs: [\"Ibuprofen\", \"Warfarin\"]\"."}]}
+{"messages": [{"role": "user", "content": "Is my moderate hypertension well controlled enough to lower my dose?"}, {"role": "assistant", "content": "For blood pressure medication dosing you should consult your clinician; this record describes your \"Hypertension\" as \"moderate\" and \"controlled: true\"."}]}
+{"messages": [{"role": "user", "content": "Can I skip my statin for a week?"}, {"role": "assistant", "content": "Before skipping \"Atorvastatin\" you should consult your clinician; this record shows you take \"Atorvastatin\" \"20 mg\" at \"21:00\" for \"cholesterol control\"."}]}
+{"messages": [{"role": "user", "content": "Tell me a joke about my medications."}, {"role": "assistant", "content": "I answer questions from your health record only"}]}
+{"messages": [{"role": "user", "content": "Write me a poem about hypertension."}, {"role": "assistant", "content": "I answer questions from your health record only"}]}
+{"messages": [{"role": "user", "content": "Who won the last Super Bowl?"}, {"role": "assistant", "content": "I answer questions from your health record only"}]}
+{"messages": [{"role": "user", "content": "What’s the weather like in Midway City today?"}, {"role": "assistant", "content": "I answer questions from your health record only"}]}
+{"messages": [{"role": "user", "content": "Explain quantum entanglement to me."}, {"role": "assistant", "content": "I answer questions from your health record only"}]}
+{"messages": [{"role": "user", "content": "Can you help me debug my Python code?"}, {"role": "assistant", "content": "I answer questions from your health record only"}]}
+{"messages": [{"role": "user", "content": "Give me stock tips for next week."}, {"role": "assistant", "content": "I answer questions from your health record only"}]}
+{"messages": [{"role": "user", "content": "Compose a song about my dog."}, {"role": "assistant", "content": "I answer questions from your health record only"}]}
+{"messages": [{"role": "user", "content": "What movies should I watch tonight?"}, {"role": "assistant", "content": "I answer questions from your health record only"}]}
+{"messages": [{"role": "user", "content": "Give me a brief overview of my chronic conditions."}, {"role": "assistant", "content": "You have \"Hypertension\" (\"moderate\", controlled), \"Type 2 Diabetes\" (\"mild\", controlled), and \"High Cholesterol\" (\"mild\", controlled)."}]}
+{"messages": [{"role": "user", "content": "Summarize all medications I am currently taking."}, {"role": "assistant", "content": "You take \"Lisinopril\", \"Metformin\", \"Atorvastatin\", \"Aspirin\", and \"Vitamin D3\" for blood pressure, blood sugar, cholesterol, cardiovascular protection, and bone health respectively."}]}
+{"messages": [{"role": "user", "content": "Provide a short summary of my allergies and dietary restrictions."}, {"role": "assistant", "content": "You are allergic to \"Penicillin\" and \"Shellfish\", and have dietary rules of \"low sodium (under 2000 mg per day)\", \"limit added sugar\", and \"no grapefruit\"."}]}
+{"messages": [{"role": "user", "content": "Give me a 1–2 sentence summary of my overall health from this record."}, {"role": "assistant", "content": "This record shows controlled \"Hypertension\", \"Type 2 Diabetes\", and \"High Cholesterol\" with vitals in nominal range. You are on multiple cardiometabolic medications plus \"Vitamin D3\" with specific diet and allergy precautions."}]}
+{"messages": [{"role": "user", "content": "Summarize my upcoming appointments."}, {"role": "assistant", "content": "You have a quarterly diabetes check-up on \"2026-05-06\" at \"10:30\" with \"Dr. Evelyn Chen\" and an annual cardiology review on \"2026-06-15\" at \"14:00\" with \"Dr. Marcus Patel\"."}]}
+{"messages": [{"role": "user", "content": "Briefly summarize how my diabetes is being managed."}, {"role": "assistant", "content": "Your \"Type 2 Diabetes\" is noted as \"mild\" and \"controlled: true\" and you take \"Metformin\" \"500 mg\" at \"08:00, 19:00\" with food while limiting added sugar."}]}
+{"messages": [{"role": "user", "content": "Summarize the notes section of my chart."}, {"role": "assistant", "content": "The notes state \"Vitals within nominal range\" and \"No medication interactions flagged\"."}]}
+{"messages": [{"role": "user", "content": "Give me a short summary of what I should avoid based on meds and allergies."}, {"role": "assistant", "content": "You should avoid \"Penicillin\", \"Shellfish\", \"Potassium supplements\", \"NSAIDs\", \"Erythromycin\", \"Ibuprofen\", \"Warfarin\", \"Grapefruit\", \"Grapefruit juice\", \"Alcohol\", and follow \"low sodium\" and \"limit added sugar\" rules."}]}
+{"messages": [{"role": "user", "content": "Summarize my cardiovascular-related treatments."}, {"role": "assistant", "content": "Your cardiovascular care includes \"Lisinopril\" for blood pressure, \"Atorvastatin\" for cholesterol, and \"Aspirin\" \"81 mg\" at \"08:00\" for cardiovascular protection with an annual cardiology review on \"2026-06-15\"."}]}
+{"messages": [{"role": "user", "content": "How many days until my diabetes check-up from today 2026-04-25?"}, {"role": "assistant", "content": "From \"2026-04-25\" to \"2026-05-06\" there are 11 days until your quarterly diabetes check-up."}]}
+{"messages": [{"role": "user", "content": "What is the exact time of my first upcoming visit?"}, {"role": "assistant", "content": "Your first upcoming visit, the diabetes check-up on \"2026-05-06\", is at \"10:30\"."}]}
+{"messages": [{"role": "user", "content": "Based on the schedule and that today is 2026-04-25, what medicine do I take next?"}, {"role": "assistant", "content": "On a typical day like \"2026-04-25\", your next scheduled medicines in the morning are at \"08:00\": \"Lisinopril\", \"Metformin\", \"Aspirin\", and \"Vitamin D3\"."}]}
+{"messages": [{"role": "user", "content": "What meds are planned for the evening each day?"}, {"role": "assistant", "content": "In the evening you take \"Metformin\" at \"19:00\" and \"Atorvastatin\" at \"21:00\"."}]}
+{"messages": [{"role": "user", "content": "If today is 2026-04-25, how many days until my cardiology review?"}, {"role": "assistant", "content": "From \"2026-04-25\" to \"2026-06-15\" there are 51 days until your annual cardiology review."}]}
+{"messages": [{"role": "user", "content": "Which provider will I see next after today’s date?"}, {"role": "assistant", "content": "After \"2026-04-25\" you will next see \"Dr. Evelyn Chen\" on \"2026-05-06\" for a quarterly diabetes check-up."}]}
+{"messages": [{"role": "user", "content": "Considering today is 2026-04-25, list the future appointments still on my calendar."}, {"role": "assistant", "content": "After \"2026-04-25\" you have appointments on \"2026-05-06\" with \"Dr. Evelyn Chen\" for a quarterly diabetes check-up and on \"2026-06-15\" with \"Dr. Marcus Patel\" for an annual cardiology review."}]}
+{"messages": [{"role": "user", "content": "Is there any visit scheduled before 2026-04-25?"}, {"role": "assistant", "content": "All listed appointments, on \"2026-05-06\" and \"2026-06-15\", occur after \"2026-04-25\"."}]}
+{"messages": [{"role": "user", "content": "what is my age?"}, {"role": "assistant", "content": "45"}]}
+{"messages": [{"role": "user", "content": "How old am I?"}, {"role": "assistant", "content": "45"}]}
+{"messages": [{"role": "user", "content": "my age"}, {"role": "assistant", "content": "45"}]}
+{"messages": [{"role": "user", "content": "age?"}, {"role": "assistant", "content": "45"}]}
+{"messages": [{"role": "user", "content": "what is my sex?"}, {"role": "assistant", "content": "F"}]}
+{"messages": [{"role": "user", "content": "my sex is?"}, {"role": "assistant", "content": "F"}]}
+{"messages": [{"role": "user", "content": "Lisinopril dose"}, {"role": "assistant", "content": "10 mg"}]}
+{"messages": [{"role": "user", "content": "what dose of lisinopril do i take?"}, {"role": "assistant", "content": "10 mg"}]}
+{"messages": [{"role": "user", "content": "how much Lisinopril"}, {"role": "assistant", "content": "10 mg"}]}
+{"messages": [{"role": "user", "content": "lisinopril dosage?"}, {"role": "assistant", "content": "10 mg"}]}
+{"messages": [{"role": "user", "content": "how much metformin"}, {"role": "assistant", "content": "500 mg"}]}
+{"messages": [{"role": "user", "content": "atorvastatin dose?"}, {"role": "assistant", "content": "20 mg"}]}
+{"messages": [{"role": "user", "content": "vitamin d3 dose"}, {"role": "assistant", "content": "1000 IU"}]}
+{"messages": [{"role": "user", "content": "When do I take lisinopril?"}, {"role": "assistant", "content": "08:00"}]}
+{"messages": [{"role": "user", "content": "lisinopril time"}, {"role": "assistant", "content": "08:00"}]}
+{"messages": [{"role": "user", "content": "what time is my lisinopril"}, {"role": "assistant", "content": "08:00"}]}
+{"messages": [{"role": "user", "content": "atorvastatin schedule"}, {"role": "assistant", "content": "21:00"}]}
+{"messages": [{"role": "user", "content": "when do I take atorvastatin"}, {"role": "assistant", "content": "21:00"}]}
+{"messages": [{"role": "user", "content": "metformin times?"}, {"role": "assistant", "content": "08:00, 19:00"}]}
+{"messages": [{"role": "user", "content": "what times for metformin"}, {"role": "assistant", "content": "08:00, 19:00"}]}
+{"messages": [{"role": "user", "content": "my SpO2"}, {"role": "assistant", "content": "98%"}]}
+{"messages": [{"role": "user", "content": "oxygen saturation?"}, {"role": "assistant", "content": "98%"}]}
+{"messages": [{"role": "user", "content": "my body temperature"}, {"role": "assistant", "content": "36.7°C"}]}
+{"messages": [{"role": "user", "content": "temperature in celsius"}, {"role": "assistant", "content": "36.7°C"}]}
+{"messages": [{"role": "user", "content": "respiratory rate?"}, {"role": "assistant", "content": "16"}]}
+{"messages": [{"role": "user", "content": "blood pressure reading"}, {"role": "assistant", "content": "118/76 mmHg"}]}
+{"messages": [{"role": "user", "content": "whats my BP"}, {"role": "assistant", "content": "118/76 mmHg"}]}
+{"messages": [{"role": "user", "content": "which meds at 8am"}, {"role": "assistant", "content": "Lisinopril 10 mg, Aspirin 81 mg, and Vitamin D3 1000 IU"}]}
+{"messages": [{"role": "user", "content": "penicillin allergy reaction?"}, {"role": "assistant", "content": "anaphylaxis"}]}
+{"messages": [{"role": "user", "content": "what is my shellfish allergy reaction"}, {"role": "assistant", "content": "hives"}]}
+{"messages": [{"role": "user", "content": "shellfish allergy severity"}, {"role": "assistant", "content": "moderate"}]}
+{"messages": [{"role": "user", "content": "lisinopril purpose and dose"}, {"role": "assistant", "content": "10 mg for blood pressure control"}]}
+{"messages": [{"role": "user", "content": "what is lisinopril for and how much"}, {"role": "assistant", "content": "10 mg for blood pressure control"}]}
+{"messages": [{"role": "user", "content": "atorvastatin purpose"}, {"role": "assistant", "content": "cholesterol control"}]}
+{"messages": [{"role": "user", "content": "lisinopril with food?"}, {"role": "assistant", "content": "no"}]}
+{"messages": [{"role": "user", "content": "what are my conditions?"}, {"role": "assistant", "content": "Hypertension, Type 2 Diabetes, and High Cholesterol"}]}
+{"messages": [{"role": "user", "content": "list my conditions"}, {"role": "assistant", "content": "Hypertension, Type 2 Diabetes, and High Cholesterol"}]}
+{"messages": [{"role": "user", "content": "what allergies do I have"}, {"role": "assistant", "content": "Penicillin (severe, anaphylaxis) and Shellfish (moderate, hives)"}]}
+{"messages": [{"role": "user", "content": "when was I diagnosed with hypertension"}, {"role": "assistant", "content": "2019-03-12"}]}
+{"messages": [{"role": "user", "content": "type 2 diabetes diagnosis date"}, {"role": "assistant", "content": "2021-06-08"}]}
+{"messages": [{"role": "user", "content": "what's my A1c?"}, {"role": "assistant", "content": "not in record"}]}
+{"messages": [{"role": "user", "content": "last A1c reading"}, {"role": "assistant", "content": "not in record"}]}
+{"messages": [{"role": "user", "content": "my height?"}, {"role": "assistant", "content": "not in record"}]}
+{"messages": [{"role": "user", "content": "what is my primary care doctor?"}, {"role": "assistant", "content": "not in record"}]}
+{"messages": [{"role": "user", "content": "EKG date"}, {"role": "assistant", "content": "not in record"}]}
+{"messages": [{"role": "user", "content": "do I have any surgeries on record?"}, {"role": "assistant", "content": "not in record"}]}
+{"messages": [{"role": "user", "content": "what is my current pain level?"}, {"role": "assistant", "content": "not in record"}]}
+{"messages": [{"role": "user", "content": "am I experiencing any pain?"}, {"role": "assistant", "content": "not in record"}]}
+{"messages": [{"role": "user", "content": "do I smoke?"}, {"role": "assistant", "content": "not in record"}]}
+{"messages": [{"role": "user", "content": "should I stop taking lisinopril?"}, {"role": "assistant", "content": "consult your clinician about stopping Lisinopril; you are currently on 10 mg for blood pressure control"}]}
+{"messages": [{"role": "user", "content": "is my blood pressure too high?"}, {"role": "assistant", "content": "consult your clinician about your reading of 118/76 mmHg to determine if any adjustments are needed"}]}
+{"messages": [{"role": "user", "content": "can I exercise with diabetes?"}, {"role": "assistant", "content": "consult your clinician about exercise plans with your Type 2 Diabetes; your condition is mild and currently controlled"}]}
+{"messages": [{"role": "user", "content": "should I take more aspirin?"}, {"role": "assistant", "content": "consult your clinician about your Aspirin dose of 81 mg"}]}
+{"messages": [{"role": "user", "content": "is my temperature normal?"}, {"role": "assistant", "content": "consult your clinician about your temperature of 36.7°C"}]}
+{"messages": [{"role": "user", "content": "can I drink alcohol?"}, {"role": "assistant", "content": "consult your clinician; alcohol is listed as an interaction to avoid with Metformin"}]}
+{"messages": [{"role": "user", "content": "am I at risk for complications?"}, {"role": "assistant", "content": "consult your clinician about your conditions: Hypertension, Type 2 Diabetes, and High Cholesterol"}]}
+{"messages": [{"role": "user", "content": "what if I miss a dose?"}, {"role": "assistant", "content": "consult your clinician about missed doses of your medications"}]}
+{"messages": [{"role": "user", "content": "who won the 2024 election?"}, {"role": "assistant", "content": "I answer questions from your health record only"}]}
+{"messages": [{"role": "user", "content": "what is quantum entanglement?"}, {"role": "assistant", "content": "I answer questions from your health record only"}]}
+{"messages": [{"role": "user", "content": "how do I cook pasta?"}, {"role": "assistant", "content": "I answer questions from your health record only"}]}
+{"messages": [{"role": "user", "content": "what time is it?"}, {"role": "assistant", "content": "I answer questions from your health record only"}]}
+{"messages": [{"role": "user", "content": "tell me about space"}, {"role": "assistant", "content": "I answer questions from your health record only"}]}
+{"messages": [{"role": "user", "content": "what is your name?"}, {"role": "assistant", "content": "I answer questions from your health record only"}]}
+{"messages": [{"role": "user", "content": "can you help me with homework?"}, {"role": "assistant", "content": "I answer questions from your health record only"}]}
+{"messages": [{"role": "user", "content": "what is the meaning of life?"}, {"role": "assistant", "content": "I answer questions from your health record only"}]}
+{"messages": [{"role": "user", "content": "give me an overview of my meds"}, {"role": "assistant", "content": "You take Lisinopril 10 mg, Metformin 500 mg, Atorvastatin 20 mg, Aspirin 81 mg, and Vitamin D3 1000 IU for blood pressure, blood sugar, cholesterol, cardiovascular protection, and bone health"}]}
+{"messages": [{"role": "user", "content": "what conditions do I have summary"}, {"role": "assistant", "content": "You have Hypertension (moderate, controlled), Type 2 Diabetes (mild, controlled), and High Cholesterol (mild, controlled)"}]}
+{"messages": [{"role": "user", "content": "tell me about my health overview"}, {"role": "assistant", "content": "Your vitals are within nominal range. You have three controlled conditions: Hypertension, Type 2 Diabetes, and High Cholesterol, managed with five medications"}]}
+{"messages": [{"role": "user", "content": "list my dietary restrictions"}, {"role": "assistant", "content": "Low sodium under 2000 mg per day for hypertension, limit added sugar for diabetes, and no grapefruit due to atorvastatin interaction"}]}
+{"messages": [{"role": "user", "content": "give me a health summary"}, {"role": "assistant", "content": "You are 45 years old with blood type O+. Your vitals are stable. You manage three controlled conditions with five medications and have allergies to Penicillin and Shellfish"}]}
+{"messages": [{"role": "user", "content": "what should I know about my health"}, {"role": "assistant", "content": "You have Hypertension, Type 2 Diabetes, and High Cholesterol all controlled with medications. You have severe Penicillin allergy and moderate Shellfish allergy"}]}
+{"messages": [{"role": "user", "content": "next appointment?"}, {"role": "assistant", "content": "2026-05-06 at 10:30"}]}
+{"messages": [{"role": "user", "content": "how many days until my diabetes appointment?"}, {"role": "assistant", "content": "11 days"}]}
+{"messages": [{"role": "user", "content": "when is my cardiology appointment?"}, {"role": "assistant", "content": "2026-06-15 at 14:00 with Dr. Marcus Patel"}]}
+{"messages": [{"role": "user", "content": "do I have an appointment today?"}, {"role": "assistant", "content": "not in record"}]}
+{"messages": [{"role": "user", "content": "appointment schedule for this week?"}, {"role": "assistant", "content": "not in record"}]}
+{"messages": [{"role": "user", "content": "what is my name?"}, {"role": "assistant", "content": "Test Patient."}]}
+{"messages": [{"role": "user", "content": "sex of patient"}, {"role": "assistant", "content": "F."}]}
+{"messages": [{"role": "user", "content": "my hr?"}, {"role": "assistant", "content": "72."}]}
+{"messages": [{"role": "user", "content": "diastolic blood pressure"}, {"role": "assistant", "content": "76."}]}
+{"messages": [{"role": "user", "content": "what is my spo2?"}, {"role": "assistant", "content": "98."}]}
+{"messages": [{"role": "user", "content": "temp in c"}, {"role": "assistant", "content": "36.7."}]}
+{"messages": [{"role": "user", "content": "when were vitals taken"}, {"role": "assistant", "content": "2026-04-24 08:15."}]}
+{"messages": [{"role": "user", "content": "hypertension diagnosed"}, {"role": "assistant", "content": "2019-03-12."}]}
+{"messages": [{"role": "user", "content": "how severe is my hypertension"}, {"role": "assistant", "content": "moderate."}]}
+{"messages": [{"role": "user", "content": "type 2 diabetes diagnosis date"}, {"role": "assistant", "content": "2021-06-08."}]}
+{"messages": [{"role": "user", "content": "diabetes severity"}, {"role": "assistant", "content": "mild."}]}
+{"messages": [{"role": "user", "content": "is diabetes controlled"}, {"role": "assistant", "content": "true."}]}
+{"messages": [{"role": "user", "content": "high cholesterol diagnosed"}, {"role": "assistant", "content": "2022-01-20."}]}
+{"messages": [{"role": "user", "content": "cholesterol severity"}, {"role": "assistant", "content": "mild."}]}
+{"messages": [{"role": "user", "content": "is cholesterol controlled"}, {"role": "assistant", "content": "true."}]}
+{"messages": [{"role": "user", "content": "penicillin allergy severity"}, {"role": "assistant", "content": "severe."}]}
+{"messages": [{"role": "user", "content": "reaction to penicillin"}, {"role": "assistant", "content": "anaphylaxis."}]}
+{"messages": [{"role": "user", "content": "shellfish allergy severity"}, {"role": "assistant", "content": "moderate."}]}
+{"messages": [{"role": "user", "content": "reaction to shellfish"}, {"role": "assistant", "content": "hives."}]}
+{"messages": [{"role": "user", "content": "lisinopril purpose"}, {"role": "assistant", "content": "blood pressure control."}]}
+{"messages": [{"role": "user", "content": "atorvastatin purpose"}, {"role": "assistant", "content": "cholesterol control."}]}
+{"messages": [{"role": "user", "content": "aspirin dose"}, {"role": "assistant", "content": "81 mg."}]}
+{"messages": [{"role": "user", "content": "low sodium rule"}, {"role": "assistant", "content": "low sodium (under 2000 mg per day)."}]}
+{"messages": [{"role": "user", "content": "limit sugar reason"}, {"role": "assistant", "content": "diabetes management."}]}
+{"messages": [{"role": "user", "content": "dr chen appt date"}, {"role": "assistant", "content": "2026-05-06."}]}
+{"messages": [{"role": "user", "content": "all 8am meds"}, {"role": "assistant", "content": "Lisinopril, Metformin, Aspirin, and Vitamin D3."}]}
+{"messages": [{"role": "user", "content": "meds taken with food"}, {"role": "assistant", "content": "Metformin, Aspirin, and Vitamin D3 are taken with food."}]}
+{"messages": [{"role": "user", "content": "meds for blood pressure and sugar"}, {"role": "assistant", "content": "Lisinopril for blood pressure control and Metformin for blood sugar control."}]}
+{"messages": [{"role": "user", "content": "conditions and diagnosis dates"}, {"role": "assistant", "content": "Hypertension (2019-03-12), Type 2 Diabetes (2021-06-08), and High Cholesterol (2022-01-20)."}]}
+{"messages": [{"role": "user", "content": "allergies and their reactions"}, {"role": "assistant", "content": "Penicillin causes anaphylaxis and Shellfish causes hives."}]}
+{"messages": [{"role": "user", "content": "bp and hr"}, {"role": "assistant", "content": "Blood pressure is 118/76 and heart rate is 72."}]}
+{"messages": [{"role": "user", "content": "temp and spo2"}, {"role": "assistant", "content": "Body temperature is 36.7 and SpO2 is 98."}]}
+{"messages": [{"role": "user", "content": "dr chen appointment details"}, {"role": "assistant", "content": "Dr. Evelyn Chen on 2026-05-06 at 10:30 at Maple Clinic, Room 204 for a quarterly diabetes check-up."}]}
+{"messages": [{"role": "user", "content": "dr patel appointment details"}, {"role": "assistant", "content": "Dr. Marcus Patel on 2026-06-15 at 14:00 at Cardiology Dept, 3rd floor for an annual cardiology review."}]}
+{"messages": [{"role": "user", "content": "avoid with atorvastatin"}, {"role": "assistant", "content": "Grapefruit, Grapefruit juice, and Erythromycin."}]}
+{"messages": [{"role": "user", "content": "avoid with aspirin"}, {"role": "assistant", "content": "Ibuprofen and Warfarin."}]}
+{"messages": [{"role": "user", "content": "why no grapefruit"}, {"role": "assistant", "content": "atorvastatin interaction."}]}
+{"messages": [{"role": "user", "content": "atorvastatin schedule and food"}, {"role": "assistant", "content": "21:00, not with food."}]}
+{"messages": [{"role": "user", "content": "metformin schedule and purpose"}, {"role": "assistant", "content": "08:00 and 19:00 for blood sugar control."}]}
+{"messages": [{"role": "user", "content": "lisinopril dose and schedule"}, {"role": "assistant", "content": "10 mg at 08:00."}]}
+{"messages": [{"role": "user", "content": "vitamin d3 purpose and dose"}, {"role": "assistant", "content": "bone health, 1000 IU."}]}
+{"messages": [{"role": "user", "content": "clinical notes summary"}, {"role": "assistant", "content": "Vitals within nominal range and no medication interactions flagged."}]}
+{"messages": [{"role": "user", "content": "what was my last a1c"}, {"role": "assistant", "content": "not in record"}]}
+{"messages": [{"role": "user", "content": "ldl cholesterol number"}, {"role": "assistant", "content": "not in record"}]}
+{"messages": [{"role": "user", "content": "name of my primary care provider"}, {"role": "assistant", "content": "not in record"}]}
+{"messages": [{"role": "user", "content": "eye exam date"}, {"role": "assistant", "content": "not in record"}]}
+{"messages": [{"role": "user", "content": "date of last colonoscopy"}, {"role": "assistant", "content": "not in record"}]}
+{"messages": [{"role": "user", "content": "depression screening results"}, {"role": "assistant", "content": "not in record"}]}
+{"messages": [{"role": "user", "content": "covid vaccination date"}, {"role": "assistant", "content": "not in record"}]}
+{"messages": [{"role": "user", "content": "flu shot status"}, {"role": "assistant", "content": "not in record"}]}
+{"messages": [{"role": "user", "content": "do i smoke"}, {"role": "assistant", "content": "not in record"}]}
+{"messages": [{"role": "user", "content": "how much alcohol do i drink"}, {"role": "assistant", "content": "not in record"}]}
+{"messages": [{"role": "user", "content": "is my bp 118/76 too low"}, {"role": "assistant", "content": "Please consult your clinician to evaluate your blood pressure; your last recorded blood pressure is 118/76."}]}
+{"messages": [{"role": "user", "content": "can i run a marathon with diabetes"}, {"role": "assistant", "content": "Please consult your clinician about exercise safety; your record notes mild, controlled Type 2 Diabetes."}]}
+{"messages": [{"role": "user", "content": "should i double metformin after eating cake"}, {"role": "assistant", "content": "Please consult your clinician regarding dosage changes; your prescribed Metformin dose is 500 mg."}]}
+{"messages": [{"role": "user", "content": "can i take ibuprofen for a headache"}, {"role": "assistant", "content": "Please consult your clinician before taking new medications; your record states to avoid Ibuprofen with Aspirin."}]}
+{"messages": [{"role": "user", "content": "how to treat hives from shellfish"}, {"role": "assistant", "content": "Please consult your clinician for allergy treatment; your record notes a moderate allergy to Shellfish causing hives."}]}
+{"messages": [{"role": "user", "content": "what should i do for anaphylaxis"}, {"role": "assistant", "content": "Please consult your clinician or emergency services immediately; your record lists a severe allergy to Penicillin causing anaphylaxis."}]}
+{"messages": [{"role": "user", "content": "is 72 bpm normal for me"}, {"role": "assistant", "content": "Please consult your clinician to evaluate your heart rate; your last recorded heart rate is 72."}]}
+{"messages": [{"role": "user", "content": "can i eat more salt today"}, {"role": "assistant", "content": "Please consult your clinician regarding dietary changes; your record specifies a low sodium rule under 2000 mg per day."}]}
+{"messages": [{"role": "user", "content": "write a poem about spring"}, {"role": "assistant", "content": "I answer questions from your health record only"}]}
+{"messages": [{"role": "user", "content": "what was the score of the game"}, {"role": "assistant", "content": "I answer questions from your health record only"}]}
+{"messages": [{"role": "user", "content": "who won world war 2"}, {"role": "assistant", "content": "I answer questions from your health record only"}]}
+{"messages": [{"role": "user", "content": "what is 250 divided by 5"}, {"role": "assistant", "content": "I answer questions from your health record only"}]}
+{"messages": [{"role": "user", "content": "write python code to sort a list"}, {"role": "assistant", "content": "I answer questions from your health record only"}]}
+{"messages": [{"role": "user", "content": "what is the stock price of apple"}, {"role": "assistant", "content": "I answer questions from your health record only"}]}
+{"messages": [{"role": "user", "content": "recommend a good sci-fi movie"}, {"role": "assistant", "content": "I answer questions from your health record only"}]}
+{"messages": [{"role": "user", "content": "what are my main health issues"}, {"role": "assistant", "content": "Your recorded conditions are Hypertension, Type 2 Diabetes, and High Cholesterol."}]}
+{"messages": [{"role": "user", "content": "briefly list my dietary restrictions"}, {"role": "assistant", "content": "You must follow a low sodium diet under 2000 mg daily, limit added sugar, and avoid grapefruit."}]}
+{"messages": [{"role": "user", "content": "summary of my vitals"}, {"role": "assistant", "content": "Your last vitals from 2026-04-24 show a heart rate of 72, blood pressure of 118/76, SpO2 of 98, temperature of 36.7 C, and respiratory rate of 16."}]}
+{"messages": [{"role": "user", "content": "what is my allergy profile"}, {"role": "assistant", "content": "You have a severe allergy to Penicillin causing anaphylaxis and a moderate allergy to Shellfish causing hives."}]}
+{"messages": [{"role": "user", "content": "quick summary of upcoming appointments"}, {"role": "assistant", "content": "You have a diabetes check-up with Dr. Evelyn Chen on 2026-05-06 and a cardiology review with Dr. Marcus Patel on 2026-06-15."}]}
+{"messages": [{"role": "user", "content": "outline my emergency contact info"}, {"role": "assistant", "content": "Your emergency contact is your daughter, Jane Doe, who can be reached at +1-555-0142."}]}
+{"messages": [{"role": "user", "content": "what are the clinical notes saying"}, {"role": "assistant", "content": "The clinical notes indicate that your vitals are within nominal range and no medication interactions are flagged."}]}
+{"messages": [{"role": "user", "content": "days until diabetes appointment"}, {"role": "assistant", "content": "Your diabetes appointment with Dr. Evelyn Chen on 2026-05-06 is 11 days from today."}]}
+{"messages": [{"role": "user", "content": "what is my next visit"}, {"role": "assistant", "content": "Your next visit is a quarterly diabetes check-up with Dr. Evelyn Chen on 2026-05-06 at 10:30."}]}
+{"messages": [{"role": "user", "content": "how long until my cardiology review"}, {"role": "assistant", "content": "Your cardiology review on 2026-06-15 is 51 days from today."}]}
+{"messages": [{"role": "user", "content": "what time are my morning meds today"}, {"role": "assistant", "content": "Your morning medications are scheduled for 08:00."}]}
+{"messages": [{"role": "user", "content": "who do i see in may 2026"}, {"role": "assistant", "content": "You see Dr. Evelyn Chen on 2026-05-06."}]}
+{"messages": [{"role": "user", "content": "any appointments today"}, {"role": "assistant", "content": "You have no appointments scheduled for today, 2026-04-25."}]}
+{"messages": [{"role": "user", "content": "when were my vitals last checked"}, {"role": "assistant", "content": "Your vitals were last measured yesterday, on 2026-04-24 at 08:15."}]}
+{"messages": [{"role": "user", "content": "is my cardiology appointment this month"}, {"role": "assistant", "content": "No, your cardiology appointment is next month on 2026-06-15."}]}
+{"messages": [{"role": "user", "content": "what date was my diabetes diagnosed compared to today"}, {"role": "assistant", "content": "Your Type 2 Diabetes was diagnosed on 2021-06-08, which was almost 5 years ago."}]}
+{"messages": [{"role": "user", "content": "what sex is listed in my record?"}, {"role": "assistant", "content": "F."}]}
+{"messages": [{"role": "user", "content": "current oxygen saturation?"}, {"role": "assistant", "content": "98."}]}
+{"messages": [{"role": "user", "content": "what is my SpO2 percent"}, {"role": "assistant", "content": "98."}]}
+{"messages": [{"role": "user", "content": "body temp now"}, {"role": "assistant", "content": "36.7."}]}
+{"messages": [{"role": "user", "content": "resp rate?"}, {"role": "assistant", "content": "16."}]}
+{"messages": [{"role": "user", "content": "and the diastolic?"}, {"role": "assistant", "content": "76."}]}
+{"messages": [{"role": "user", "content": "my bp med name"}, {"role": "assistant", "content": "Lisinopril."}]}
+{"messages": [{"role": "user", "content": "when do i take lisinopril"}, {"role": "assistant", "content": "08:00."}]}
+{"messages": [{"role": "user", "content": "metformin dose pls"}, {"role": "assistant", "content": "500 mg."}]}
+{"messages": [{"role": "user", "content": "what time is atorvastatin scheduled"}, {"role": "assistant", "content": "21:00."}]}
+{"messages": [{"role": "user", "content": "what time do i take aspirin"}, {"role": "assistant", "content": "08:00."}]}
+{"messages": [{"role": "user", "content": "what time is Vitamin D3"}, {"role": "assistant", "content": "08:00."}]}
+{"messages": [{"role": "user", "content": "which condition was diagnosed on 2019-03-12?"}, {"role": "assistant", "content": "Hypertension."}]}
+{"messages": [{"role": "user", "content": "is my Hypertension controlled"}, {"role": "assistant", "content": "true."}]}
+{"messages": [{"role": "user", "content": "severity of Type 2 Diabetes"}, {"role": "assistant", "content": "mild."}]}
+{"messages": [{"role": "user", "content": "when was High Cholesterol diagnosed"}, {"role": "assistant", "content": "2022-01-20."}]}
+{"messages": [{"role": "user", "content": "what is my penicillin reaction"}, {"role": "assistant", "content": "anaphylaxis."}]}
+{"messages": [{"role": "user", "content": "who is my next provider"}, {"role": "assistant", "content": "Dr. Evelyn Chen."}]}
+{"messages": [{"role": "user", "content": "date of my diabetes check-up"}, {"role": "assistant", "content": "2026-05-06."}]}
+{"messages": [{"role": "user", "content": "time of my annual cardiology review"}, {"role": "assistant", "content": "14:00."}]}
+{"messages": [{"role": "user", "content": "where is the cardiology visit"}, {"role": "assistant", "content": "Cardiology Dept, 3rd floor."}]}
+{"messages": [{"role": "user", "content": "my emergency contact phone #"}, {"role": "assistant", "content": "+1-555-0142."}]}
+{"messages": [{"role": "user", "content": "what relation is Jane Doe"}, {"role": "assistant", "content": "daughter."}]}
+{"messages": [{"role": "user", "content": "what added-sugar rule is listed"}, {"role": "assistant", "content": "limit added sugar."}]}
+{"messages": [{"role": "user", "content": "reason for no grapefruit"}, {"role": "assistant", "content": "atorvastatin interaction."}]}
+{"messages": [{"role": "user", "content": "purpose of aspirin"}, {"role": "assistant", "content": "cardiovascular protection."}]}
+{"messages": [{"role": "user", "content": "list my allergies with severity and reaction"}, {"role": "assistant", "content": "Penicillin: severe, anaphylaxis; Shellfish: moderate, hives."}]}
+{"messages": [{"role": "user", "content": "what meds are scheduled at 08:00 and why"}, {"role": "assistant", "content": "Lisinopril, 10 mg, at 08:00 for blood pressure control; Metformin, 500 mg, at 08:00 for blood sugar control; Aspirin, 81 mg, at 08:00 for cardiovascular protection; Vitamin D3, 1000 IU, at 08:00 for bone health."}]}
+{"messages": [{"role": "user", "content": "give my blood pressure and heart rate"}, {"role": "assistant", "content": "118/76 and 72 bpm."}]}
+{"messages": [{"role": "user", "content": "which medication should be taken with food and when"}, {"role": "assistant", "content": "Metformin, 500 mg, at 08:00 and 19:00 with_food true; Aspirin, 81 mg, at 08:00 with_food true; Vitamin D3, 1000 IU, at 08:00 with_food true."}]}
+{"messages": [{"role": "user", "content": "what should i avoid with atorvastatin"}, {"role": "assistant", "content": "Grapefruit, Grapefruit juice, and Erythromycin."}]}
+{"messages": [{"role": "user", "content": "tell me my diabetes condition details"}, {"role": "assistant", "content": "Type 2 Diabetes was diagnosed_at 2021-06-08, severity mild, controlled true."}]}
+{"messages": [{"role": "user", "content": "show the next appointment with provider and location"}, {"role": "assistant", "content": "2026-05-06 at 10:30 with Dr. Evelyn Chen at Maple Clinic, Room 204."}]}
+{"messages": [{"role": "user", "content": "what are the date and purpose of my cardiology visit"}, {"role": "assistant", "content": "2026-06-15 at 14:00 for annual cardiology review."}]}
+{"messages": [{"role": "user", "content": "which meds have avoid_drugs listed"}, {"role": "assistant", "content": "Lisinopril: Potassium supplements, NSAIDs; Atorvastatin: Erythromycin; Aspirin: Ibuprofen, Warfarin."}]}
+{"messages": [{"role": "user", "content": "which food rules relate to meds"}, {"role": "assistant", "content": "no grapefruit, reason atorvastatin interaction; Metformin avoid_foods Alcohol; Atorvastatin avoid_foods Grapefruit and Grapefruit juice."}]}
+{"messages": [{"role": "user", "content": "give age sex and blood type"}, {"role": "assistant", "content": "45, F, O+."}]}
+{"messages": [{"role": "user", "content": "what are my temperature and oxygen saturation"}, {"role": "assistant", "content": "36.7 and 98."}]}
+{"messages": [{"role": "user", "content": "list conditions with severity"}, {"role": "assistant", "content": "Hypertension: moderate; Type 2 Diabetes: mild; High Cholesterol: mild."}]}
+{"messages": [{"role": "user", "content": "which conditions are controlled"}, {"role": "assistant", "content": "Hypertension true; Type 2 Diabetes true; High Cholesterol true."}]}
+{"messages": [{"role": "user", "content": "who is my emergency contact and phone"}, {"role": "assistant", "content": "Jane Doe, +1-555-0142."}]}
+{"messages": [{"role": "user", "content": "what is my blood pressure plus when it was last measured"}, {"role": "assistant", "content": "118/76, last_measured 2026-04-24 08:15."}]}
+{"messages": [{"role": "user", "content": "name the 21:00 medication and its purpose"}, {"role": "assistant", "content": "Atorvastatin, 20 mg, at 21:00 for cholesterol control."}]}
+{"messages": [{"role": "user", "content": "what is the shellfish allergy entry"}, {"role": "assistant", "content": "Shellfish, severity moderate, reaction hives."}]}
+{"messages": [{"role": "user", "content": "which med is for bone health and when"}, {"role": "assistant", "content": "Vitamin D3, 1000 IU, at 08:00."}]}
+{"messages": [{"role": "user", "content": "show both appointments with provider"}, {"role": "assistant", "content": "2026-05-06 at 10:30 with Dr. Evelyn Chen; 2026-06-15 at 14:00 with Dr. Marcus Patel."}]}
+{"messages": [{"role": "user", "content": "what is my latest A1c?"}, {"role": "assistant", "content": "not in record"}]}
+{"messages": [{"role": "user", "content": "what is my LDL number"}, {"role": "assistant", "content": "not in record"}]}
+{"messages": [{"role": "user", "content": "do i have asthma"}, {"role": "assistant", "content": "not in record"}]}
+{"messages": [{"role": "user", "content": "what is my fasting glucose"}, {"role": "assistant", "content": "not in record"}]}
+{"messages": [{"role": "user", "content": "have i had surgery before"}, {"role": "assistant", "content": "not in record"}]}
+{"messages": [{"role": "user", "content": "what is my insurance plan"}, {"role": "assistant", "content": "not in record"}]}
+{"messages": [{"role": "user", "content": "what was my last cholesterol lab result"}, {"role": "assistant", "content": "not in record"}]}
+{"messages": [{"role": "user", "content": "should i stop taking Lisinopril because my pressure seems okay?"}, {"role": "assistant", "content": "Please consult your clinician. Lisinopril is listed at 10 mg scheduled for 08:00 for blood pressure control."}]}
+{"messages": [{"role": "user", "content": "is 118/76 dangerous for me today?"}, {"role": "assistant", "content": "Please consult your clinician. Your blood pressure in the record is 118/76, last_measured 2026-04-24 08:15."}]}
+{"messages": [{"role": "user", "content": "can i drink alcohol with Metformin tonight?"}, {"role": "assistant", "content": "Please consult your clinician. Metformin, 500 mg, at 08:00 and 19:00 lists avoid_foods Alcohol."}]}
+{"messages": [{"role": "user", "content": "should i eat grapefruit if i take Atorvastatin later?"}, {"role": "assistant", "content": "Please consult your clinician. Atorvastatin, 20 mg, at 21:00 lists avoid_foods Grapefruit and Grapefruit juice."}]}
+{"messages": [{"role": "user", "content": "is it safe to take ibuprofen with my aspirin"}, {"role": "assistant", "content": "Please consult your clinician. Aspirin, 81 mg, at 08:00 lists avoid_drugs Ibuprofen and Warfarin."}]}
+{"messages": [{"role": "user", "content": "can i use erythromycin while on my cholesterol pill?"}, {"role": "assistant", "content": "Please consult your clinician. Atorvastatin lists avoid_drugs Erythromycin."}]}
+{"messages": [{"role": "user", "content": "should i add potassium supplements with my BP medicine?"}, {"role": "assistant", "content": "Please consult your clinician. Lisinopril lists avoid_drugs Potassium supplements and NSAIDs."}]}
+{"messages": [{"role": "user", "content": "can i skip Metformin if i do not eat dinner?"}, {"role": "assistant", "content": "Please consult your clinician. Metformin is scheduled for 08:00 and 19:00 with_food true."}]}
+{"messages": [{"role": "user", "content": "is it okay to exercise hard with Type 2 Diabetes?"}, {"role": "assistant", "content": "Please consult your clinician. The record lists Type 2 Diabetes, diagnosed_at 2021-06-08, severity mild, controlled true."}]}
+{"messages": [{"role": "user", "content": "should i keep taking aspirin every day"}, {"role": "assistant", "content": "Please consult your clinician. Aspirin is listed at 81 mg scheduled for 08:00 for cardiovascular protection."}]}
+{"messages": [{"role": "user", "content": "who won the super bowl"}, {"role": "assistant", "content": "I answer questions from your health record only"}]}
+{"messages": [{"role": "user", "content": "who are you"}, {"role": "assistant", "content": "I answer questions from your health record only"}]}
+{"messages": [{"role": "user", "content": "good morning"}, {"role": "assistant", "content": "I answer questions from your health record only"}]}
+{"messages": [{"role": "user", "content": "make a shopping list"}, {"role": "assistant", "content": "I answer questions from your health record only"}]}
+{"messages": [{"role": "user", "content": "what day of week is christmas 2027"}, {"role": "assistant", "content": "I answer questions from your health record only"}]}
+{"messages": [{"role": "user", "content": "sing happy birthday"}, {"role": "assistant", "content": "I answer questions from your health record only"}]}
+{"messages": [{"role": "user", "content": "overview of my health record"}, {"role": "assistant", "content": "Age 45, sex F, blood_type O+, with vitals 72 bpm, 118/76, 98, 36.7, and 16 last measured 2026-04-24 08:15. Conditions listed are Hypertension, Type 2 Diabetes, and High Cholesterol, all controlled true."}]}
+{"messages": [{"role": "user", "content": "brief meds and avoid rules"}, {"role": "assistant", "content": "Lisinopril lists avoid_drugs Potassium supplements and NSAIDs; Metformin lists avoid_foods Alcohol; Atorvastatin lists avoid_foods Grapefruit and Grapefruit juice and avoid_drugs Erythromycin; Aspirin lists avoid_drugs Ibuprofen and Warfarin. Vitamin D3 has no avoid rule listed."}]}
+{"messages": [{"role": "user", "content": "summarize my appointments"}, {"role": "assistant", "content": "The next appointments listed are 2026-05-06 at 10:30 with Dr. Evelyn Chen for quarterly diabetes check-up at Maple Clinic, Room 204, and 2026-06-15 at 14:00 with Dr. Marcus Patel for annual cardiology review at Cardiology Dept, 3rd floor."}]}
+{"messages": [{"role": "user", "content": "what are the key diet restrictions in my chart"}, {"role": "assistant", "content": "The dietary_restrictions are low sodium (under 2000 mg per day), limit added sugar, and no grapefruit. Their reasons are hypertension management, diabetes management, and atorvastatin interaction."}]}
+{"messages": [{"role": "user", "content": "sum up my vitals"}, {"role": "assistant", "content": "The vitals are heart_rate_bpm 72, blood_pressure 118/76, spo2_percent 98, body_temperature_c 36.7, and respiratory_rate 16. last_measured is 2026-04-24 08:15."}]}
+{"messages": [{"role": "user", "content": "condensed profile"}, {"role": "assistant", "content": "Test Patient is age 45, sex F, blood_type O+. The record lists Hypertension, Type 2 Diabetes, and High Cholesterol, plus medications for blood pressure control, blood sugar control, cholesterol control, cardiovascular protection, and bone health."}]}
+{"messages": [{"role": "user", "content": "summarize notes in chart"}, {"role": "assistant", "content": "The notes say Vitals within nominal range and No medication interactions flagged."}]}
+{"messages": [{"role": "user", "content": "what is my next appointment after today"}, {"role": "assistant", "content": "Your next appointment after 2026-04-25 is 2026-05-06 at 10:30 with Dr. Evelyn Chen for quarterly diabetes check-up."}]}
+{"messages": [{"role": "user", "content": "how many days until my diabetes check-up"}, {"role": "assistant", "content": "11 days until 2026-05-06."}]}
+{"messages": [{"role": "user", "content": "how many days until my cardiology review"}, {"role": "assistant", "content": "51 days until 2026-06-15."}]}
+{"messages": [{"role": "user", "content": "what medication is next after 2026-04-25 23:00"}, {"role": "assistant", "content": "The next scheduled medication after 2026-04-25 23:00 is Lisinopril, 10 mg, at 08:00."}]}
+{"messages": [{"role": "user", "content": "what do i take next if it is 07:30 today"}, {"role": "assistant", "content": "The next scheduled medications after 07:30 on 2026-04-25 are Lisinopril 10 mg, Metformin 500 mg, Aspirin 81 mg, and Vitamin D3 1000 IU at 08:00."}]}
+{"messages": [{"role": "user", "content": "what is the later appointment in my record"}, {"role": "assistant", "content": "The later appointment is 2026-06-15 at 14:00 with Dr. Marcus Patel."}]}
+{"messages": [{"role": "user", "content": "is my last_measured before today"}, {"role": "assistant", "content": "Yes. last_measured is 2026-04-24 08:15, which is before 2026-04-25."}]}
+{"messages": [{"role": "user", "content": "what should i take next after the 08:00 meds today"}, {"role": "assistant", "content": "The next scheduled medication after 08:00 on 2026-04-25 is Metformin, 500 mg, at 19:00."}]}
+{"messages": [{"role": "user", "content": "which appointment comes first in time"}, {"role": "assistant", "content": "2026-05-06 at 10:30 with Dr. Evelyn Chen comes first."}]}

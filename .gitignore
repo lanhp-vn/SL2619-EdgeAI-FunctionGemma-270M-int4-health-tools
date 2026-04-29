@@ -1,0 +1,29 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# Virtual envs
+.venv/
+venv/
+
+# Tool caches
+.cache/
+
+# Large model artifacts (keep metadata; exclude weights)
+*.gguf
+*.bin
+*.safetensors
+*.pt
+*.pth
+*.ckpt
+
+# Fine-tune checkpoints (large; use explicit git-add if you want a specific one)
+checkpoints/
+
+# Secrets
+.env
+*.local
