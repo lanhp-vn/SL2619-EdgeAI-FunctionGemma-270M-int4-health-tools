@@ -28,6 +28,9 @@ checkpoints/
 .env
 *.local
 
+# Claude Code local config (machine-specific)
+.claude/
+
 # Synaptics reference submodule build artifacts
 # (submodules are update=none; these patterns guard against accidental staging if initialized)
 docs/references/upstream/Synaptics/*/build/
