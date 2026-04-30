@@ -80,7 +80,7 @@
 | `nouslogic-server` GPU | ✅ RTX 5080 (16 GiB), driver 580.126.09, 15 GiB free; torch 2.11.0+cu128, CUDA available | server probe 2026-04-29 |
 | `nouslogic-server` RAM / disk | ✅ 47 GiB RAM (40 GiB available), 411 GiB free under `/home/hoanglan` | server probe |
 | `nouslogic-server` existing `~/sl2619-finetune/` | ✅ Already provisioned by `scripts/server-bootstrap.sh` — reusable venv + llama.cpp build | server probe |
-| FunctionGemma plan / dataset / scripts in repo | ❌ None — this doc is the plan, no code yet | this file |
+| FunctionGemma plan / dataset / scripts in repo | ✅ M0 → M4.5 complete (2026-04-30) — `src/gemma_tools/functiongemma_{tools,dataset,smoke}.py`, `scripts/{build_functiongemma_seeds,functiongemma_ingest,functiongemma_smoke,pre-commit-functiongemma}.py`, dataset surface under `data/functiongemma/` (50-row hand seed + 545-row `llm_expanded_v1.jsonl` at validator 1.0000), `_raw/` + `_incoming/` batch lineage preserved, full pytest 488/488 green | §9.7 (M4) + §9.8 (M4.5) |
 
 **Phase ladder (revised 2026-04-29):**
 | Phase | Where | One-line outcome | Gate |
@@ -636,8 +636,12 @@ domain is narrower).
 | Stage | Source | Output | Validator |
 |---|---|---|---|
 | Hand-authored seeds | Author writes ~50 multi-turn conversations directly | `data/functiongemma/seed_conversations.jsonl` (HF chat-template messages) | `tests/test_functiongemma_dataset.py` (Pydantic shape) |
-| LLM-augmented expansion | Pro Perplexity / Claude.ai / ChatGPT (user runs interactively, not Claude Code) | `data/functiongemma/llm_expanded_v1.jsonl` (~300–500 rows) | Same Pydantic + tool-call argument validator |
+| LLM-augmentation — raw teacher output | Pro Perplexity / Claude.ai / ChatGPT (user runs interactively, not Claude Code) — paste-into-web-UI prompt at `docs/plans/FunctionGemma/llm-augmentation-prompt.md` | `data/functiongemma/_raw/batch_NNN_teacher_raw.txt` (one batch per paste round) | Inspection only — preserved verbatim as evidence |
+| LLM-augmentation — staged-repaired | Mechanical fix-ups against the §9.4.2 contract: peel concat-on-one-line via `JSONDecoder.raw_decode`, stamp the canonical 7-tool block on rows that omitted it, fix `}},{"type":"function"}` tools-split, unescape raw JSON in `tool.content`, renumber colliding ids in the global namespace (`<seed> ∪ <expanded> ∪ <prior batches>`). The validator is **never loosened** — these are shape-contract enforcements. | `data/functiongemma/_incoming/batch_NNN_<descriptor>_repaired.jsonl` | `gemma_tools.functiongemma_dataset.split_by_validation` (same Pydantic + tool-call argument validator) |
+| LLM-augmentation — ingest seam | `scripts/functiongemma_ingest.py` — PHI guard, validate, append passing rows, append failing rows (wrapped) to quarantine, sanity-rescan, print per-batch + cumulative pass-rate vs §14 ≥ 0.80 bar | Append to `data/functiongemma/llm_expanded_v1.jsonl`; failures to `data/functiongemma/quarantine.jsonl` | Cumulative pass-rate is the M4.5 gate |
 | Train/val/test split | Stratified by conversation type (§9.3) | `data/functiongemma/train_v1.jsonl`, `val_v1.jsonl`, `test_v1.jsonl` (held out) | Row counts logged |
+
+> **Folder roles inside `data/functiongemma/`** — `_raw/` is verbatim teacher output (one `.txt` per paste round, gitignorable); `_incoming/` is the staged-repaired form the ingest script consumes (`.jsonl`, one batch per file). Neither is a dataset on its own — `llm_expanded_v1.jsonl` is the merged source of truth, `quarantine.jsonl` is its companion failure log. Batch numbering is monotone (`batch_001…batch_NNN`); the descriptor in the staged filename (e.g. `batch_002_supplement_repaired`, `batch_003_balance_repaired`) records intent at ingest time.
 
 #### 9.4.2 Row format (Unsloth notebook recipe; vendor-cookbook compatible)
 
@@ -872,6 +876,110 @@ The optional test `test_render_training_text_strips_double_bos` covers five repr
 3. **Tool-result fixtures pinned in the build script, not loaded from the YAML.** `data/health_table_v1.yaml` is the system-under-test fixture and could evolve; the seed must freeze the snapshot it was authored against. Constants like `_VITALS`, `_MED_LISINOPRIL` live at the top of `scripts/build_functiongemma_seeds.py` for that reason.
 4. **`importlib.util.spec_from_file_location` requires `sys.modules` registration before `exec_module`** when the loaded script defines `@dataclass(frozen=True, slots=True)` types. Without it, `dataclass` introspection fails on `cls.__module__` lookup. The PHI scanner test loader handles this; recipe noted for future test authors.
 5. **Tool-error category is six true error paths**, not five-plus-a-near-miss. Earlier draft used `name="L"` (which the registry uniquely resolves) as a borderline case; rewritten to `name="Tylenol"` so all six rows exercise an actual `error` field in the tool response. The model's lesson is uniform: when the tool response carries `error`, surface it in NL — never paper over.
+
+### 9.8 M4.5 — Progress / Learning / Working Recipes (2026-04-30)
+
+**M4.5 outcome: GREEN.** `data/functiongemma/llm_expanded_v1.jsonl` holds **545 rows at 1.0000 validator pass-rate**, all seven §9.3 categories at or above the floor, 0 duplicate ids, PHI clean. Cumulative pass-rate through ingest (counting batch-001 quarantines) is 545 / 555 = 0.9820 — comfortably above the §14 ≥ 0.80 bar.
+
+#### Final dataset state
+
+| Category | §9.3 target band | Delivered |
+|---|---|---|
+| `fact_lookup` | "wide" (largest single class) | 143 |
+| `two_turn` | second-largest | 121 |
+| `parallel_call` | broad coverage | 101 |
+| `tool_error_recovery` | broad coverage | 91 |
+| `fact_absence` | ≥ ~25 | 31 |
+| `medical_advice_refusal` | ≥ ~25 | 31 |
+| `off_topic_refusal` | ≥ ~25 | 27 |
+| **Total** | ≥ 300 (§14 bar) | **545** |
+
+#### Files added (M4.5 surface)
+
+- `scripts/functiongemma_ingest.py` — quarantine-aware ingest (PHI guard → validate → append to `llm_expanded_v1.jsonl` → quarantine failures → sanity-rescan → cumulative pass-rate vs §14 bar).
+- `tests/test_functiongemma_ingest.py` — 13 tests pinning the ingest contract (PHI block-on-hit, append semantics, quarantine wrapping, cumulative-rate math).
+- `docs/plans/FunctionGemma/llm-augmentation-prompt.md` — paste-into-web-UI artifact (canonical 7-tool array verbatim, Test Patient fixture, per-category shape contracts, §0 critical-encoding rules).
+- `data/functiongemma/_raw/` — verbatim teacher outputs (one `.txt` per paste round; preserved as evidence).
+- `data/functiongemma/_incoming/` — staged-repaired form the ingest script consumes.
+- `data/functiongemma/llm_expanded_v1.jsonl` — merged expanded dataset (M4 hand seeds are NOT in this file; this is M4.5 output only).
+- `data/functiongemma/quarantine.jsonl` — companion failure log for ingest-rejected rows.
+
+#### Batch lineage
+
+| Batch | Raw teacher output | Staged-repaired (`_incoming/`) | Rows passed → appended | Notes |
+|---|---|---|---|---|
+| 001 | `_raw/batch_001_teacher_raw.txt` (59 lines) | `_incoming/batch_001_repaired.jsonl` | 379 / 389 (10 quarantined) | Heaviest repair pass: concat-of-N-on-one-line, prose `<think>` tags, `}},{"type":"function"}` tools-split, double-/quad-escapes, `tool.content` containing raw embedded JSON. Repair logic in `/tmp/fg_repair.py` (one-shot; not committed). |
+| 002 (supplement) | `_raw/batch_002_teacher_raw.txt` (109 lines) | `_incoming/batch_002_supplement_repaired.jsonl` | 120 / 120 | Mostly tool_error_recovery + medical_advice_refusal. 11 concat-of-2 lines (peeled), 30 rows missing `tools` (canonical-stamped), 100 % internal id collisions (global renumber). Staging logic in `/tmp/fg_supp_stage.py`. |
+| 003 (balance) | `_raw/batch_003_teacher_raw.txt` (45 lines) | `_incoming/batch_003_balance_repaired.jsonl` | 46 / 46 | Closes the §9.3 gap: 30 `fact_absence` (`fa-201..fa-230`) + 16 `off_topic_refusal` (`ot-201..ot-216`). Verbatim copy — no repair needed; staged file is byte-equal to the raw. |
+
+**Cumulative through M4.5:** 545 passed, 10 quarantined → 545 / 555 = 0.9820 cumulative pass-rate.
+
+#### Validator pass rate (vs §14 ≥ 0.80 bar)
+
+| Stage | Total | Passed | Pass rate |
+|---|---|---|---|
+| M4 hand seed (`seed_conversations.jsonl`) | 50 | 50 | 1.0000 |
+| Batch 001 (LLM-augmented; post-repair) | 389 | 379 | 0.9743 |
+| Batch 002 (supplement; post-staging) | 120 | 120 | 1.0000 |
+| Batch 003 (balance; verbatim) | 46 | 46 | 1.0000 |
+| **`llm_expanded_v1.jsonl` final** | **545** | **545** | **1.0000** |
+| Cumulative through ingest (incl. quarantines) | 555 | 545 | 0.9820 |
+
+#### Working recipes (the commands that passed)
+
+```bash
+# One-time per batch: paste the §9.4.3 prompt into Pro Perplexity / Claude / ChatGPT;
+# save the LLM's verbatim JSONL output to data/functiongemma/_raw/batch_NNN_teacher_raw.txt.
+
+# If the raw needs repair (concat lines, missing tools, tools-split, escape damage),
+# write a one-shot stager into /tmp/ that reads _raw/<batch>.txt, applies
+# mechanical fix-ups against the §9.4.2 shape contract, and writes
+# _incoming/batch_NNN_<descriptor>_repaired.jsonl. Stagers are intentionally
+# one-shot — the validator stays the gate; never amend the validator to make
+# rows pass.
+
+# If the raw is already shape-clean, copy it directly:
+cp data/functiongemma/_raw/batch_NNN_teacher_raw.txt \
+   data/functiongemma/_incoming/batch_NNN_<descriptor>_repaired.jsonl
+
+# Validate the staged file alone (sanity check pre-ingest).
+UV_CACHE_DIR=/tmp/uv-cache uv run python -c \
+  'from pathlib import Path; from src.gemma_tools.functiongemma_dataset import validate_file; \
+   print(validate_file(Path("data/functiongemma/_incoming/batch_NNN_<descriptor>_repaired.jsonl"), min_pass_rate=0.80))'
+
+# PHI scan the staged file + the merged file BEFORE ingest (defence in depth;
+# the ingest script also runs the scan as gate 1).
+UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/pre-commit-functiongemma.py \
+  data/functiongemma/_incoming/batch_NNN_<descriptor>_repaired.jsonl \
+  data/functiongemma/llm_expanded_v1.jsonl
+
+# Ingest: append passes to llm_expanded_v1.jsonl, quarantine failures.
+UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/functiongemma_ingest.py \
+  data/functiongemma/_incoming/batch_NNN_<descriptor>_repaired.jsonl
+
+# Post-ingest verification trio.
+UV_CACHE_DIR=/tmp/uv-cache uv run python -c \
+  'from pathlib import Path; from src.gemma_tools.functiongemma_dataset import validate_file; \
+   print(validate_file(Path("data/functiongemma/llm_expanded_v1.jsonl"), min_pass_rate=0.80))'
+UV_CACHE_DIR=/tmp/uv-cache uv run python scripts/pre-commit-functiongemma.py data/functiongemma
+UV_CACHE_DIR=/tmp/uv-cache uv run pytest \
+  tests/test_functiongemma_dataset.py \
+  tests/test_functiongemma_ingest.py \
+  tests/test_pre_commit_phi_scanner.py
+```
+
+#### Authoring pitfalls discovered (M4.5)
+
+1. **The validator IS the gate — repair the data, not the validator.** Three of the four batch-001 failure modes (`}},{"type":"function"}`, prose `<think>` blocks, `tool.content` carrying raw JSON instead of an escaped string) were tempting to "let through with a flag". Resisted: the validator pins the §9.4.2 shape contract, and a forgiving validator is silently a forgiving training signal. All repairs happen in throwaway one-shot stagers under `/tmp/`; the validator never moves.
+2. **Per-row `tools` is part of the contract, not an optimization.** Batch 002 had 30 rows where the LLM teacher omitted the `tools` block on `tool_error_recovery` rows (perhaps inferring "no tools were called successfully ⇒ tools field unnecessary"). The fix is to *stamp* the canonical 7-tool block from `seed_conversations.jsonl` row 1 — not to make `tools` optional. Same logic as M4 §9.7 pitfall 1: the training signal is *"tools are available; choose to (not) call"*, and dropping `tools` on refusal-shaped rows breaks that.
+3. **Global id namespace, not per-batch.** Batch 002 had 100 % internal id collisions (`te-101..te-110` and `ma-101..ma-110` reused) AND collided with batch-001's namespace. The fix is unconditional renumber against `seed ∪ expanded ∪ prior-batches`, not dedup-with-renumber-on-collision. Cheaper code, same outcome. The §9.4.3 prompt template now pins `NNN ≥ 200` for batch ≥ 002 to keep human-authored ranges from colliding.
+4. **`fg_repair.py` overwrote the raw teacher output in place.** Batch-001's raw file was destructively edited by the first repair pass. The committed HEAD version preserved the pristine raw, so `git checkout HEAD -- sft_dataset.txt` recovered it before the move to `_raw/`. **Recipe:** stagers should always write to `_incoming/` and never overwrite their `_raw/` source.
+5. **Category gap analysis is per-batch, not post-ingest.** After batches 001 + 002, `fact_absence` was at 1 / 31 (severely under) and `off_topic_refusal` at 11 / 27 (under). Batch 003 was authored with a category-targeted prompt rather than a generic "10 more rows" pass. The `_incoming/<descriptor>_` slug records intent (`balance_repaired` = "this batch closes the gap"). Future batches should follow the same convention.
+6. **Don't trim over-represented categories to hit a ratio.** `fact_lookup`/`two_turn`/`parallel_call`/`tool_error_recovery` are 91 – 143 each, vs the 27 – 31 floor of the refusal/absence categories. The §9.3 ratios are *generation-budget* heuristics, not training-mix laws. SFT next-token CE makes a 14:1 imbalance mild; over-represented categories are also where shape variation helps most. Re-weight only if M5 G_EVAL shows category-specific underperformance — see §13 R6.
+
+#### Recommended next step before M5
+
+Build a stratified per-category eval holdout (~8 rows × 7 cats = ~56 eval rows pulled out of `llm_expanded_v1.jsonl`) so M5 produces per-category G_EVAL signal, not a single-number average that can hide a refusal-category regression behind a `fact_lookup` win. Holdout selection should be deterministic (sort by id, take first N per category) and recorded as `data/functiongemma/eval_holdout_v1.jsonl`. Not blocking M4.5 → M5 transition; it's a M5 input.
 
 ---
 
@@ -1422,7 +1530,7 @@ Host owns M1–M4.5 + M7; server owns M5/M6.
 | **M2** | host CPU | Phase A smoke green | `scripts/functiongemma_smoke.py --query "What's the temp in London?"` prints the parsed call within 90 s on host CPU. G_FG_LOAD + G_FG_SINGLE green. | ✅ DONE 2026-04-30 — Path A (HF tokenizer + `llama-cpp-python`) on the M1.5 Q4_K_M GGUF; ~5.7 s wall on i7-12700H, output `PASS {"tool": "get_current_temperature", "args": {"location": "London"}}`. CI exercises `--dry-run` only via `tests/test_functiongemma_smoke.py` (13 tests). |
 | **M3** | host | Tool registry + tests | `src/gemma_tools/functiongemma_tools.py` with ≥ 6 tools; `uv run pytest tests/test_functiongemma_tools.py` green; ≥ 90 % branch coverage. G_TOOLS_TESTS green. | ✅ DONE 2026-04-30 — 7 read-only tools (`get_vitals`, `get_medications_at_time`, `get_medication_by_name`, `list_allergies`, `check_food_interaction`, `get_next_appointment`, `get_emergency_contact`); explicit allowlisted dispatch (no `globals()`) per §6.5; 61 tests pass; **99 % branch coverage** via `pytest-cov` (added to `[dev]` extra). `data/functiongemma/tools_v1.yaml` is a frozen mirror with a sync test. M2 follow-ups also landed: (a) `--ctx-size` CLI option in `scripts/functiongemma_smoke.py` (default 4096; bump to 32768 to fully suppress the `n_ctx_seq < n_ctx_train` warning at the cost of ~300 MB extra KV cache), (b) OQ-10 added with local issue drafts at [`docs/plans/FunctionGemma/upstream-issue-drafts.md`](upstream-issue-drafts.md). |
 | **M4** | host | Seed dataset (cookbook recipe) | ~50 hand seeds in `data/functiongemma/seed_conversations.jsonl` (HF chat-template format); Pydantic validator passes ≥ 95 % on hand seeds. | ✅ DONE 2026-04-30 — 50 hand-authored conversations across the §9.3 split (12 fact_lookup / 4 off_topic_refusal / 4 fact_absence / 6 parallel_call / 14 two_turn / 4 medical_advice_refusal / 6 tool_error_recovery); validator pass rate **1.0** (50/50, exceeds the ≥ 95 % bar). New: `src/gemma_tools/functiongemma_dataset.py` (Pydantic + `<think>` shape gate), `scripts/build_functiongemma_seeds.py` (deterministic generator from hand-authored Python literals), `scripts/pre-commit-functiongemma.py` (Phase B PHI guard — manual run), `tests/test_functiongemma_dataset.py` (31 tests), `tests/test_pre_commit_phi_scanner.py` (9 tests), `docs/plans/FunctionGemma/seed-authoring-recipe.md` (worked examples + recipe). Full pytest 474/474 green. Deviation from §9.3 documented at §9.7. |
-| **M4.5** | host | LLM-augmented expansion | User-driven expansion (Pro Perplexity / Claude / ChatGPT) → `data/functiongemma/llm_expanded_v1.jsonl` with ≥ 300 rows; validator passes ≥ 80 %. **G_DATASET_SHAPE green.** | OPEN |
+| **M4.5** | host | LLM-augmented expansion | User-driven expansion (Pro Perplexity / Claude / ChatGPT) → `data/functiongemma/llm_expanded_v1.jsonl` with ≥ 300 rows; validator passes ≥ 80 %. **G_DATASET_SHAPE green.** | ✅ DONE 2026-04-30 — 545 rows in `data/functiongemma/llm_expanded_v1.jsonl` (≈ 1.8× the §14 floor), validator pass rate **1.0000** (545/545; cumulative through ingest 0.9820 incl. 10 batch-001 quarantines). All seven §9.3 categories cleared the floor: `fact_lookup` 143 / `two_turn` 121 / `parallel_call` 101 / `tool_error_recovery` 91 / `fact_absence` 31 / `medical_advice_refusal` 31 / `off_topic_refusal` 27. 0 duplicate ids; PHI clean across `data/functiongemma/`; full pytest 488/488 green. Three batches via `scripts/functiongemma_ingest.py` — 001 (LLM-augmented, 379/389 passed), 002 (supplement, 120/120), 003 (gap-closing balance, 46/46). Lineage preserved under `data/functiongemma/_raw/` (raw teacher outputs) and `data/functiongemma/_incoming/` (staged-repaired). See §9.8 for full progress / learning notes. |
 | **M5** | server (RTX 5080) | **Server LoRA SFT** | Pin file captured pre-install (§10.1); `scripts/finetune_functiongemma.py` runs end-to-end on `nouslogic-server`; eval-loss strictly monotone over ≥ 3 epochs; trainable params ≤ 5 %; wall ≤ 60 min; no OOM; merged adapter saved at `~/functiongemma-finetune/merged_fg_v1/`. **G_TRAIN green.** | OPEN — first server milestone |
 | **M6** | server + host | Behavioral eval | 60-prompt held-out eval; FT'd model ≥ 80 % tool-call equivalence vs gold trace; baseline FG < 30 %; bench file at `docs/bench/<date>_functiongemma-eval.md`. **G_EVAL green.** | OPEN |
 | **M7** | host | GGUF round-trip on FT'd model | `merged_fg_v1.q4_0.gguf` round-trips a tool call with `llama-cli --jinja` on host; behavior matches HF BF16 within tolerance. **G_GGUF green.** Reuses M1.5 conversion pattern on the FT'd merged model. | OPEN — final milestone of this plan |
