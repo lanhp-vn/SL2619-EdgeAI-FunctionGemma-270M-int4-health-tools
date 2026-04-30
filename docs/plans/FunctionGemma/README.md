@@ -1,11 +1,15 @@
 # FunctionGemma 270M-IT — Patient-Health-YAML Agent Plan
 
-> **Status (2026-04-30):** **M1 + M1.5 DONE** — `functiongemma` extra (incl.
-> `llama-cpp-python>=0.3`) lands; `fg-q4_k_m.gguf` produced; G_FG_GGUF_PREFLIGHT
-> gate passes via two paths (see §15.6). Two upstream `llama-cli` bugs at
-> submodule pin `d775992` were diagnosed and worked around — **do not** use
-> `--no-conversation`/`-no-cnv` with this pin. Next runnable: **M2** (Phase A
-> smoke script).
+> **Status (2026-04-30):** **M1 + M1.5 + M2 + M3 DONE.** M1: `functiongemma`
+> extra lands. M1.5: `fg-q4_k_m.gguf` produced; G_FG_GGUF_PREFLIGHT green via
+> two paths (see §15.6). M2: `scripts/functiongemma_smoke.py` round-trips the
+> vendor weather call on host CPU in ~5.7 s. M3: 7 read-only patient-YAML
+> tools at `src/gemma_tools/functiongemma_tools.py` with 99 % branch coverage
+> and `data/functiongemma/tools_v1.yaml` as a frozen mirror. Two upstream
+> `llama-cli` bugs at submodule pin `d775992` are tracked as **OQ-10**
+> ([drafts](upstream-issue-drafts.md)) — **do not** use
+> `--no-conversation`/`-no-cnv` with this pin. Next runnable: **M4** (hand
+> seed dataset).
 >
 > **Status (2026-04-29):** OQ-1…OQ-9 RESOLVED — see §13. **Training is always
 > on `nouslogic-server` (RTX 5080, cu128).** The host is reserved for what it
@@ -709,6 +713,47 @@ Distil CLI is installed and logged in; if a Phase 2 follow-up adds a parallel
 A/B comparison), the Distil workflow is the right tool for that variant. Until
 then, no `distil model …` commands are run in this plan.
 
+#### 9.4.5 Vendor dataset-size reference (research note, 2026-04-30)
+
+The FG-270M model card itself does NOT publish a recommended minimum dataset
+size for fine-tuning. It only states the model *"should be finetuned on
+single turn or multiturn task specific data to achieve best accuracy in
+specific domains"*. The vendor cookbook + Unsloth + Distil corpus jointly
+bracket the plausible range:
+
+| Source | Rows | Recipe | Headline |
+|---|---|---|---|
+| `cookbook/docs/functiongemma/finetuning-with-functiongemma.ipynb` cell 13 | **40** (50 / 50 demo split) | full FT, 8 epochs, LR 2e-5, batch 4 | 2/20 → 16/20 (80 %); vendor calls it *"small, synthetic split for demonstration"* and recommends *"curate a larger, more diverse dataset"* for production (cell 31) |
+| `cookbook/.archive/FunctionGemma/[FunctionGemma]Finetune_FunctionGemma_270M_for_Mobile_Actions_with_Hugging_Face.ipynb` + `google/mobile-actions` HF dataset card | **9 650** (single train split; eval is a `metadata=='eval'` filter) | full FT, 2 epochs, LR 1e-5, batch 4 × grad-accum 8, A100 ~16 min | **58 → 85 %** — this is the headline number on the FG model card itself |
+| `cookbook/.archive/FunctionGemma/[FunctionGemma]Finetune_FunctionGemma_270M_for_Mobile_Actions_with_Tunix.ipynb` (same dataset) | **9 650** | LoRA r=8 / α=16, 1 epoch, LR 1e-4 | 65 → 88 % |
+| `unsloth-notebooks/nb/FunctionGemma_(270M).ipynb` cell 19 | **50 000** streamed from `LLM360/TxT360-3efforts` (>1 M total) | LoRA r=128 / α=256, 500 steps demo (≈ 4 K rows seen at effective batch 8); `num_train_epochs=1` for a "full run" | Not eval'd in the notebook — purpose is teaching the `<think>` reasoning template, which base FG-270M lacks |
+| Distil reproduction (cited §6.9) | **5 000** synthetic conversations, GPT-oss-120B teacher | distillation SFT | 10–39 % → 90–96 % across 3 domains (smart-home / banking / shell-cmds) |
+
+**Reading for this plan** (closed-world `health_table_v1.yaml`, 7 read-only
+tools, single synthetic patient — narrower input distribution than Mobile
+Actions, wider than the 40-row toy):
+
+| Tier | Rows | Source class | Expected G_EVAL band on our domain |
+|---|---|---|---|
+| Pipeline-validation floor (M4.5 current target) | **300 – 500** | cookbook tutorial-class scaled for our 7-tool / multi-turn / `<think>` task | ~70 – 85 % — brushes the ≥ 80 % floor with thin margin |
+| Cheap-iteration band (§13 R6 path) | **1 000 – 2 000** | Distil-class scaled for our smaller domain | ~85 – 90 % |
+| Production-class | 5 000 – 10 000 | Distil 5 K headline + Mobile Actions 9.65 K | ~90 – 96 % |
+| Capability-bootstrap | 50 000 | Unsloth `TxT360-3efforts` slice | irrelevant here — we already author the `<think>` template into our seeds, not bootstrap it |
+
+**Decision (M4.5 stays at 300):** the M4.5 §14 row holds at ≥ 300 passing
+rows. If the first M5 SFT run lands G_EVAL in the 70–85 % band (the
+realistic risk per R6), the §13 R6 (a) path triggers an **M4.6 expansion to
+1 000–1 500 passing rows** — the vendor evidence (Distil 5 K, Mobile
+Actions 9.65 K) says dataset growth dominates LoRA-rank / LR tweaks at this
+scale. The 5 K + tiers are *out of scope* for this plan unless 1.5 K
+underperforms; diminishing returns past Distil 5 K given our smaller input
+distribution.
+
+**Throughput math for the user's manual paste loop.** At the §14 ≥ 0.80
+validator pass rate × 10 rows / batch, **300 *passing* rows ≈ 38 paste
+rounds**, not 30. The §9.4.3 "iterate ~30–50 rounds" prose remains correct
+at the upper bound; budget the lower bound at ~40, not 30.
+
 ### 9.5 Privacy / synthetic constraints
 
 - All training data references the existing `Test Patient` fixture or new fixtures of the same synthetic shape.
@@ -729,6 +774,104 @@ A `tests/test_functiongemma_dataset.py` enforces, for every row in
 6. Tool call arguments validate against the tool's Pydantic model.
 7. After `tokenizer.apply_chat_template(...).removeprefix("<bos>")`, the rendered string contains no `<bos>` token (double-BOS check).
 8. ≥ 80 % of rows must pass; the remainder are quarantined to `dataset_v1/quarantine.jsonl` for manual review.
+
+### 9.7 M4 — Progress / Learning / Working Recipes (2026-04-30)
+
+#### Files added
+
+- `src/gemma_tools/functiongemma_dataset.py` — Pydantic discriminated-union message types, `Conversation` row model, `validate_conversation` / `validate_file`, the `<think>` shape gate, `backfill_tool_message_names` (Unsloth notebook cell 23), and the optional `render_training_text(row, tokenizer)` helper that strips the leading `<bos>` per §9.4.2 step 2.
+- `data/functiongemma/seed_conversations.jsonl` — 50 hand-authored rows, generator output of `scripts/build_functiongemma_seeds.py`.
+- `scripts/build_functiongemma_seeds.py` — deterministic generator from hand-authored Python literals; reads `data/functiongemma/tools_v1.yaml` and stamps the per-row `tools` block. `--check` mode flags drift between the script and the JSONL.
+- `scripts/pre-commit-functiongemma.py` — Phase B PHI guard (SSN, US phone outside `+1-555-`, email). Manual-run only (not auto-installed as a git hook).
+- `tests/test_functiongemma_dataset.py` — 31 tests covering G_DATASET_SHAPE rules 1–6, the assistant.content branch shapes, full-registry per-row convention, taxonomy counts, PHI patterns in the seed file, and an optional tokenizer-render gate (skipped when the local FG tokenizer is absent).
+- `tests/test_pre_commit_phi_scanner.py` — 9 tests for the PHI scanner (clean against the seed file, flags SSN/non-555 phone/email, allows ISO dates and dose strings, recurses directories).
+- `docs/plans/FunctionGemma/seed-authoring-recipe.md` — operational recipe with worked examples for each row class.
+
+#### Validator pass rate
+
+| Stage | Total | Passed | Pass rate |
+|---|---|---|---|
+| Hand seed (`seed_conversations.jsonl`) | 50 | 50 | **1.0000** |
+
+Acceptance bar in §14 M4 row is ≥ 0.95; the deterministic generator guarantees 1.0 — anything less surfaces immediately as a test regression.
+
+#### Taxonomy delivered
+
+| Category | §9.3 target | Delivered |
+|---|---|---|
+| `fact_lookup` | 12 | 12 |
+| `off_topic_refusal` | 4 | 4 |
+| `fact_absence` | 4 | 4 |
+| `parallel_call` | 6 | 6 |
+| `two_turn` | 14 | 14 |
+| `medical_advice_refusal` | 4 | 4 |
+| `tool_error_recovery` | 6 | 6 |
+| **Total** | **50** | **50** |
+
+#### Deviations from §9.3
+
+- The §9.3 example for tool-error recovery (`"what's my pulse at 3 am?" → call:get_vitals{} → tool: {error:"single snapshot only"}`) is awkward against the M3 read-only registry: `get_vitals` takes no arguments, so a "time-bounded vitals" error path does not exist. **Replaced with six cases that exercise the registry's actual error paths** — ambiguous-prefix (`get_medication_by_name {"name":"A"}` → `{"error":"ambiguous","matches":[…]}`), three `no_match` cases (`Ibuprofen`, `Warfarin`, `Tylenol`), and empty time slots (`12:00`, `15:00`). Argument-shape error paths (`invalid_arguments` from dispatch) are intentionally NOT in the seed — training the model to emit a malformed argument and recover would require hand-authoring an incorrect tool call, which conflicts with the "model emits correct args" training signal we actually want.
+- `<think>` content is short but not length-bounded — the validator enforces "exactly one block" only. Parallel-call rows legitimately need a longer reasoning prelude.
+
+#### Working recipes (the commands that passed)
+
+```bash
+# Regenerate the seed JSONL from the build script's Python literals.
+uv run python scripts/build_functiongemma_seeds.py
+
+# Verify the JSONL is in sync with the build script (CI-suitable).
+uv run python scripts/build_functiongemma_seeds.py --check
+
+# Validator + dataset tests (acceptance gate for M4).
+uv run pytest tests/test_functiongemma_dataset.py
+
+# Combined: registry + dataset + PHI scanner.
+uv run pytest tests/test_functiongemma_dataset.py tests/test_functiongemma_tools.py tests/test_pre_commit_phi_scanner.py
+
+# PHI scan against the dataset directory.
+uv run python scripts/pre-commit-functiongemma.py data/functiongemma/
+
+# Lint + typecheck on the M4 surface.
+uv run ruff check src/gemma_tools/functiongemma_dataset.py tests/test_functiongemma_dataset.py tests/test_pre_commit_phi_scanner.py scripts/build_functiongemma_seeds.py scripts/pre-commit-functiongemma.py
+uv run mypy src/gemma_tools/functiongemma_dataset.py tests/test_functiongemma_dataset.py tests/test_pre_commit_phi_scanner.py scripts/build_functiongemma_seeds.py scripts/pre-commit-functiongemma.py
+
+# Full repo pytest — 474/474 green after M4.
+uv run pytest
+```
+
+#### JSONL row shape that worked
+
+Every row is one compact JSON line in this exact shape (newlines added for readability — the on-disk file is one row per line):
+
+```json
+{
+  "id": "fl-001",
+  "category": "fact_lookup",
+  "messages": [
+    {"role":"system","content":"You are a model that can do function calling with the following functions"},
+    {"role":"user","content":"What's my heart rate?"},
+    {"role":"assistant","content":"<think>User wants vitals; call get_vitals.</think>",
+     "tool_calls":[{"id":"call_1","type":"function","function":{"name":"get_vitals","arguments":{}}}]},
+    {"role":"tool","name":"get_vitals","tool_call_id":"call_1","content":"{\"heart_rate_bpm\":72,\"...\":\"...\"}"},
+    {"role":"assistant","content":"<think>HR is 72 bpm.</think>\nYour heart rate is 72 bpm."}
+  ],
+  "tools": [/* full 7-tool registry, stamped from data/functiongemma/tools_v1.yaml */]
+}
+```
+
+#### Tokenizer / double-BOS handling decision
+
+Same as `scripts/functiongemma_smoke.py`: `render_training_text(row, tokenizer)` calls `tokenizer.apply_chat_template(messages, tools=tools, tokenize=False, add_generation_prompt=False)` and strips a leading `<bos>` with `.removeprefix("<bos>")`. The Phase D training script will pre-render every seed row this way and store the result as the `text` field that `SFTTrainer(dataset_text_field="text")` consumes. Without the strip, SFTTrainer's `add_bos=True` re-prepends a second BOS at tokenize time — silent training-data corruption per §9.4.2 step 2.
+
+The optional test `test_render_training_text_strips_double_bos` covers five representative seed rows (one per non-trivial category) and is auto-skipped when the local tokenizer at `~/hf-cache/functiongemma-270m-it` is absent. The host CI environment has the tokenizer cached from M1.5, so the test runs and passes.
+
+#### Authoring pitfalls discovered
+
+1. **Per-row `tools` convention pinned to "full 7-tool registry".** The training signal for `off_topic_refusal` and `medical_advice_refusal` rows is *"tools are available, but you should not call any of them"* — a per-row used-subset would dilute that lesson. Cost: ~3 KB of duplication per row, irrelevant at 50 rows.
+2. **Assistant.content shape splits into two branches** by whether `tool_calls` is non-empty. The validator (`_validate_assistant_content_shape`) rejects a tail after `</think>` on a tool-call turn (`<think>x</think>extra` is drift) and requires `\n<answer>` on a non-tool turn (`<think>x</think>answer` without the newline is drift). Both rules are gated by mutation tests.
+3. **Tool-result fixtures pinned in the build script, not loaded from the YAML.** `data/health_table_v1.yaml` is the system-under-test fixture and could evolve; the seed must freeze the snapshot it was authored against. Constants like `_VITALS`, `_MED_LISINOPRIL` live at the top of `scripts/build_functiongemma_seeds.py` for that reason.
+4. **`importlib.util.spec_from_file_location` requires `sys.modules` registration before `exec_module`** when the loaded script defines `@dataclass(frozen=True, slots=True)` types. Without it, `dataclass` introspection fails on `cls.__module__` lookup. The PHI scanner test loader handles this; recipe noted for future test authors.
+5. **Tool-error category is six true error paths**, not five-plus-a-near-miss. Earlier draft used `name="L"` (which the registry uniquely resolves) as a borderline case; rewritten to `name="Tylenol"` so all six rows exercise an actual `error` field in the tool response. The model's lesson is uniform: when the tool response carries `error`, surface it in NL — never paper over.
 
 ---
 
@@ -1234,6 +1377,24 @@ This mirrors the existing IL "SSH to board is read-only" rule, extended to the G
   available); (b) user approves the host-probe summary; (c) the FG model is
   fetched (Phase A precondition).
 
+- 🟡 **OQ-10 OPEN (LOCAL-ONLY)** — *Two `llama-cli` bugs at submodule pin
+  `d775992` (tag `b8981`) need upstream issue submission.*
+  Diagnosed during M1.5 (§15.6); workaround landed in M2's
+  `scripts/functiongemma_smoke.py` (Path A — host-side `apply_chat_template`
+  + `llama-cpp-python`). Local issue drafts at
+  [`upstream-issue-drafts.md`](upstream-issue-drafts.md):
+  1. `tools/cli/cli.cpp:210` hardcodes `inputs.tools = {};`, so
+     `llama-cli --jinja` cannot pass tools to the chat template.
+  2. `tools/cli/cli.cpp:357-360` prints that `--no-conversation` is
+     unsupported but does not return non-zero, then falls through into the
+     interactive loop (infinite tight loop emitting `> ` with stdin closed).
+  **Submission policy:** do **not** file these upstream from this repo
+  without explicit user instruction. Drafts are local-only until the user
+  copies them to <https://github.com/ggml-org/llama.cpp/issues/new>.
+  **Resolution unblocks:** removing the host-side prerender path in
+  `scripts/functiongemma_smoke.py` and switching M7's GGUF round-trip back
+  to `llama-cli --jinja`.
+
 ### Risk table
 
 | # | Risk | Likelihood | Impact | Mitigation |
@@ -1258,9 +1419,9 @@ Host owns M1–M4.5 + M7; server owns M5/M6.
 | **M0** | — | Plan reviewed + OQs resolved | This file approved by user; OQ-1…OQ-9 marked RESOLVED in §13. | ✅ DONE 2026-04-29 |
 | **M1** | host | Repo extras land | `pyproject.toml` has `[functiongemma]` extra (incl. `llama-cpp-python>=0.3` — see §15.6); `uv sync --extra functiongemma` succeeds on host; `tests/test_functiongemma_imports.py` 10/10 green. | ✅ DONE 2026-04-30 |
 | **M1.5** | host | **GGUF pre-flight (OQ-9)** | Host probe passed; base FG-270M downloaded; `convert_hf_to_gguf.py` produced `fg-bf16.gguf`; `llama-quantize` produced `fg-q4_k_m.gguf` (Q4_K_M, vendor-aligned per OQ-6); G_FG_GGUF_PREFLIGHT green via `llama-cpp-python` (Path A) and `llama-cli -st --no-jinja` with pre-rendered prompt (Path B). See §15.6 for the two upstream `llama-cli` bugs that necessitated the workaround. | ✅ DONE 2026-04-30 |
-| **M2** | host CPU | Phase A smoke green | `scripts/functiongemma_smoke.py --query "What's the temp in London?"` prints the parsed call within 90 s on host CPU. G_FG_LOAD + G_FG_SINGLE green. | OPEN |
-| **M3** | host | Tool registry + tests | `src/gemma_tools/functiongemma_tools.py` with ≥ 6 tools; `uv run pytest tests/test_functiongemma_tools.py` green; ≥ 90 % branch coverage. G_TOOLS_TESTS green. | OPEN |
-| **M4** | host | Seed dataset (cookbook recipe) | ~50 hand seeds in `data/functiongemma/seed_conversations.jsonl` (HF chat-template format); Pydantic validator passes ≥ 95 % on hand seeds. | OPEN |
+| **M2** | host CPU | Phase A smoke green | `scripts/functiongemma_smoke.py --query "What's the temp in London?"` prints the parsed call within 90 s on host CPU. G_FG_LOAD + G_FG_SINGLE green. | ✅ DONE 2026-04-30 — Path A (HF tokenizer + `llama-cpp-python`) on the M1.5 Q4_K_M GGUF; ~5.7 s wall on i7-12700H, output `PASS {"tool": "get_current_temperature", "args": {"location": "London"}}`. CI exercises `--dry-run` only via `tests/test_functiongemma_smoke.py` (13 tests). |
+| **M3** | host | Tool registry + tests | `src/gemma_tools/functiongemma_tools.py` with ≥ 6 tools; `uv run pytest tests/test_functiongemma_tools.py` green; ≥ 90 % branch coverage. G_TOOLS_TESTS green. | ✅ DONE 2026-04-30 — 7 read-only tools (`get_vitals`, `get_medications_at_time`, `get_medication_by_name`, `list_allergies`, `check_food_interaction`, `get_next_appointment`, `get_emergency_contact`); explicit allowlisted dispatch (no `globals()`) per §6.5; 61 tests pass; **99 % branch coverage** via `pytest-cov` (added to `[dev]` extra). `data/functiongemma/tools_v1.yaml` is a frozen mirror with a sync test. M2 follow-ups also landed: (a) `--ctx-size` CLI option in `scripts/functiongemma_smoke.py` (default 4096; bump to 32768 to fully suppress the `n_ctx_seq < n_ctx_train` warning at the cost of ~300 MB extra KV cache), (b) OQ-10 added with local issue drafts at [`docs/plans/FunctionGemma/upstream-issue-drafts.md`](upstream-issue-drafts.md). |
+| **M4** | host | Seed dataset (cookbook recipe) | ~50 hand seeds in `data/functiongemma/seed_conversations.jsonl` (HF chat-template format); Pydantic validator passes ≥ 95 % on hand seeds. | ✅ DONE 2026-04-30 — 50 hand-authored conversations across the §9.3 split (12 fact_lookup / 4 off_topic_refusal / 4 fact_absence / 6 parallel_call / 14 two_turn / 4 medical_advice_refusal / 6 tool_error_recovery); validator pass rate **1.0** (50/50, exceeds the ≥ 95 % bar). New: `src/gemma_tools/functiongemma_dataset.py` (Pydantic + `<think>` shape gate), `scripts/build_functiongemma_seeds.py` (deterministic generator from hand-authored Python literals), `scripts/pre-commit-functiongemma.py` (Phase B PHI guard — manual run), `tests/test_functiongemma_dataset.py` (31 tests), `tests/test_pre_commit_phi_scanner.py` (9 tests), `docs/plans/FunctionGemma/seed-authoring-recipe.md` (worked examples + recipe). Full pytest 474/474 green. Deviation from §9.3 documented at §9.7. |
 | **M4.5** | host | LLM-augmented expansion | User-driven expansion (Pro Perplexity / Claude / ChatGPT) → `data/functiongemma/llm_expanded_v1.jsonl` with ≥ 300 rows; validator passes ≥ 80 %. **G_DATASET_SHAPE green.** | OPEN |
 | **M5** | server (RTX 5080) | **Server LoRA SFT** | Pin file captured pre-install (§10.1); `scripts/finetune_functiongemma.py` runs end-to-end on `nouslogic-server`; eval-loss strictly monotone over ≥ 3 epochs; trainable params ≤ 5 %; wall ≤ 60 min; no OOM; merged adapter saved at `~/functiongemma-finetune/merged_fg_v1/`. **G_TRAIN green.** | OPEN — first server milestone |
 | **M6** | server + host | Behavioral eval | 60-prompt held-out eval; FT'd model ≥ 80 % tool-call equivalence vs gold trace; baseline FG < 30 %; bench file at `docs/bench/<date>_functiongemma-eval.md`. **G_EVAL green.** | OPEN |

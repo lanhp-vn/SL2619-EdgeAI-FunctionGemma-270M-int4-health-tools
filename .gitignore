@@ -12,6 +12,9 @@ venv/
 
 # Tool caches
 .cache/
+.coverage
+.coverage.*
+htmlcov/
 
 # Large model artifacts (keep metadata; exclude weights)
 *.gguf
