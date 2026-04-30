@@ -28,8 +28,10 @@ checkpoints/
 .env
 *.local
 
-# Claude Code local config (machine-specific)
-.claude/
+# Claude Code local config (machine-specific; skills/ and agents/ are tracked in git)
+.claude/settings.local.json
+.claude/CLAUDE.local.md
+.codex
 
 # Synaptics reference submodule build artifacts
 # (submodules are update=none; these patterns guard against accidental staging if initialized)

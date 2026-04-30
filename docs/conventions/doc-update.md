@@ -177,6 +177,7 @@ Every normative fact, procedure, spec, or reusable table lives in **one** Markdo
 | Gemma JAX/Flax architecture | `docs/references/upstream/gemma/` (submodule) + `docs/references/gemma.md` (notes) |
 | llama.cpp source (converters, perplexity, quantize) | `docs/references/upstream/llama.cpp/` (submodule) + `docs/references/llama-cpp.md` (notes) |
 | HuggingFace stack (transformers, TRL, PEFT) | URL-only — `docs/references/transformers-trl-peft.md` |
+| Unsloth FunctionGemma training notebook (Phase D standard procedure) | `docs/references/upstream/unsloth-notebooks/nb/FunctionGemma_(270M).ipynb` (sparse nested clone) |
 
 ### 8.2 Standalone / DRY-exempt documents
 
@@ -185,6 +186,7 @@ The following files carry their own narrative and **are not required to defer to
 | Path | Status | Agent policy |
 |---|---|---|
 | `docs/plans/**/*.md` (fine-tune plan, testing plan, logits-equiv plan) | **Frozen historical narratives** carried over from SynapticSL2619. Self-contained: recipes, rationale, concrete run commands. Many internal paths reference that repo's `tools/` layout. | Read-only. Update only when the plan itself changes; do not rewrite to collapse content into pointers, and do not retroactively rewrite the SynapticSL2619 paths. See `docs/plans/README.md`. |
+| `docs/plans/FunctionGemma/README.md` | **Active SFT plan** (Phase D, Unsloth). Self-contained: Unsloth recipe, OQ log, risk table, dataset shape, promotion sequence. | Update when plan decisions change. Do not collapse into pointers. Not frozen — evolves until M7 gate is GREEN. |
 | `docs/bench/**` | **Frozen bench run records.** Never modified after creation. | Read-only. A new run creates a new file; old files are never edited. See `docs/bench/README.md`. |
 
 ### 8.3 When you add a new topic

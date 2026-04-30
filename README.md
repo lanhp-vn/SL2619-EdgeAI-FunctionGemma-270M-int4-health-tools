@@ -1,7 +1,7 @@
 # gemma3-270M-finetune
 
-Fine-tuning, evaluation, and deployment tooling for **Gemma 3 270M-IT** (and
-forward-compatible with **FunctionGemma** when its release lands).
+Fine-tuning, evaluation, and deployment tooling for **Gemma 3 270M-IT** and
+**FunctionGemma** (function-calling + reasoning variant).
 
 The reference deployment target is the [Synaptics Astra Machina SL2619](https://github.com/nouslogic/SynapticSL2619)
 Cortex-A55 edge platform via llama.cpp + GGUF — see [`docs/deployment/sl2619-board.md`](docs/deployment/sl2619-board.md).
@@ -49,12 +49,14 @@ gemma3-270M-finetune/
 │   │   ├── llama-cpp.md
 │   │   ├── transformers-trl-peft.md
 │   │   ├── model-compiler-runtime.md
-│   │   └── upstream/         # git submodules (opt-in init)
-│   │       ├── gemma/        # google-deepmind/gemma (shallow)
-│   │       └── llama.cpp/    # ggml-org/llama.cpp (shallow)
+│   │   └── upstream/              # git submodules (opt-in init)
+│   │       ├── gemma/             # google-deepmind/gemma (shallow)
+│   │       ├── llama.cpp/         # ggml-org/llama.cpp (shallow)
+│   │       └── unsloth-notebooks/ # sparse clone: FunctionGemma_(270M).ipynb
 │   ├── guides/               # Human-facing how-tos
 │   ├── deployment/           # Per-target deployment runbooks (SL2619, …)
 │   ├── plans/                # Frozen historical narratives (read-only)
+│   │   └── FunctionGemma/    # Phase D SFT plan (Unsloth-based, PLANNED)
 │   └── bench/                # Frozen bench run records (read-only)
 └── models/
     └── gemma-3-270m-it/
@@ -71,6 +73,21 @@ Requires Python ≥ 3.11 and [uv](https://github.com/astral-sh/uv).
 uv venv .venv && source .venv/bin/activate
 uv pip install -e ".[dev]"
 ```
+
+### Optional — FunctionGemma host stack
+
+For FunctionGemma (270M function-calling) host-side work — Phase A CPU smoke
+and §15 GGUF pre-flight — install the heavier extra:
+
+```bash
+uv sync --extra functiongemma
+# or, matching the editable install above:
+uv pip install -e ".[functiongemma]"
+```
+
+Adds ~1.5 GiB (torch + transformers + accelerate + sentencepiece + gguf).
+See [`docs/plans/FunctionGemma/README.md`](docs/plans/FunctionGemma/README.md)
+for the full milestone plan.
 
 ### Optional — initialize upstream submodules
 
@@ -124,16 +141,16 @@ ssh nouslogic-server 'cd ~/sl2619-finetune && source .venv/bin/activate && \
 ssh nouslogic-server 'cd ~/sl2619-finetune && python merge.py \
     --base google/gemma-3-270m-it --adapter ./checkpoints/v1 --out ./merged_v1'
 
-# Quantize to Q4_0 GGUF via llama.cpp (on server)
+# Quantize to Q4_K_M GGUF via llama.cpp (primary target: better tool-call JSON fidelity)
 ssh nouslogic-server 'cd ~/llama.cpp && python convert_hf_to_gguf.py \
     ~/sl2619-finetune/merged_v1 --outfile ~/sl2619-finetune/merged_v1.bf16.gguf --outtype bf16 && \
     ./llama-quantize ~/sl2619-finetune/merged_v1.bf16.gguf \
-        ~/sl2619-finetune/merged_v1.q4_0.gguf Q4_0'
+        ~/sl2619-finetune/merged_v1.q4_k_m.gguf Q4_K_M'
 ```
 
 ### 4. Logits-equivalence gate
 
-Validates that the fine-tuned Q4_0 GGUF preserves token-rank vs the BF16
+Validates that the fine-tuned Q4_K_M GGUF preserves token-rank vs the BF16
 reference before deploying to a target. Frozen historical spec:
 `docs/plans/a55-gemma-h5-logits-equivalence.md`.
 
@@ -168,7 +185,7 @@ perf numbers (5.87 tok/s decode, 37.2 tok/s prompt-eval at `-t 2`).
 
 ```bash
 # Deploy GGUF to board (user-performed)
-scp merged_v1.q4_0.gguf nouslogic-sl2619:/mnt/sdcard/models/gemma-3-270m-it-q4_0-ft-v1/
+scp merged_v1.q4_k_m.gguf nouslogic-sl2619:/mnt/sdcard/models/gemma-3-270m-it-q4_k_m-ft-v1/
 ```
 
 ### 7. Run tests

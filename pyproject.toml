@@ -17,6 +17,25 @@ dev = [
     "hypothesis>=6.100",
     "types-PyYAML>=6.0",
 ]
+# FunctionGemma host-side stack — Phase A smoke + §15 GGUF pre-flight.
+# Heavy (~1.5 GiB with torch). Opt-in via `uv sync --extra functiongemma`.
+# See docs/plans/FunctionGemma/README.md §7.2 / §15.
+functiongemma = [
+    "transformers>=4.45",
+    "accelerate>=1.0",
+    "torch>=2.4",
+    "huggingface-hub>=0.25",
+    "pydantic>=2.7",
+    "jsonschema>=4.22",
+    "sentencepiece>=0.2",
+    "gguf>=0.10",
+    # Programmatic GGUF inference for §15.4 G_FG_GGUF_PREFLIGHT and the
+    # M2 Phase A smoke. llama-cli at upstream pin d775992 does not
+    # propagate tools= to the jinja chat template (tools/cli/cli.cpp:210
+    # `inputs.tools = {}; // TODO`), so a Python harness is the only
+    # in-repo path that exercises the FunctionGemma wire format.
+    "llama-cpp-python>=0.3",
+]
 
 [project.scripts]
 bench-prompt = "gemma_tools.bench_prompt:main"

@@ -5,10 +5,14 @@ Claude Code instructions specific to this repository.
 ## Repository purpose
 
 Standalone fine-tuning, evaluation, and deployment tooling for **Gemma 3 270M-IT**
-(forward-compatible with FunctionGemma when it ships). The reference deployment
+and **FunctionGemma** (function-calling + reasoning variant). The reference deployment
 target is the SL2619 Synaptics Astra Machina board, but the repo also stands
 alone as a generic Gemma 3 270M fine-tune workspace and may optionally be
 mounted as a git submodule at `SynapticSL2619/models/gemma-3-270m-it`.
+
+There are two SFT tracks: (1) the existing health-QA LoRA/QLoRA track
+(`scripts/finetune.py`) and (2) the **FunctionGemma Phase D track** (PLANNED —
+Unsloth-based, not yet executed). See `docs/plans/FunctionGemma/README.md`.
 
 ## Key paths
 
@@ -25,6 +29,8 @@ mounted as a git submodule at `SynapticSL2619/models/gemma-3-270m-it`.
 | `docs/references/` | Upstream sources — note files + opt-in submodules under `upstream/{gemma,llama.cpp}` |
 | `docs/guides/` | Human-facing how-tos (e.g. fine-tune best practices) |
 | `docs/plans/` | Frozen historical narratives (read-only; carried over from SynapticSL2619) |
+| `docs/plans/FunctionGemma/README.md` | FunctionGemma SFT plan — Phase D recipe (Unsloth + LoRA r=128; PLANNED, not yet executed) |
+| `docs/references/upstream/unsloth-notebooks/` | Sparse nested clone of unslothai/notebooks — FunctionGemma_(270M).ipynb reference; NOT a registered submodule |
 | `docs/bench/` | Frozen bench run records (read-only) |
 | `docs/deployment/sl2619-board.md` | SL2619 cross-compile + deploy runbook |
 | `docs/conventions/slm-system-prompt.md` | Normative SLM prompt rules (R-1…R-10) |
@@ -77,3 +83,7 @@ ssh nouslogic-server 'cd ~/sl2619-finetune && source .venv/bin/activate && pytho
   shallow git submodules with `update = none`. A fresh clone does not pull them.
   Initialize on demand with
   `git submodule update --init docs/references/upstream/<name>`.
+- **`unsloth-notebooks` is a nested git repo, not a submodule yet** —
+  `docs/references/upstream/unsloth-notebooks/` is a standalone shallow clone
+  with sparse-checkout (single notebook). Promotion to `.gitmodules` is tracked
+  in `docs/plans/FunctionGemma/README.md` §13 OQ-8.
