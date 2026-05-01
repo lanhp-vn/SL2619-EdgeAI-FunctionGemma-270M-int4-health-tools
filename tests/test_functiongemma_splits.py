@@ -216,8 +216,17 @@ def test_val_disjoint_from_holdout(
 
 
 def test_train_total_count(train_rows: list[dict[str, Any]]) -> None:
-    # 50 seed + (545 expanded - 56 holdout - 28 val) = 511.
-    assert len(train_rows) == 511, f"train row count = {len(train_rows)}, want 511"
+    # train = seed + (expanded - holdout - val); the magic number drifts each
+    # ingest round (511 pre-Block-E, 881 post-Block-E supplement). Compute
+    # the expectation from the actual on-disk seed/expanded files to keep
+    # the test load-bearing without pinning ingest history.
+    seed_count = sum(1 for line in _SEED_PATH.open() if line.strip())
+    expanded_count = sum(1 for line in _EXPANDED_PATH.open() if line.strip())
+    expected = seed_count + (expanded_count - 56 - 28)
+    assert len(train_rows) == expected, (
+        f"train row count = {len(train_rows)}, want {expected} "
+        f"(= {seed_count} seed + {expanded_count} expanded - 56 holdout - 28 val)"
+    )
 
 
 def test_train_disjoint_from_val_and_holdout(

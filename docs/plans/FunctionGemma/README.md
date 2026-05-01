@@ -1582,6 +1582,61 @@ is **not over-aggressive for our data size — it is correctly tuned for it**.
    check: "no eval-row user prompt is byte-identical to any train-row user
    prompt; max train-↔-eval cosine < 0.85 across the holdout".
 
+#### Block E supplement landed (2026-05-01)
+
+Block E batch 004 — 370-row supplement ingested into `llm_expanded_v1.jsonl`.
+Replaces the broken `supplement_dataset.jsonl` (740 rows = every target id
+duplicated; pervasive structural defects: `function.arguments` as JSON strings
+instead of dicts, tool messages missing `name`, literal `<answer>` tags,
+ad-hoc tool-response shapes; ~190 / 370 prompts were placeholder garbage like
+`topic_501`).
+
+Repair path: deterministic regen from `scripts/build_block_e_supplement.py`
+(salvage ratio on the prior file was too low to justify per-row triage). The
+generator gates each batch in-memory through `validate_conversation` + a
+custom Block E audit (id ranges, no-duplicate-prompts, no-shared-first-4-word-prefix
+within category, arg-vocabulary minima) before writing.
+
+| metric | value |
+|---|---|
+| supplement rows | 370 (ot=80, ma=80, fl=60, fa=30, te=40, tt=40, pc=40) |
+| validator pass-rate | **1.0000** (370 / 370) |
+| PHI scan | clean (0 hits) |
+| `check_food_interaction.food` unique values | **36** (≥ 25 target) |
+| `get_medications_at_time.time_24h` unique values | **31** (≥ 25 target) |
+| `get_medication_by_name.name` unique values | **42** (≥ 30 target) |
+| ingest cumulative pass-rate | 915 / 925 = 0.9892 (≥ 0.80 bar OK) |
+| `eval_holdout_v1.jsonl` md5 | unchanged (`6722ab85…`) |
+| `eval_holdout_v2_clean.jsonl` md5 | unchanged (`4f5ab50d…`) |
+| `dataset_v1/val.jsonl` md5 | unchanged (`f5759aea…`) |
+| `dataset_v1/train.jsonl` md5 | rebuilt — grew 511 → 881 rows |
+
+Per-category train counts after rebuild: fa=53 (+30), fl=203 (+60), ma=103
+(+80), ot=99 (+80, clears the 20-row thinness floor), pc=135 (+40), te=125
+(+40), tt=163 (+40). `off_topic_refusal` now has 5× the rows that fed M6's
+stuck-at-25 % failure mode.
+
+**Holdout / val are byte-stable** because Block E ids (5xx) lex-sort after
+the existing 1xx/2xx ids that the splitter pins as the holdout (positions
+1..8) and val (positions 9..12) per category. No prior G_EVAL artifact was
+overwritten. The contaminated v1 holdout and the de-contaminated v2 holdout
+both remain on disk for parallel scoring.
+
+Next: re-train M5 v1 on `data/functiongemma/dataset_v1/train.jsonl` (881
+rows) and re-run G_EVAL on `eval_holdout_v2_clean.jsonl` (45 rows). Pre-Block-E
+M5 cp-192 baseline on clean = **57.8 %**; the Block E hypothesis is that
+ot/ma will lift toward ≥ 80 % from the +160 refusal rows + broader argument
+vocabulary. See `docs/bench/2026-05-01_functiongemma-block-e-supplement-repair.md`
+for the dated repair record.
+
+Authoring artifacts retained:
+- `scripts/build_block_e_supplement.py` — deterministic generator (re-runnable;
+  diff-able if a follow-up batch needs the same gates).
+- `data/functiongemma/_incoming/batch_004_block_e_supplement_repaired.jsonl` —
+  the post-validation candidate that ingest consumed.
+- `supplement_dataset.jsonl` — preserved at the repo root as the audit
+  artifact for the broken-input → repaired-output diff.
+
 #### Dropped hypotheses (saved investigators a week of dead ends)
 
 - **H4 (truncation)**. C4 sweep at mnt ∈ {256, 512, 1024} produced byte-identical
