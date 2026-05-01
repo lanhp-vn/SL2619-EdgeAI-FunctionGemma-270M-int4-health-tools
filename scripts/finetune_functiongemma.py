@@ -40,6 +40,12 @@ import sys
 from pathlib import Path
 from typing import Any
 
+# Unsloth strips logits from forward outputs for memory (since 2024.11). TRL
+# 0.22.2's `entropy_from_logits` reads them and crashes with NotImplementedError
+# unless this env var is set BEFORE any `unsloth` import. Setting it at module
+# load (not inside `_train`) guarantees both train and eval paths see it.
+os.environ.setdefault("UNSLOTH_RETURN_LOGITS", "1")
+
 # `gemma_tools` ships without a py.typed marker today (see pyproject — adding
 # one is out of scope for this script). Suppress the missing-stubs warning
 # locally so `mypy scripts/finetune_functiongemma.py` runs clean on the host.
@@ -295,23 +301,39 @@ def _train(args: argparse.Namespace) -> None:
         _ensure_split_exists(path, label)
 
     # Lazy: requires `unsloth` / `trl` / `datasets` (server-only; version-pinned
-    # per §10.1). Imports are grouped by package and ruff-isort sorted.
-    from datasets import Dataset  # type: ignore[import-not-found]
-    from trl import SFTConfig, SFTTrainer  # type: ignore[import-not-found]
+    # per §10.1). Unsloth must be imported BEFORE trl/transformers/peft to apply
+    # its monkey-patches; doing the reverse triggers the runtime warning we saw
+    # on the first failed run, and on torch 2.10 (no cpp extensions) it is the
+    # difference between gradient flow working vs grad_norm=0.
     from unsloth import FastLanguageModel
     from unsloth.chat_templates import (  # type: ignore[import-not-found]
         train_on_responses_only,
     )
+    from datasets import Dataset  # type: ignore[import-not-found]
+    from trl import SFTConfig, SFTTrainer  # type: ignore[import-not-found]
 
+    # Switched §10.2's `load_in_16bit=True` → `load_in_4bit=True` because the
+    # 16-bit LoRA path produced `Trainable parameters = 0` + `grad_norm = 0`
+    # on Gemma3 (Unsloth 2026.4.8 + transformers 4.56.2). 4-bit is the proven
+    # notebook path and uses adamw_8bit anyway. Force SDPA via the kwarg even
+    # though Unsloth currently downgrades Gemma3 to eager — the request is
+    # still recorded in case Unsloth adds Gemma3 SDPA support.
     model, tokenizer = FastLanguageModel.from_pretrained(
         model_name=MODEL_ID,
         max_seq_length=args.ctx_size,
-        load_in_4bit=False,
+        load_in_4bit=True,
         load_in_8bit=False,
-        load_in_16bit=True,
+        load_in_16bit=False,
         full_finetuning=False,
+        attn_implementation="sdpa",
     )
 
+    # Why use_gradient_checkpointing=True (standard PyTorch) vs "unsloth":
+    # Unsloth's "smart offload" path requires the cpp extensions which are
+    # gated on torch >= 2.11.0; on our torch 2.10.0+cu128 they're skipped
+    # at startup, and the python-only fallback drops gradients (grad_norm=0
+    # every step on the first attempt). Standard PyTorch GC is well-trodden
+    # and adds modest VRAM cost (270M is small enough that this is fine).
     model = FastLanguageModel.get_peft_model(
         model,
         r=128,
@@ -319,12 +341,16 @@ def _train(args: argparse.Namespace) -> None:
         target_modules=LORA_TARGET_MODULES,
         lora_dropout=0,
         bias="none",
-        # 30% VRAM win + 2x effective batch on the RTX 5080 — see §10.3.
-        use_gradient_checkpointing="unsloth",
+        use_gradient_checkpointing=True,
         use_rslora=False,
         loftq_config=None,
         random_state=3407,
     )
+    # Diagnostic — must be > 0 trainable. The previous run reported
+    # "Trainable parameters = 0" with `load_in_16bit=True`; this surfaces the
+    # mis-wiring at startup rather than after one wasted epoch.
+    if hasattr(model, "print_trainable_parameters"):
+        model.print_trainable_parameters()
 
     train_rows = _build_text_rows(args.train_file, tokenizer)
     val_rows = _build_text_rows(args.val_file, tokenizer)
@@ -339,7 +365,13 @@ def _train(args: argparse.Namespace) -> None:
         warmup_steps=10,
         num_train_epochs=3,
         learning_rate=2e-4,
-        optim="adamw_8bit",
+        # Why adamw_torch instead of adamw_8bit (notebook default): bnb's
+        # 8-bit optimizer interacts with the 4-bit base model + LoRA via the
+        # cpp extensions Unsloth gates on torch 2.11+. On torch 2.10 the
+        # 8-bit path can leave LoRA grads at zero (observed empirically on
+        # this stack). adamw_torch is the safe default — memory cost is
+        # negligible at 30M LoRA params.
+        optim="adamw_torch",
         weight_decay=0.001,
         lr_scheduler_type="linear",
         logging_steps=1,
@@ -358,9 +390,13 @@ def _train(args: argparse.Namespace) -> None:
         save_strategy="epoch",
     )
 
+    # TRL 0.22.2 renamed `tokenizer=` to `processing_class=` (matches the
+    # `scripts/finetune.py` Gemma 3 path on the same trl version). The §10.2
+    # Unsloth notebook still shows `tokenizer=`, but on our pinned TRL it's
+    # a TypeError.
     trainer = SFTTrainer(
         model=model,
-        tokenizer=tokenizer,
+        processing_class=tokenizer,
         train_dataset=train_dataset,
         eval_dataset=val_dataset,
         args=sft_cfg,
