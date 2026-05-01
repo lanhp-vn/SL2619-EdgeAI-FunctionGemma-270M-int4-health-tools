@@ -32,6 +32,7 @@ from __future__ import annotations
 
 import argparse
 import datetime
+import re
 import sys
 from collections import Counter
 from dataclasses import dataclass
@@ -128,18 +129,32 @@ def _extract_assistant_text(content: str) -> str:
 
 
 def extract_gold_trace(row: dict[str, Any]) -> GoldTrace:
-    """Pull the reference tool-call sequence + final NL answer from a row.
+    """Pull the FIRST assistant turn's tool_calls + the final NL answer.
 
-    Flattens `tool_calls` across assistant turns in conversation order.
+    The eval inference path generates exactly one assistant response from
+    the user prompt (`run_inference` builds messages_prefix up to the first
+    assistant turn). The gold contract therefore is "the FIRST turn's tool
+    calls" — flattening across multiple turns (e.g. two_turn rows have 2
+    assistant turns each with their own call) would produce gold=N vs
+    pred=1 mismatches that score 0% on the multi-turn categories. M6
+    multi-turn behavioral eval is a separate gate (deferred — would need
+    a tool-execution loop) and is not what `tool_call_equivalent` measures.
+
+    `assistant_text` is taken from the LAST assistant turn (the final NL
+    answer in the gold conversation), kept for diagnostic reporting.
     Each entry is normalized to `{"name": str, "arguments": dict}` —
     the seed shape wraps these in `{"id", "type": "function", "function": {...}}`.
     """
-    flat_calls: list[dict[str, Any]] = []
+    first_calls: list[dict[str, Any]] = []
     last_assistant_content: str = ""
+    seen_first = False
     for m in row.get("messages", []):
         if m.get("role") != "assistant":
             continue
         last_assistant_content = m.get("content", "")
+        if seen_first:
+            continue
+        seen_first = True
         for tc in m.get("tool_calls") or []:
             fn = tc.get("function") or {}
             name = fn.get("name") or tc.get("name")
@@ -153,9 +168,9 @@ def extract_gold_trace(row: dict[str, Any]) -> GoldTrace:
                 raise ValueError(
                     f"row {row.get('id')!r}: tool_call arguments not a dict: {arguments!r}"
                 )
-            flat_calls.append({"name": name, "arguments": arguments})
+            first_calls.append({"name": name, "arguments": arguments})
     return GoldTrace(
-        tool_calls=tuple(flat_calls),
+        tool_calls=tuple(first_calls),
         assistant_text=_extract_assistant_text(last_assistant_content),
         category=str(row.get("category", "")),
         row_id=row.get("id") if isinstance(row.get("id"), str) else None,
@@ -165,6 +180,24 @@ def extract_gold_trace(row: dict[str, Any]) -> GoldTrace:
 # --------------------------------------------------------------------------
 # Pure metric.
 # --------------------------------------------------------------------------
+
+
+def _norm_args(args: Any) -> Any:
+    """Deep-normalize string values in a tool-call ``arguments`` payload.
+
+    String arguments are case-normalized via ``.casefold()`` because the
+    underlying tools resolve case-insensitively per M3 spec; this prevents
+    two functionally-correct rows from being scored as PARTIAL when the
+    only difference is letter case (e.g. ``"Lisinopril"`` vs ``"lisinopril"``).
+    Non-str values pass through unchanged. Recurses into nested dicts/lists.
+    """
+    if isinstance(args, str):
+        return args.casefold()
+    if isinstance(args, dict):
+        return {k: _norm_args(v) for k, v in args.items()}
+    if isinstance(args, list):
+        return [_norm_args(v) for v in args]
+    return args
 
 
 def tool_call_equivalent(
@@ -184,6 +217,11 @@ def tool_call_equivalent(
       dict differs. Reported for diagnostics; does NOT count toward pass_rate.
     - ``MISMATCH`` — names differ, OR predicted has calls when gold has none
       (refusal break), OR predicted has no calls when gold has calls.
+
+    String arguments are case-normalized via ``.casefold()`` before deep
+    equality (see ``_norm_args``) because the underlying tools resolve
+    case-insensitively per M3 spec; this prevents two functionally-correct
+    rows from being scored as PARTIAL.
 
     Pure function — no I/O. The branch order is deliberate: the
     `[] vs []` (refusal-clean) check fires before the names-differ check,
@@ -214,45 +252,144 @@ def tool_call_equivalent(
     if pred_names != gold_names:
         return Equivalence.MISMATCH
 
-    # Names align; check args. Deep equality on parsed dicts.
+    # Names align; check args. Deep equality on parsed dicts, with str values
+    # casefolded so case-only diffs (e.g. "Lisinopril" vs "lisinopril") MATCH.
     for p, g in zip(pred, gold, strict=True):
-        if p.get("arguments") != g.get("arguments"):
+        if _norm_args(p.get("arguments")) != _norm_args(g.get("arguments")):
             return Equivalence.PARTIAL
     return Equivalence.MATCH
 
 
 # --------------------------------------------------------------------------
-# Inference seam — STUB. M6 fills this in.
+# Inference seam — wired in M6 (2026-05-01).
 # --------------------------------------------------------------------------
 
 
-def run_inference(checkpoint_path: Path, prompt: str) -> dict[str, Any]:
-    """Stub for the merged-checkpoint inference call.
+# Module-level cache for the loaded model+tokenizer. main() iterates 56 rows;
+# without caching we'd reload the BF16 checkpoint per row (~10s * 56 = 9 min
+# vs ~10s + 56 * 2s ~= 2 min). Keyed by resolved Path so re-runs against the
+# same dir hit the cache.
+_INFERENCE_CACHE: dict[Path, tuple[Any, Any]] = {}
 
-    Returns (when M6 implements this):
-        {
-            "tool_calls": [{"name": str, "arguments": dict}, ...],
-            "assistant_text": str,  # NL answer after the last </think>; "" for call-only turns
-        }
+# FunctionGemma wire-format parser. Mirrored from
+# `scripts/functiongemma_smoke.py:_CALL_RE` / `_ARG_RE` — kept in sync there.
+# Tolerated drift: chat template renders `call:NAME` (colon), but the Q4_K_M
+# GGUF observed in §15.4 Path B emits `call NAME` (space). Accept both.
+_FG_CALL_RE = re.compile(
+    r"<start_function_call>\s*call[:\s]\s*(\w+)\s*\{(.*?)\}\s*<end_function_call>",
+    re.DOTALL,
+)
+_FG_ARG_RE = re.compile(
+    r"(\w+)\s*:\s*(?:<escape>(.*?)<escape>|([^,}]*))",
+    re.DOTALL,
+)
 
-    Both fields are required so the metric layer can score the tool-call
-    contract and (optionally) the NL response. The shape mirrors what
-    `extract_gold_trace` returns on the gold side, so M6 can feed predicted
-    + gold into `tool_call_equivalent` directly.
 
-    Reference: ``scripts/functiongemma_smoke.py`` is the validated Path A
-    pattern — HF tokenizer renders the chat template with `tools=[...]`,
-    `llama-cpp-python` runs the merged Q8_0 GGUF, the response is parsed via
-    `<start_function_call>...<end_function_call>` regex, and the output is
-    normalized into the dict shape above.
+def _parse_function_calls(text: str) -> list[dict[str, Any]]:
+    """Extract ``<start_function_call>...<end_function_call>`` blocks.
+
+    Returns ``[{"name": str, "arguments": dict}, ...]`` — the shape
+    `tool_call_equivalent` expects (matches `extract_gold_trace`'s gold side).
     """
-    # NOTE TO M6 IMPLEMENTER: this is the line to fill in.
-    raise NotImplementedError(
-        "M5 merged checkpoint inference not yet wired. "
-        "Fill this in after M5 produces ~/functiongemma-finetune/merged_fg_v1/. "
-        "Reference path: scripts/functiongemma_smoke.py uses llama-cpp-python Path A — "
-        "mirror that for the merged checkpoint via Q8_0 GGUF (fast eval reference)."
+    calls: list[dict[str, Any]] = []
+    for m in _FG_CALL_RE.finditer(text):
+        name = m.group(1)
+        body = m.group(2)
+        args: dict[str, Any] = {}
+        for am in _FG_ARG_RE.finditer(body):
+            key = am.group(1)
+            esc, plain = am.group(2), am.group(3)
+            if esc is not None:
+                args[key] = esc
+            else:
+                stripped = (plain or "").strip()
+                if stripped == "":
+                    continue
+                args[key] = stripped
+        calls.append({"name": name, "arguments": args})
+    return calls
+
+
+def _load_inference(checkpoint_path: Path) -> tuple[Any, Any]:
+    """Load merged HF checkpoint + tokenizer once, cache for the eval loop.
+
+    Lazy: requires `transformers` + `torch` (server-only). The host doesn't
+    run this — it's the M6 server-side eval seam.
+    """
+    resolved = checkpoint_path.resolve()
+    if resolved in _INFERENCE_CACHE:
+        return _INFERENCE_CACHE[resolved]
+    # Lazy imports — host CI does not pay this 500 MB import cost.
+    import torch  # type: ignore[import-not-found]
+    from transformers import AutoModelForCausalLM, AutoTokenizer  # type: ignore[import-not-found]
+
+    tokenizer = AutoTokenizer.from_pretrained(str(resolved))
+    model = AutoModelForCausalLM.from_pretrained(
+        str(resolved),
+        dtype=torch.bfloat16,
+        device_map="cuda" if torch.cuda.is_available() else "cpu",
+        attn_implementation="sdpa",
     )
+    model.eval()
+    _INFERENCE_CACHE[resolved] = (model, tokenizer)
+    return model, tokenizer
+
+
+def run_inference(
+    checkpoint_path: Path,
+    messages: list[dict[str, Any]],
+    tools: list[dict[str, Any]] | None,
+    *,
+    max_new_tokens: int = 256,
+) -> dict[str, Any]:
+    """Render the chat template, generate greedily, parse FG wire format.
+
+    Returns:
+        ``{"tool_calls": [{"name": str, "arguments": dict}, ...],
+           "assistant_text": str}``  — the shape `extract_gold_trace` returns
+        on the gold side. ``tool_calls`` is empty for refusal turns;
+        ``assistant_text`` is whatever follows the last ``</think>`` tag (or
+        the full output if no `<think>` block was emitted).
+
+    Greedy decode is intentional — the M6 metric is tool-call equivalence,
+    not lexical similarity, and sampling would inject noise into the
+    pass-rate signal. ``temperature=0`` via ``do_sample=False``.
+    """
+    import torch  # type: ignore[import-not-found]
+    model, tokenizer = _load_inference(checkpoint_path)
+
+    prompt = tokenizer.apply_chat_template(
+        messages,
+        tools=tools,
+        tokenize=False,
+        add_generation_prompt=True,
+    )
+    if not isinstance(prompt, str):
+        raise TypeError(f"apply_chat_template returned {type(prompt).__name__}")
+    # Mirror the §9.4.2 step-2 BOS strip — the chat template emits `<bos>`
+    # and the tokenizer would re-prepend it at tokenize time.
+    prompt = prompt.removeprefix("<bos>")
+
+    inputs = tokenizer(prompt, return_tensors="pt", add_special_tokens=False).to(
+        model.device
+    )
+    with torch.inference_mode():
+        out_ids = model.generate(
+            **inputs,
+            max_new_tokens=max_new_tokens,
+            do_sample=False,
+            pad_token_id=tokenizer.eos_token_id,
+        )
+    gen_ids = out_ids[0, inputs.input_ids.shape[1]:]
+    output_text = tokenizer.decode(gen_ids, skip_special_tokens=False)
+
+    # Parse FG wire-format tool calls.
+    tool_calls = _parse_function_calls(output_text)
+    # Extract the NL answer after the last </think>. Mirrors
+    # `_extract_assistant_text` on the gold side.
+    assistant_text = _extract_assistant_text(output_text)
+
+    return {"tool_calls": tool_calls, "assistant_text": assistant_text}
 
 
 # --------------------------------------------------------------------------
@@ -399,6 +536,15 @@ def _build_arg_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="Load holdout, extract gold traces, run gold-vs-gold sanity → 100 %% MATCH.",
     )
+    # C4: per-row decode budget. Default mirrors the M6 first-run number; bump
+    # to 512 / 1024 to test whether truncation suppresses category pass-rates
+    # (empty-prediction symptom on fact_lookup / tool_error_recovery).
+    p.add_argument(
+        "--max-new-tokens",
+        type=int,
+        default=256,
+        help="Greedy-decode token budget per row. Default 256 (M6 first run).",
+    )
     return p
 
 
@@ -441,21 +587,32 @@ def main(argv: list[str] | None = None) -> int:
         Path("docs/bench") / f"{datetime.date.today().isoformat()}_functiongemma-eval.md"
     )
 
-    # Inference loop — UNREACHABLE until M6 wires `run_inference`.
+    # Inference loop. Pass the messages-prefix (everything before the first
+    # assistant turn) + the row's `tools` declaration. run_inference handles
+    # chat-template render + BOS strip + greedy decode + FG parse.
     rows = list(load_jsonl(holdout))
     verdicts: list[tuple[str, Equivalence]] = []
-    for raw in rows:
+    print(f"=== running inference on {len(rows)} rows ===", file=sys.stderr)
+    for i, raw in enumerate(rows):
         gold = extract_gold_trace(raw)
-        # M6: build the prompt from `raw["messages"][:user-turn]` + `raw["tools"]`
-        # via the HF chat template; pass to run_inference; parse out tool_calls.
-        prompt = ""  # placeholder — M6 fills in
-        predicted = run_inference(args.checkpoint, prompt)  # raises NotImplementedError
+        msgs = raw.get("messages", [])
+        first_assistant = next(
+            (j for j, m in enumerate(msgs) if m.get("role") == "assistant"),
+            len(msgs),
+        )
+        prompt_msgs = msgs[:first_assistant]
+        tools = raw.get("tools")
+        predicted = run_inference(
+            args.checkpoint, prompt_msgs, tools, max_new_tokens=args.max_new_tokens
+        )
         v = tool_call_equivalent(
             predicted.get("tool_calls", []),
             list(gold.tool_calls),
             category=gold.category,
         )
         verdicts.append((gold.category, v))
+        if (i + 1) % 10 == 0 or (i + 1) == len(rows):
+            print(f"  {i+1}/{len(rows)} done", file=sys.stderr)
 
     stats = aggregate_by_category(verdicts)
     markdown = render_summary_table(stats)

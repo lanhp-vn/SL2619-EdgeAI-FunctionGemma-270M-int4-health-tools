@@ -194,6 +194,29 @@ def test_tool_call_equivalent_branches(
 
 
 # --------------------------------------------------------------------------
+# C5 regression: case-normalized arg comparison.
+# --------------------------------------------------------------------------
+
+
+def test_tool_call_equivalent_case_insensitive_args() -> None:
+    """C5: tool resolvers are case-insensitive per M3 spec, so a case-only diff
+    must MATCH (was scored PARTIAL pre-C5; flips tt-101 + te-104 in M6 holdout).
+    """
+    pred = [{"name": "get_med", "arguments": {"name": "Lisinopril"}}]
+    gold = [{"name": "get_med", "arguments": {"name": "lisinopril"}}]
+    assert eh.tool_call_equivalent(pred, gold, category="fact_lookup") is eh.Equivalence.MATCH
+
+
+def test_tool_call_equivalent_non_str_args_passthrough() -> None:
+    """C5: non-str values (ints, lists) pass through `_norm_args` unchanged.
+    Verifies recursion is type-safe — a list of ints must not crash casefold.
+    """
+    pred = [{"name": "f", "arguments": {"x": 1, "y": [1, 2]}}]
+    gold = [{"name": "f", "arguments": {"x": 1, "y": [1, 2]}}]
+    assert eh.tool_call_equivalent(pred, gold, category="fact_lookup") is eh.Equivalence.MATCH
+
+
+# --------------------------------------------------------------------------
 # `extract_gold_trace`.
 # --------------------------------------------------------------------------
 
@@ -233,7 +256,55 @@ def test_extract_gold_trace_parallel_row_flattens_in_order() -> None:
     row = _seed_row(row_id="pc-001", category="parallel_call", tool_calls=parallel)
     g = eh.extract_gold_trace(row)
     assert [c["name"] for c in g.tool_calls] == ["get_vitals", "get_meds"], (
-        "parallel calls preserved in conversation order"
+        "parallel calls (single assistant turn) preserved in conversation order"
+    )
+
+
+def test_extract_gold_trace_multi_turn_returns_first_turn_only() -> None:
+    """Two-turn row (e.g. tt-* in holdout) has 2 assistant turns each with a
+    tool_call. The eval inference path only generates the FIRST response
+    from the user prompt, so gold must be the FIRST turn's calls — NOT
+    flattened across all turns. Without this, every multi-turn row scores
+    MISMATCH on len(pred=1) vs len(gold=2).
+    """
+    row = {
+        "id": "tt-001",
+        "category": "two_turn",
+        "messages": [
+            {"role": "system", "content": "sys"},
+            {"role": "user", "content": "Look up Lisinopril"},
+            {
+                "role": "assistant",
+                "content": "<think>...</think>",
+                "tool_calls": [{"id": "c0", "type": "function",
+                    "function": {"name": "get_medication_by_name",
+                                 "arguments": {"name": "Lisinopril"}}}],
+            },
+            {"role": "tool", "name": "get_medication_by_name",
+             "tool_call_id": "c0", "content": json.dumps({"dose": "10mg"})},
+            {"role": "user", "content": "Now Atorvastatin"},
+            {
+                "role": "assistant",
+                "content": "<think>...</think>",
+                "tool_calls": [{"id": "c1", "type": "function",
+                    "function": {"name": "get_medication_by_name",
+                                 "arguments": {"name": "Atorvastatin"}}}],
+            },
+            {"role": "tool", "name": "get_medication_by_name",
+             "tool_call_id": "c1", "content": json.dumps({"dose": "20mg"})},
+            {"role": "assistant",
+             "content": "<think>x</think>\nLisinopril 10mg, Atorvastatin 20mg.",
+             "tool_calls": []},
+        ],
+        "tools": [{"type": "function", "function": {"name": "get_medication_by_name"}}],
+    }
+    g = eh.extract_gold_trace(row)
+    assert len(g.tool_calls) == 1, (
+        f"multi-turn row must extract first-turn only; got {len(g.tool_calls)} calls"
+    )
+    assert g.tool_calls[0]["arguments"] == {"name": "Lisinopril"}
+    assert g.assistant_text == "Lisinopril 10mg, Atorvastatin 20mg.", (
+        "assistant_text still comes from the LAST turn (final NL answer)"
     )
 
 
@@ -306,7 +377,36 @@ def test_full_eval_exits_2_when_checkpoint_missing(
     assert "checkpoint not found" in err
 
 
-def test_run_inference_is_not_implemented_yet(tmp_path: Path) -> None:
-    """The model seam must raise NotImplementedError until M6 fills it in."""
-    with pytest.raises(NotImplementedError, match="M5 merged checkpoint"):
-        eh.run_inference(tmp_path, "any prompt")
+def test_parse_function_calls_extracts_fg_wire_format() -> None:
+    """The wire-format parser is the M6 host-testable part of run_inference.
+
+    The full `run_inference()` pulls torch + transformers and loads a 500 MB
+    BF16 checkpoint, so it lives behind an SSH boundary on the server. The
+    pure-text parser is what we exercise here — it converts the FG wire
+    format the model emits into the `{"name", "arguments"}` shape that
+    `tool_call_equivalent` consumes.
+    """
+    text = (
+        "<think>Look up Lisinopril.</think>"
+        "<start_function_call>call:get_medication_by_name"
+        "{name:<escape>Lisinopril<escape>}<end_function_call>"
+    )
+    calls = eh._parse_function_calls(text)
+    assert calls == [{"name": "get_medication_by_name", "arguments": {"name": "Lisinopril"}}]
+
+    # Empty-args call.
+    calls = eh._parse_function_calls(
+        "<start_function_call>call:get_vitals{}<end_function_call>"
+    )
+    assert calls == [{"name": "get_vitals", "arguments": {}}]
+
+    # Two adjacent calls (parallel).
+    text2 = (
+        "<start_function_call>call:list_allergies{}<end_function_call>"
+        "<start_function_call>call:get_vitals{}<end_function_call>"
+    )
+    calls = eh._parse_function_calls(text2)
+    assert [c["name"] for c in calls] == ["list_allergies", "get_vitals"]
+
+    # Refusal — no call markers.
+    assert eh._parse_function_calls("I cannot give medical advice.") == []
