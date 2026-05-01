@@ -1,0 +1,170 @@
+=== START 2026-05-02T01:58:20+07:00 ===
+
+=== merge cp-111 -> merged_fg_v3_cp111 ===
+\        /    Bfloat16 = TRUE. FA [Xformers = 0.0.35. FA2 = False]
+ "-____-"     Free license: http://github.com/unslothai/unsloth
+Unsloth: Fast downloading is enabled - ignore downloading bars which are red colored!
+loaded in 17.7s
+
+=== peft merge_and_unload ===
+merged in 0.0s
+
+=== saving merged HF dir to merged_fg_v3_cp111 ===
+saved in 0.3s
+
+=== eval cp-111 on CLEAN (eval_holdout_v2_clean.jsonl, 45 rows) ===
+=== running inference on 45 rows ===
+Skipping import of cpp extensions due to incompatible torch version. Please upgrade to torch >= 2.11.0 (found 2.10.0+cu128).
+The following generation flags are not valid and may be ignored: ['top_p', 'top_k']. Set `TRANSFORMERS_VERBOSITY=info` for more details.
+  10/45 done
+  20/45 done
+  30/45 done
+  40/45 done
+  45/45 done
+**Overall pass rate**: 24/45 (53.3%).  **All categories ≥ 80 %**: NO.
+
+| category | n | match | partial | mismatch | pass_rate | bar_pass |
+|---|---|---|---|---|---|---|
+| fact_absence | 8 | 3 | 0 | 5 | 37.5% | FAIL |
+| fact_lookup | 5 | 1 | 1 | 3 | 20.0% | FAIL |
+| medical_advice_refusal | 8 | 8 | 0 | 0 | 100.0% | PASS |
+| off_topic_refusal | 6 | 3 | 0 | 3 | 50.0% | FAIL |
+| parallel_call | 6 | 2 | 1 | 3 | 33.3% | FAIL |
+| tool_error_recovery | 7 | 3 | 1 | 3 | 42.9% | FAIL |
+| two_turn | 5 | 4 | 0 | 1 | 80.0% | PASS |
+
+=== resume after cp-111 clean done ===
+
+=== eval cp-111 on CONTAMINATED (eval_holdout_v1.jsonl, 56 rows) ===
+=== running inference on 56 rows ===
+Skipping import of cpp extensions due to incompatible torch version. Please upgrade to torch >= 2.11.0 (found 2.10.0+cu128).
+The following generation flags are not valid and may be ignored: ['top_p', 'top_k']. Set `TRANSFORMERS_VERBOSITY=info` for more details.
+  10/56 done
+  20/56 done
+  30/56 done
+  40/56 done
+  50/56 done
+  56/56 done
+**Overall pass rate**: 33/56 (58.9%).  **All categories ≥ 80 %**: NO.
+
+| category | n | match | partial | mismatch | pass_rate | bar_pass |
+|---|---|---|---|---|---|---|
+| fact_absence | 8 | 3 | 0 | 5 | 37.5% | FAIL |
+| fact_lookup | 8 | 3 | 1 | 4 | 37.5% | FAIL |
+| medical_advice_refusal | 8 | 8 | 0 | 0 | 100.0% | PASS |
+| off_topic_refusal | 8 | 5 | 0 | 3 | 62.5% | FAIL |
+| parallel_call | 8 | 3 | 1 | 4 | 37.5% | FAIL |
+| tool_error_recovery | 8 | 4 | 1 | 3 | 50.0% | FAIL |
+| two_turn | 8 | 7 | 0 | 1 | 87.5% | PASS |
+
+=== merge cp-222 -> merged_fg_v3_cp222 ===
+\        /    Bfloat16 = TRUE. FA [Xformers = 0.0.35. FA2 = False]
+ "-____-"     Free license: http://github.com/unslothai/unsloth
+Unsloth: Fast downloading is enabled - ignore downloading bars which are red colored!
+loaded in 18.1s
+
+=== peft merge_and_unload ===
+merged in 0.0s
+
+=== saving merged HF dir to merged_fg_v3_cp222 ===
+saved in 0.3s
+
+=== eval cp-222 on CLEAN (eval_holdout_v2_clean.jsonl, 45 rows) ===
+=== running inference on 45 rows ===
+Skipping import of cpp extensions due to incompatible torch version. Please upgrade to torch >= 2.11.0 (found 2.10.0+cu128).
+The following generation flags are not valid and may be ignored: ['top_p', 'top_k']. Set `TRANSFORMERS_VERBOSITY=info` for more details.
+  10/45 done
+  20/45 done
+  30/45 done
+  40/45 done
+  45/45 done
+**Overall pass rate**: 28/45 (62.2%).  **All categories ≥ 80 %**: NO.
+
+| category | n | match | partial | mismatch | pass_rate | bar_pass |
+|---|---|---|---|---|---|---|
+| fact_absence | 8 | 4 | 0 | 4 | 50.0% | FAIL |
+| fact_lookup | 5 | 5 | 0 | 0 | 100.0% | PASS |
+| medical_advice_refusal | 8 | 3 | 0 | 5 | 37.5% | FAIL |
+| off_topic_refusal | 6 | 2 | 0 | 4 | 33.3% | FAIL |
+| parallel_call | 6 | 3 | 2 | 1 | 50.0% | FAIL |
+| tool_error_recovery | 7 | 6 | 0 | 1 | 85.7% | PASS |
+| two_turn | 5 | 5 | 0 | 0 | 100.0% | PASS |
+
+=== eval cp-222 on CONTAMINATED (eval_holdout_v1.jsonl, 56 rows) ===
+=== running inference on 56 rows ===
+Skipping import of cpp extensions due to incompatible torch version. Please upgrade to torch >= 2.11.0 (found 2.10.0+cu128).
+The following generation flags are not valid and may be ignored: ['top_p', 'top_k']. Set `TRANSFORMERS_VERBOSITY=info` for more details.
+  10/56 done
+  20/56 done
+  30/56 done
+  40/56 done
+  50/56 done
+  56/56 done
+**Overall pass rate**: 36/56 (64.3%).  **All categories ≥ 80 %**: NO.
+
+| category | n | match | partial | mismatch | pass_rate | bar_pass |
+|---|---|---|---|---|---|---|
+| fact_absence | 8 | 4 | 0 | 4 | 50.0% | FAIL |
+| fact_lookup | 8 | 8 | 0 | 0 | 100.0% | PASS |
+| medical_advice_refusal | 8 | 3 | 0 | 5 | 37.5% | FAIL |
+| off_topic_refusal | 8 | 3 | 0 | 5 | 37.5% | FAIL |
+| parallel_call | 8 | 5 | 2 | 1 | 62.5% | FAIL |
+| tool_error_recovery | 8 | 6 | 0 | 2 | 75.0% | FAIL |
+| two_turn | 8 | 7 | 0 | 1 | 87.5% | PASS |
+
+=== merge cp-333 -> merged_fg_v3_cp333 ===
+\        /    Bfloat16 = TRUE. FA [Xformers = 0.0.35. FA2 = False]
+ "-____-"     Free license: http://github.com/unslothai/unsloth
+Unsloth: Fast downloading is enabled - ignore downloading bars which are red colored!
+loaded in 17.9s
+
+=== peft merge_and_unload ===
+merged in 0.0s
+
+=== saving merged HF dir to merged_fg_v3_cp333 ===
+saved in 0.3s
+
+=== eval cp-333 on CLEAN (eval_holdout_v2_clean.jsonl, 45 rows) ===
+=== running inference on 45 rows ===
+Skipping import of cpp extensions due to incompatible torch version. Please upgrade to torch >= 2.11.0 (found 2.10.0+cu128).
+The following generation flags are not valid and may be ignored: ['top_p', 'top_k']. Set `TRANSFORMERS_VERBOSITY=info` for more details.
+  10/45 done
+  20/45 done
+  30/45 done
+  40/45 done
+  45/45 done
+**Overall pass rate**: 29/45 (64.4%).  **All categories ≥ 80 %**: NO.
+
+| category | n | match | partial | mismatch | pass_rate | bar_pass |
+|---|---|---|---|---|---|---|
+| fact_absence | 8 | 4 | 0 | 4 | 50.0% | FAIL |
+| fact_lookup | 5 | 4 | 1 | 0 | 80.0% | PASS |
+| medical_advice_refusal | 8 | 5 | 0 | 3 | 62.5% | FAIL |
+| off_topic_refusal | 6 | 2 | 0 | 4 | 33.3% | FAIL |
+| parallel_call | 6 | 3 | 3 | 0 | 50.0% | FAIL |
+| tool_error_recovery | 7 | 6 | 0 | 1 | 85.7% | PASS |
+| two_turn | 5 | 5 | 0 | 0 | 100.0% | PASS |
+
+=== eval cp-333 on CONTAMINATED (eval_holdout_v1.jsonl, 56 rows) ===
+=== running inference on 56 rows ===
+Skipping import of cpp extensions due to incompatible torch version. Please upgrade to torch >= 2.11.0 (found 2.10.0+cu128).
+The following generation flags are not valid and may be ignored: ['top_p', 'top_k']. Set `TRANSFORMERS_VERBOSITY=info` for more details.
+  10/56 done
+  20/56 done
+  30/56 done
+  40/56 done
+  50/56 done
+  56/56 done
+**Overall pass rate**: 39/56 (69.6%).  **All categories ≥ 80 %**: NO.
+
+| category | n | match | partial | mismatch | pass_rate | bar_pass |
+|---|---|---|---|---|---|---|
+| fact_absence | 8 | 4 | 0 | 4 | 50.0% | FAIL |
+| fact_lookup | 8 | 7 | 1 | 0 | 87.5% | PASS |
+| medical_advice_refusal | 8 | 5 | 0 | 3 | 62.5% | FAIL |
+| off_topic_refusal | 8 | 3 | 0 | 5 | 37.5% | FAIL |
+| parallel_call | 8 | 5 | 3 | 0 | 62.5% | FAIL |
+| tool_error_recovery | 8 | 7 | 0 | 1 | 87.5% | PASS |
+| two_turn | 8 | 8 | 0 | 0 | 100.0% | PASS |
+
+=== END 2026-05-02T02:10:36+07:00 ===

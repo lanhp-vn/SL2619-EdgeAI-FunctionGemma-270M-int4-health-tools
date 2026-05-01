@@ -1629,6 +1629,29 @@ ot/ma will lift toward ≥ 80 % from the +160 refusal rows + broader argument
 vocabulary. See `docs/bench/2026-05-01_functiongemma-block-e-supplement-repair.md`
 for the dated repair record.
 
+#### v3 G_EVAL outcome — partial Block E confirmation (2026-05-01)
+
+Re-train + re-eval landed at `outputs_fg_v3/checkpoint-{111,222,333}/` with
+all three checkpoints scored on both holdouts. Best checkpoint cp-333 scored
+**29/45 (64.4 %) clean / 39/56 (69.6 %) contam — +6.6 pp / +7.1 pp over
+M5 cp-192**. Tool-call categories all moved up significantly
+(`fact_lookup` 60→80 ✓, `tool_error_recovery` 57→86 ✓, `two_turn` 80→100 ✓,
+`fact_absence` 37.5→50, `parallel_call` flat at 50). 3/7 categories now
+clear the 80 % bar (vs 2/7 at M5 cp-192). **Headline failure**:
+`medical_advice_refusal` regressed −37.5 pp on clean (100→62.5) — cp-111
+holds ma=100 % then collapses across epochs 2-3 as the 23 % refusal /
+77 % tool-call gradient ratio compresses the model toward tool-call
+generation. Block E `off_topic_refusal` hypothesis was *qualitatively
+confirmed* — cp-111 ot=50 % vs M5 cp-192's 16.7 % proves the +80 ot row
+supplement DOES unlock refusal generalization that 19 train rows could
+not — but the lift erodes by cp-333 (33.3 %), again from the same
+gradient-imbalance dynamic. **§11.4 still missed.** Recommended next step
+(Block F): refusal-class loss reweighting via 2× row duplication of the
+202 refusal rows in `train.jsonl` (no recipe change, no authoring round
+required); expected lift to ~70 % overall, 4/7 PASS cats. Full failure
+analysis + ranked F1–F7 hypothesis matrix at
+`docs/bench/2026-05-01_functiongemma-v2-finetune-eval.md`.
+
 Authoring artifacts retained:
 - `scripts/build_block_e_supplement.py` — deterministic generator (re-runnable;
   diff-able if a follow-up batch needs the same gates).
@@ -1636,6 +1659,52 @@ Authoring artifacts retained:
   the post-validation candidate that ingest consumed.
 - `supplement_dataset.jsonl` — preserved at the repo root as the audit
   artifact for the broken-input → repaired-output diff.
+
+#### Block F1 status — refusal-class loss reweighting (2026-05-01) — PARTIAL SUCCESS
+
+F1 landed (proper per-row `compute_loss` weighting + duplication pilot).
+**The cp-111 → cp-333 medical_advice_refusal collapse is arrested**:
+weight=2.0 holds ma ≥ 87.5 ✓ at cp-333 (vs v3's collapse to 62.5);
+`dup2 cp-272` hits ma=100 ✓. **First off_topic_refusal ≥ 80 % PASS in any
+v3+ run** — `weight2 cp-111` and `weight3 cp-222` both hit ot=83.3 ✓.
+
+| run | best cp | clean overall | clean PASS cats |
+|---|---|---|---|
+| v3 baseline | cp-333 | 64.4 % | 3/7 (fl, te, tt) |
+| weight2 (PRIMARY) | cp-333 | 57.8 % | **4/7** (fl, ma, te, tt) — most PASS cats |
+| weight15 | cp-333 | 66.7 % | 3/7 (fl, te, tt) |
+| weight3 | cp-222 | 68.9 % | 3/7 (ot, te, tt) |
+| **dup2 (PILOT)** | cp-272 | **68.9 %** | 3/7 (fl, ma, tt) — winner overall |
+
+**§11.4 still missed.** New failure mode: F1 over-correction
+**catastrophically destroys `fact_absence`** (50 % → 0 % at weight2 cp-333) —
+the refusal pressure generalizes too aggressively into "refuse any health-data
+query." This validates F5 (+50 fact_absence lab/vitals rows) as the next
+single experiment, retrained with `--refusal-loss-weight 2.0` to preserve
+the F1 ma fix.
+
+Two implementation bugs surfaced and were fixed in-flight (recorded in
+`docs/bench/2026-05-01_functiongemma-block-f1-refusal-reweight.md` for
+posterity):
+1. **OOM** — flat `F.cross_entropy([B*T, V])` with V=262 144 materializes
+   ~5 GiB; vanilla path uses Gemma's fused CE kernel. Fix: per-row + chunked
+   CE bounded to ~268 MiB.
+2. **Silent vanilla-equivalent runs** — TRL 0.22.2's
+   `_prepare_non_packed_dataloader` strips the `category` column during
+   tokenization, so the collator saw all-1.0 weights and the first weighted
+   grid (weight=1.5/2.0/3.0) produced bit-identical results. Fix: attach
+   `row_weight` as a NUMERIC column AFTER tokenization.
+
+Sentinel proves the fix landed at training startup:
+> `Block F1: row_weight column added — 202/881 rows weighted at 2.0`
+
+Buggy first-grid artifacts preserved on the server as
+`outputs_fg_v4_f1_*_bug/` and `eval_v4/*_bug_*.md` for the audit trail.
+
+Tests: `tests/test_finetune_functiongemma_weighting.py` — 14 cases including
+the equivalence-with-weight-1.0 guarantee and the
+`test_weighted_collator_prefers_row_weight_over_category` test that pins the
+collator behavior. 551 host tests green.
 
 #### Dropped hypotheses (saved investigators a week of dead ends)
 
@@ -1977,7 +2046,7 @@ Host owns M1–M4.5 + M7; server owns M5/M6.
 | **M4** | host | Seed dataset (cookbook recipe) | ~50 hand seeds in `data/functiongemma/seed_conversations.jsonl` (HF chat-template format); Pydantic validator passes ≥ 95 % on hand seeds. | ✅ DONE 2026-04-30 — 50 hand-authored conversations across the §9.3 split (12 fact_lookup / 4 off_topic_refusal / 4 fact_absence / 6 parallel_call / 14 two_turn / 4 medical_advice_refusal / 6 tool_error_recovery); validator pass rate **1.0** (50/50, exceeds the ≥ 95 % bar). New: `src/gemma_tools/functiongemma_dataset.py` (Pydantic + `<think>` shape gate), `scripts/build_functiongemma_seeds.py` (deterministic generator from hand-authored Python literals), `scripts/pre-commit-functiongemma.py` (Phase B PHI guard — manual run), `tests/test_functiongemma_dataset.py` (31 tests), `tests/test_pre_commit_phi_scanner.py` (9 tests), `docs/plans/FunctionGemma/seed-authoring-recipe.md` (worked examples + recipe). Full pytest 474/474 green. Deviation from §9.3 documented at §9.7. |
 | **M4.5** | host | LLM-augmented expansion | User-driven expansion (Pro Perplexity / Claude / ChatGPT) → `data/functiongemma/llm_expanded_v1.jsonl` with ≥ 300 rows; validator passes ≥ 80 %. **G_DATASET_SHAPE green.** | ✅ DONE 2026-04-30 — 545 rows in `data/functiongemma/llm_expanded_v1.jsonl` (≈ 1.8× the §14 floor), validator pass rate **1.0000** (545/545; cumulative through ingest 0.9820 incl. 10 batch-001 quarantines). All seven §9.3 categories cleared the floor: `fact_lookup` 143 / `two_turn` 121 / `parallel_call` 101 / `tool_error_recovery` 91 / `fact_absence` 31 / `medical_advice_refusal` 31 / `off_topic_refusal` 27. 0 duplicate ids; PHI clean across `data/functiongemma/`; full pytest 488/488 green. Three batches via `scripts/functiongemma_ingest.py` — 001 (LLM-augmented, 379/389 passed), 002 (supplement, 120/120), 003 (gap-closing balance, 46/46). Lineage preserved under `data/functiongemma/_raw/` (raw teacher outputs) and `data/functiongemma/_incoming/` (staged-repaired). See §9.8 for full progress / learning notes. |
 | **M5** | server (RTX 5080) | **Server LoRA SFT** | Pin file captured pre-install (§10.1); `scripts/finetune_functiongemma.py` runs end-to-end on `nouslogic-server`; eval-loss strictly monotone over ≥ 3 epochs; trainable params ≤ 5 %; wall ≤ 60 min; no OOM; merged adapter saved at `~/functiongemma-finetune/merged_fg_v1/`. **G_TRAIN green.** | ✅ DONE 2026-05-01 — `train_runtime=87.7s` (vs ≤ 60 min budget), `train_loss=0.316`, `eval_loss=0.417` after 3 epochs (light overfit gap ~0.1, not pathological), trainable=10.18 % (LoRA r=128 — *exceeds* the original ≤ 5 % cap; revisit gate language for M6+ since LoRA r is part of the §10.2 spec, not a constraint), peak VRAM ~7.6 GiB / 15.5 GiB. Adapter dir at `~/functiongemma-finetune/outputs_fg_v1/` (116 MB safetensors, 3 epoch checkpoints). Six deviations from the §10.2 notebook recipe were required to land grad_norm > 0 on the torch 2.10.0+cu128 stack — full table + diagnostic ladder in §10.7. Merge → GGUF chain (§10.4) deferred to next session pending smoke check. |
-| **M6** | server + host | Behavioral eval | 60-prompt held-out eval; FT'd model ≥ 80 % tool-call equivalence vs gold trace; baseline FG < 30 %; bench file at `docs/bench/<date>_functiongemma-eval.md`. **G_EVAL green.** | 🟡 PARTIAL 2026-05-01 — first run produced bench file at `docs/bench/2026-05-01_functiongemma-eval.md`; **25/56 (44.6 %) overall, every category below the 80 % bar**. Failure modes: (a) refusal generalization weak — 4 hand seeds + ~25 LLM rows per refusal class is below threshold (b) fact_absence at 25 % — model picks wrong tool on vitals-adjacent queries (c) strict-equivalence metric over-penalizes case differences on string args (Lisinopril vs lisinopril → PARTIAL not MATCH) (d) some predictions empty due to 256-token generation cap. Recommended path forward documented in the bench file: re-eval with max_new_tokens=512 + case-normalize the metric (cheap, mostly diagnostic) → §13 R6(a) dataset expansion targeted at refusal categories (+80 ot + +80 ma rows) → re-train → re-eval. Estimated effort: ~2 hr authoring + ~1 hr re-train. |
+| **M6** | server + host | Behavioral eval | 60-prompt held-out eval; FT'd model ≥ 80 % tool-call equivalence vs gold trace per category; baseline FG < 30 %; bench file at `docs/bench/<date>_functiongemma-eval.md`. **G_EVAL green.** | 🟡 PARTIAL 2026-05-01 — three runs landed; latest **v3 (post-Block-E, 881-row train) cp-333 = 29/45 (64.4 %) on clean holdout, 39/56 (69.6 %) on contaminated holdout** with 3/7 categories passing 80 % (`fact_lookup`, `tool_error_recovery`, `two_turn`). Bench file: `docs/bench/2026-05-01_functiongemma-v2-finetune-eval.md`. Run history: (1) M6 first run = M5 cp-128 strict-equivalence 25/56 (44.6 %); (2) M5 deep-dive correction (cp-192 + casefold metric C5) = 35/56 (62.5 %) contaminated / 26/45 (57.8 %) clean — landed at `docs/bench/2026-05-01_functiongemma-eval-deepdive.md` and is the deep-dive baseline; (3) **v3 = +6.6 pp on clean / +7.1 pp on contam over M5 cp-192**. New headline failure mode is **mid-training catastrophic-forgetting on `medical_advice_refusal`**: cp-111 ma=100 % → cp-333 ma=62.5 %, driven by 23 % refusal / 77 % tool-call gradient ratio in the 881-row train set. Block E hypothesis on `off_topic_refusal` partially confirmed (M5 16.7 % → v3 cp-111 50 % — refusal-row supplement DOES unlock generalization that 19 train rows could not, but cp-333 regresses to 33.3 %). **Row-level dump on cp-333 clean failures validates F1**: 7/16 failures are refusal-violations where the model emits a tool call instead of `[]` (full dump at `docs/bench/eval_v3/cp333_clean_failures.md`); 4/16 are fact_absence tool-disambiguation; 2/16 are residual schema-description leak; 2/16 are colloquial-vs-canonical med-name gaps. Block F (next step) = **F1 refusal-class loss reweighting via custom `compute_loss` (preferred) or row duplication (pilot)** + **F5 +50 fact_absence rows**; expected lift to ~70–73 % overall / 4–5 PASS cats; F3 (schema-leak re-author) held in reserve. Estimated effort: F1+F5 ≈ 30 min (no training time penalty; data-side changes). |
 | **M7** | host | GGUF round-trip on FT'd model | `merged_fg_v1.q4_0.gguf` round-trips a tool call with `llama-cli --jinja` on host; behavior matches HF BF16 within tolerance. **G_GGUF green.** Reuses M1.5 conversion pattern on the FT'd merged model. | OPEN — final milestone of this plan |
 
 Phase E (on-device deploy to SL2619) is intentionally not a milestone of this plan — it gets its own plan after M7 lands.

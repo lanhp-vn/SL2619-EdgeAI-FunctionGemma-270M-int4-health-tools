@@ -40,6 +40,14 @@ import sys
 from pathlib import Path
 from typing import Any
 
+# Default refusal-class members for --refusal-loss-weight (Block F1, 2026-05-01).
+# Kept module-level so dry-run echo and train path read identical values; the CLI
+# flag accepts a comma-separated override but defaults to this set.
+DEFAULT_REFUSAL_CATEGORIES: tuple[str, ...] = (
+    "off_topic_refusal",
+    "medical_advice_refusal",
+)
+
 # Unsloth strips logits from forward outputs for memory (since 2024.11). TRL
 # 0.22.2's `entropy_from_logits` reads them and crashes with NotImplementedError
 # unless this env var is set BEFORE any `unsloth` import. Setting it at module
@@ -138,6 +146,26 @@ def _parse() -> argparse.Namespace:
         default=DEFAULT_MAX_SEQ_LENGTH,
         help="Alias for max_seq_length (passed to FastLanguageModel.from_pretrained)",
     )
+    # Block F1 (2026-05-01): refusal-class loss reweighting. Default 1.0 is a
+    # no-op (compute_loss is bit-identical to vanilla SFTTrainer per the
+    # equivalence test in tests/test_finetune_functiongemma_weighting.py).
+    # Values > 1.0 amplify the per-row loss for refusal categories so the
+    # gradient ratio leans back toward refusal behaviour, mitigating the
+    # cp-111 → cp-333 medical_advice_refusal collapse documented in
+    # docs/bench/2026-05-01_functiongemma-v2-finetune-eval.md §"Failure analysis".
+    p.add_argument(
+        "--refusal-loss-weight",
+        type=float,
+        default=1.0,
+        help="Per-row loss multiplier for refusal categories (default 1.0 = no-op). "
+             "Block F1: 2.0 is the primary candidate; 1.5/3.0 map the curve.",
+    )
+    p.add_argument(
+        "--refusal-categories",
+        default=",".join(DEFAULT_REFUSAL_CATEGORIES),
+        help=f"Comma-separated category names treated as refusals for "
+             f"--refusal-loss-weight. Default: {','.join(DEFAULT_REFUSAL_CATEGORIES)}.",
+    )
     return p.parse_args()
 
 
@@ -205,10 +233,18 @@ def _load_tokenizer_for_dry_run() -> tuple[Any | None, str | None]:
 
 
 def _build_text_rows(path: Path, tokenizer: Any) -> list[dict[str, str]]:
+    """Render each row to its training text and carry the `category` along.
+
+    `category` is consumed by the Block-F1 weighted collator
+    (`_WeightedCollator`) to inject `row_weight` into each batch. We keep it as
+    an empty string when the JSONL row omits it so the collator falls back to
+    weight=1.0 cleanly. Set `remove_unused_columns=False` on `SFTConfig` so the
+    column survives `_prepare_dataset` and reaches the data collator.
+    """
     rows: list[dict[str, str]] = []
     for raw in load_jsonl(path):
         text = render_training_text(raw, tokenizer)
-        rows.append({"text": text})
+        rows.append({"text": text, "category": str(raw.get("category") or "")})
     return rows
 
 
@@ -292,6 +328,219 @@ def _dry_run(args: argparse.Namespace) -> None:
 
 
 # --------------------------------------------------------------------------
+# Block F1 — refusal-class loss reweighting (2026-05-01).
+#
+# Why: cp-111 → cp-333 of v3 collapses `medical_advice_refusal` 100% → 62.5%
+# despite the dataset itself being able to teach the contract (cp-111 proves
+# it). Diagnosis: 679 tool-call rows vs 202 refusal rows → per-step gradient
+# is ~3.4x stronger toward tool-call generation; later epochs erase the
+# refusal abstraction. F1 upweights refusal-row token losses so the gradient
+# ratio leans back toward the under-represented class without touching the
+# validated dataset semantics.
+#
+# Aggregation choice (pinned, per advisor 2026-05-01):
+#   loss = sum(per_token_CE * label_mask * row_weight_broadcast) / denom
+# where `denom` is the unweighted unmasked-token count. With every row weight
+# = 1.0 and `num_items_in_batch=None`, this is bit-identical to vanilla SFT
+# loss (see equivalence test in test_finetune_functiongemma_weighting.py).
+# When `num_items_in_batch` is provided (TRL 0.22.2 grad-accum path), `denom`
+# is `num_items_in_batch` instead — matches HF Trainer's grad-accum scaling.
+# Picking "weighted SUM / unweighted COUNT" instead of "per-row mean then
+# weighted mean" is what makes weight=1.0 a true no-op.
+# --------------------------------------------------------------------------
+
+
+def weighted_masked_lm_loss(
+    logits: Any,
+    labels: Any,
+    *,
+    row_weight: Any | None = None,
+    num_items_in_batch: int | None = None,
+    chunk_tokens: int = 256,
+) -> Any:
+    """Causal-LM loss with optional per-row weighting and grad-accum scaling.
+
+    **Per-row chunked CE** — pinned 2026-05-01 after the flat-CE OOM observed
+    at step 6 of `outputs_fg_v4_f1_weight2`: Gemma 3 270M has V=262 144, so a
+    flat `F.cross_entropy` over `[B*T, V]` materializes ~5 GiB on top of the
+    11 GiB activation footprint and OOMs the 16 GiB RTX 5080 even though the
+    *vanilla* SFT path runs fine (Gemma's internal forward uses a fused/chunked
+    kernel when labels are passed). We unroll per row and only over the
+    response (label != -100) positions, in `chunk_tokens`-sized slices, so the
+    per-step CE intermediate is bounded by `chunk_tokens * V * 4 ≈ 256 MiB`.
+
+    Aggregation (advisor 2026-05-01):
+        loss = sum(per_token_CE * row_weight_broadcast) / denom
+
+    where `denom` is the unweighted unmasked-token count when
+    `num_items_in_batch` is None, else `num_items_in_batch`. With every
+    `row_weight == 1.0` this is mathematically equivalent to vanilla SFT loss;
+    fp32 associativity drift between flat-sum and per-row chunked-sum is
+    bounded by ~1e-5 on test-scale tensors, which is what
+    `test_weight_one_is_no_op` allows.
+
+    Args:
+        logits: `[B, T, V]` causal-LM head outputs (unshifted; this function
+            does the shift).
+        labels: `[B, T]` int64 labels with `-100` at masked positions
+            (post-`train_on_responses_only`).
+        row_weight: `[B]` per-row multiplier or `None` (treated as all-1.0).
+        num_items_in_batch: HF Trainer 4.45+ grad-accum scaler. When set, the
+            denominator is this value (matches the accumulator's expectation
+            that micro-batches contribute SUMs, not means).
+        chunk_tokens: max response tokens per CE call. Bound peak alloc; lower
+            if VRAM is tight, higher for less Python-loop overhead. 256 is the
+            production safe value on the 16 GiB RTX 5080 (V=262 144).
+    """
+    import torch
+    import torch.nn.functional as F  # noqa: N812
+
+    B = logits.size(0)
+    device = logits.device
+
+    if row_weight is None:
+        weights = torch.ones(B, dtype=torch.float32, device=device)
+    elif not isinstance(row_weight, torch.Tensor):
+        weights = torch.tensor(row_weight, dtype=torch.float32, device=device)
+    else:
+        weights = row_weight.to(dtype=torch.float32, device=device)
+
+    numerator = torch.zeros((), dtype=torch.float32, device=device)
+    total_unmasked = 0  # Python int — divisor only, no grad needed.
+
+    for i in range(B):
+        # Standard causal shift: position t's logit predicts label at t+1.
+        row_logits_all = logits[i, :-1]                       # [T-1, V] view
+        row_labels_all = labels[i, 1:]                        # [T-1]
+        valid_mask = row_labels_all != -100
+        valid_idx = valid_mask.nonzero(as_tuple=True)[0]      # [n_valid]
+        n_valid = int(valid_idx.numel())
+        if n_valid == 0:
+            continue
+
+        row_sum = torch.zeros((), dtype=torch.float32, device=device)
+        for s in range(0, n_valid, chunk_tokens):
+            e = min(s + chunk_tokens, n_valid)
+            idx = valid_idx[s:e]
+            chunk_logits = row_logits_all.index_select(0, idx)   # [chunk, V]
+            chunk_targets = row_labels_all.index_select(0, idx)  # [chunk]
+            ce_sum = F.cross_entropy(chunk_logits, chunk_targets, reduction="sum")
+            row_sum = row_sum + ce_sum.float()
+
+        numerator = numerator + row_sum * weights[i]
+        total_unmasked += n_valid
+
+    if num_items_in_batch is not None:
+        denom_f = float(num_items_in_batch) if num_items_in_batch != 0 else 1.0
+        return numerator / denom_f
+    return numerator / float(max(total_unmasked, 1))
+
+
+def _build_weighted_trainer_class() -> Any:
+    """Lazy-import torch + TRL so the host (no GPU) can still import this module.
+
+    Returns the `WeightedSFTTrainer` subclass closed over the imported symbols.
+    Doing it inside a factory keeps `import scripts.finetune_functiongemma`
+    cheap on the dry-run path; the train path is the only caller.
+    """
+    from trl import SFTTrainer  # type: ignore[import-not-found]
+
+    class WeightedSFTTrainer(SFTTrainer):  # type: ignore[misc]
+        """SFTTrainer with per-row loss weighting via `inputs['row_weight']`.
+
+        The `_WeightedCollator` wrapper attaches a `[B]` float tensor to each
+        batch; this method pops it, computes per-token CE without reduction,
+        masks instruction tokens via `labels == -100`, multiplies by the
+        per-row weight broadcast across the time axis, and reduces.
+
+        TRL 0.22.2's `compute_loss` signature includes `num_items_in_batch`;
+        we accept and respect it for grad-accum correctness. Dropping the
+        kwarg silently scales the loss by `1 / GAS` which is wrong by a factor
+        of `num_items_in_batch / unmasked_count` per micro-batch.
+        """
+
+        def compute_loss(
+            self,
+            model: Any,
+            inputs: dict[str, Any],
+            return_outputs: bool = False,
+            num_items_in_batch: int | None = None,
+        ) -> Any:
+            # Pop the metadata BEFORE model forward — `model(**inputs)` will
+            # raise TypeError on unknown kwargs.
+            row_weight = inputs.pop("row_weight", None)
+
+            labels = inputs.get("labels")
+            if labels is None:
+                return super().compute_loss(
+                    model, inputs, return_outputs=return_outputs,
+                    num_items_in_batch=num_items_in_batch,
+                )
+
+            # Skip the model's internal CE by stripping `labels`; we recompute
+            # CE ourselves from the logits to apply per-row weighting.
+            inputs_no_labels = {k: v for k, v in inputs.items() if k != "labels"}
+            outputs = model(**inputs_no_labels)
+            loss = weighted_masked_lm_loss(
+                outputs.logits, labels,
+                row_weight=row_weight,
+                num_items_in_batch=num_items_in_batch,
+            )
+            return (loss, outputs) if return_outputs else loss
+
+    return WeightedSFTTrainer
+
+
+def _build_weighted_collator(
+    base_collator: Any,
+    refusal_categories: frozenset[str],
+    refusal_weight: float,
+) -> Any:
+    """Wrap `base_collator` so the produced batch carries `row_weight: [B]`.
+
+    Sequencing is critical: this wrapper MUST be applied AFTER
+    `train_on_responses_only`, because that helper mutates `trainer.data_collator`
+    in place. Applying it before would let unsloth's wrapping drop our
+    `row_weight` field silently (the equivalence test would not catch this —
+    the refusal grad would just never flow).
+
+    Resolution order, per row:
+      1. `row_weight` field on the row (numeric, populated by `_train` via
+         `add_column` AFTER tokenization — this is the path that survives
+         TRL 0.22.2's `_prepare_non_packed_dataloader`, which calls
+         `dataset.map(remove_columns=dataset.column_names)` and silently
+         strips `category` before the collator ever sees the row. Pre-fix,
+         all three weighted runs (weight=1.5/2.0/3.0) produced bit-identical
+         results because every batch came in with category=None → weight=1.0).
+      2. `category` field (kept for the unit tests + as a defensive fallback
+         when used outside the SFTTrainer pipeline).
+    """
+    import torch
+
+    def _collate(features: list[dict[str, Any]]) -> dict[str, Any]:
+        weights: list[float] = []
+        clean: list[dict[str, Any]] = []
+        for f in features:
+            if "row_weight" in f and f["row_weight"] is not None:
+                w = float(f["row_weight"])
+            else:
+                cat = str(f.get("category") or "")
+                w = refusal_weight if cat in refusal_categories else 1.0
+            weights.append(w)
+            # Strip metadata that downstream collators (DataCollatorForLanguageModeling)
+            # don't expect. `text` is consumed by SFTTrainer's tokenize step
+            # before the collator runs, but if remove_unused_columns=False
+            # leaves it on the row dict it slips through and trips the collator.
+            clean.append({k: v for k, v in f.items()
+                          if k not in ("category", "text", "row_weight")})
+        batch = base_collator(clean)
+        batch["row_weight"] = torch.tensor(weights, dtype=torch.float32)
+        return batch
+
+    return _collate
+
+
+# --------------------------------------------------------------------------
 # Train path (server only — Unsloth + GPU).
 # --------------------------------------------------------------------------
 
@@ -311,6 +560,18 @@ def _train(args: argparse.Namespace) -> None:
     )
     from datasets import Dataset  # type: ignore[import-not-found]
     from trl import SFTConfig, SFTTrainer  # type: ignore[import-not-found]
+
+    refusal_categories = frozenset(
+        c.strip() for c in args.refusal_categories.split(",") if c.strip()
+    )
+    use_weighting = args.refusal_loss_weight != 1.0
+    print(json.dumps({
+        "block_F1": {
+            "refusal_loss_weight": args.refusal_loss_weight,
+            "refusal_categories": sorted(refusal_categories),
+            "active": use_weighting,
+        }
+    }, indent=2))
 
     # Switched §10.2's `load_in_16bit=True` → `load_in_4bit=True` because the
     # 16-bit LoRA path produced `Trainable parameters = 0` + `grad_norm = 0`
@@ -388,13 +649,24 @@ def _train(args: argparse.Namespace) -> None:
         per_device_eval_batch_size=1,         # §10.3 safety on the 16 GiB ceiling
         eval_strategy="epoch",
         save_strategy="epoch",
+        # Block F1: keep `category` column on the dataset so the weighted
+        # collator can read it. Without this the SFTTrainer column-pruner
+        # drops every non-tokenized field after `_prepare_dataset` runs.
+        remove_unused_columns=False,
+    )
+
+    # Block F1: subclass selection. Default 1.0 → identical to vanilla
+    # `SFTTrainer` per the equivalence test; non-1.0 → the weighted compute_loss
+    # branch fires.
+    trainer_cls: Any = (
+        _build_weighted_trainer_class() if use_weighting else SFTTrainer
     )
 
     # TRL 0.22.2 renamed `tokenizer=` to `processing_class=` (matches the
     # `scripts/finetune.py` Gemma 3 path on the same trl version). The §10.2
     # Unsloth notebook still shows `tokenizer=`, but on our pinned TRL it's
     # a TypeError.
-    trainer = SFTTrainer(
+    trainer = trainer_cls(
         model=model,
         processing_class=tokenizer,
         train_dataset=train_dataset,
@@ -409,6 +681,44 @@ def _train(args: argparse.Namespace) -> None:
         instruction_part="<start_of_turn>user\n",
         response_part="<start_of_turn>model\n",
     )
+
+    # Block F1: attach `row_weight` as a NUMERIC COLUMN after tokenization,
+    # because TRL 0.22.2's `_prepare_non_packed_dataloader` calls
+    # `dataset.map(remove_columns=dataset.column_names)` and silently drops the
+    # `category` field. Pre-fix (2026-05-01 first F1 grid), all three weighted
+    # runs (weight=1.5/2.0/3.0) produced bit-identical evals because every batch
+    # arrived with category=None → the collator defaulted to weight=1.0. The
+    # `row_weight` column is keyed by row index, in lock-step with `train_rows`.
+    if use_weighting:
+        # Compute weights from the source `train_rows` (still has `category`).
+        # `len(trainer.train_dataset)` should equal `len(train_rows)` on the
+        # FunctionGemma corpus — every row passes the `Filter` step in the
+        # training log. Assert it; if a future supplement causes drops we want
+        # to fail loud rather than apply weights to the wrong rows.
+        weight_per_row = [
+            args.refusal_loss_weight if r["category"] in refusal_categories else 1.0
+            for r in train_rows
+        ]
+        assert len(trainer.train_dataset) == len(weight_per_row), (
+            f"trainer.train_dataset has {len(trainer.train_dataset)} rows "
+            f"but train_rows has {len(weight_per_row)} — Filter dropped rows "
+            f"and the row_weight alignment would be off-by-N"
+        )
+        trainer.train_dataset = trainer.train_dataset.add_column(
+            "row_weight", weight_per_row,
+        )
+        n_weighted = sum(1 for w in weight_per_row if w != 1.0)
+        print(f"Block F1: row_weight column added — {n_weighted}/{len(weight_per_row)} "
+              f"rows weighted at {args.refusal_loss_weight} "
+              f"(refusal cats: {sorted(refusal_categories)})")
+
+        trainer.data_collator = _build_weighted_collator(
+            trainer.data_collator,
+            refusal_categories=refusal_categories,
+            refusal_weight=args.refusal_loss_weight,
+        )
+        print("Block F1 active: data_collator wrapped → reads row_weight column "
+              "from the tokenized dataset")
 
     trainer.train()
     trainer.save_model(args.output_dir)
@@ -442,6 +752,8 @@ def main() -> None:
         "logging_dir": args.logging_dir,
         "ctx_size": args.ctx_size,
         "dry_run": args.dry_run,
+        "refusal_loss_weight": args.refusal_loss_weight,
+        "refusal_categories": args.refusal_categories,
     }, indent=2))
 
     if args.dry_run:
