@@ -13,11 +13,10 @@ sentence per question.
 ## Status
 
 | Track | State |
-|---|---|
+| --- | --- |
 | FunctionGemma iteration 001 (Distil Labs) | **DONE** — 0.9583 on every metric on the 24-row contaminated holdout (`releases/functiongemma-270m/001-baseline/distil/`) |
 | INT4/INT8 board quantization sweep | **DONE 2026-05-02** — Q4_0 selected; full report in [`docs/bench-notes/functiongemma/2026-05-02_quantization-sweep.md`](docs/bench-notes/functiongemma/2026-05-02_quantization-sweep.md) |
 | On-board interactive REPL (`chat_board.py`) | **DONE** — prompt-cache primed; ~6 s/turn after the one-time prime |
-| Gemma 3 270M-IT health-QA SFT (legacy reference) | DONE / archived under `archive/gemma3-270m-health-qa/` |
 
 ## Quick start
 
@@ -36,13 +35,18 @@ cd ../../../..
 # Generate Q4_0 from the canonical FP16 (gitignored)
 scripts/functiongemma/quantize/build_variants.sh         # default: Q4_0 only
 
-# Host demo (runs in ~2 s after model load)
+# 1. Host demo (Runs locally in WSL)
+# Tests the full stack natively. Expected runtime: ~2 s after model load.
+# Note: Expects the baseline weights at releases/functiongemma-270m/001-baseline/
 uv run python scripts/functiongemma/chat.py --probe "What is my blood pressure?"
 
-# Board demo (assumes the board is up + reachable as `nouslogic-sl2619`,
-# llama-completion is at /mnt/sdcard/llama-cpp/, and Q4_0 + prompt files
-# are deployed — see "Deploy" below)
+# 2. Board demo (Runs on the SL2619 edge device)
+# Tests the fully quantized on-device solution.
+# Assumes the board is up + reachable as `nouslogic-sl2619`, llama-completion is at
+# /mnt/sdcard/llama-cpp/, and Q4_0 + prompt files are deployed (see "Deploy workflow" below).
 ssh nouslogic-sl2619 'python3 /mnt/sdcard/models/functiongemma-270m/chat_board.py'
+# UX Note: The first question takes roughly 32 seconds to process while the board
+# primes the prompt cache. Every subsequent turn will take about ~6 seconds.
 ```
 
 The host demo expects `releases/functiongemma-270m/001-baseline/`; the
@@ -190,6 +194,26 @@ schema-mirrored to
 The patient record they read from is the synthetic
 [`data/health_table_v1.yaml`](data/health_table_v1.yaml) (no real PHI).
 
+**Patient Record Snapshot (`health_table_v1.yaml`):**
+
+```yaml
+patient:
+  name: "Test Patient"
+  age: 45
+  sex: "F"
+  blood_type: "O+"
+vitals:
+  heart_rate_bpm: 72
+  blood_pressure_systolic: 118
+  # ... other vitals ...
+medications:
+  - name: "Lisinopril"
+    dose: "10 mg"
+    schedule: "08:00"
+    purpose: "blood pressure control"
+    avoid_drugs: ["Potassium supplements", "NSAIDs"]
+```
+
 ```mermaid
 flowchart TB
     Y[health_table_v1.yaml]
@@ -205,7 +229,7 @@ flowchart TB
 ```
 
 | Tool | Purpose | Required args |
-|---|---|---|
+| --- | --- | --- |
 | `get_vitals` | Most-recent vitals snapshot | — |
 | `get_medications_at_time` | Meds at HH:MM, or all meds if omitted | optional `time_24h` |
 | `get_medication_by_name` | Single medication record (case-insensitive prefix match) | `name` |
@@ -228,7 +252,7 @@ Holdout = 45-row all-novel-phrasing `eval_holdout_v2_clean.jsonl` (host eval
 via `llama-cpp-python`).
 
 | Variant | Size MiB | Holdout match | Board sanity | Decode tok/s (single-resident) | Verdict |
-|---|---|---|---|---|---|
+| --- | --- | --- | --- | --- | --- |
 | FP16 baseline | 518 | 11/45 (24.4 %) | (skipped) | ~5–7 (per docs) | reference |
 | **Q4_0 ★** | **224** | **13/45 (28.9 %)** | **7/7** | **10.27** | **DEPLOY** |
 | Q4_K_M | 242 | 10/45 (22.2 %) | 1/7 | 7.0 | DISQUALIFIED — drops `<start_function_call>` open token on board |
@@ -361,7 +385,7 @@ under `src/gemma_tools/functiongemma/`, `scripts/functiongemma/`,
 ## URL references
 
 | Resource | URL |
-|---|---|
+| --- | --- |
 | FunctionGemma 270M-IT model card | <https://huggingface.co/google/functiongemma-270m-it> |
 | Gemma 3 270M-IT (parent backbone) | <https://huggingface.co/google/gemma-3-270m-it> |
 | FunctionGemma cookbook (vendor) | <https://github.com/google-deepmind/gemma/tree/main/cookbook/docs/functiongemma> |

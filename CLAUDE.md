@@ -35,7 +35,7 @@ flowchart TB
 ## Key paths
 
 | Path | Role |
-|---|---|
+| --- | --- |
 | `src/gemma_tools/__init__.py` | Package shim — version only |
 | `src/gemma_tools/health_table.py` | Patient-record schema + Pydantic loader (dual-use: legacy bench AND FunctionGemma tools) |
 | `src/gemma_tools/functiongemma/` | Active sub-package — `dataset.py`, `tools.py` |
