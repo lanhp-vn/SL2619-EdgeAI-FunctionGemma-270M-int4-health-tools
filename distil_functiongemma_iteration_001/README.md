@@ -118,7 +118,25 @@ just accepted FG-270M for `multi-turn-tool-calling-closed-book` end to
 end. The catalog is stale — file an upstream correction; rely on the
 platform for compatibility checks going forward.
 
-## Next runnable command — TRAINING is the next step (gated on user "go")
+## Status — TRAINING DONE, DEPLOY (2026-05-02)
+
+Training `c9d34596-ee7a-4e56-be2b-254159fe7796` finished `JOB_SUCCESS`
+(~3h 41m finetune). Tuned student matches teacher on the primary
+LLM-as-a-Judge metric (0.958 = 0.958). Verdict: **DEPLOY**.
+
+- Per-row analysis: `training-analysis.md`
+- Aggregate row in bench note: `docs/bench/2026-05-01_functiongemma-distil-labs-data-plan.md` §16
+- Student predictions: `student-predictions.jsonl` (24 rows, downloaded post-training)
+- Trained artifacts (extracted from `c9d34596-...-model.tar`): top-of-repo
+  `model/` (HF safetensors), `model-adapter/` (LoRA r=64), `model.gguf`,
+  `model_client.py` (SYSTEM_PROMPT inlined v3), `Modelfile`
+
+Optional iteration 002 lever (not required for DEPLOY): add 6–10 train
+seeds covering AM-clock paraphrases at the morning slot — only known
+content miss is row 11 ("What pills do I take at 8 AM?"). Expected lift:
+judge 0.958 → 1.000.
+
+## (Historical) Pre-training plan — TRAINING was the next step (gated on user "go")
 
 All pre-training validation steps are complete. Teacher v2 cleared the
 0.80 high-confidence bar; per-tool failure modes are understood and

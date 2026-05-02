@@ -570,3 +570,39 @@ single test row at unknown quota cost — not worth it.
 is teacher-side and lever-resistant; further iteration has diminishing
 returns. Carry-forward levers documented in §9.6 / §10.6 are ready to
 pull post-training if needed.
+
+## §16 Training result — 2026-05-02
+
+Training `c9d34596-ee7a-4e56-be2b-254159fe7796` finished `JOB_SUCCESS`
+(start 2026-05-02T00:25:26Z, end 04:53:39Z; finetune wall-clock 13,260s
+≈ 3h 41m). LoRA r=64 α=64 on `q_proj,v_proj`, 4 epochs, 5,054 train
+seeds expanded to 7,481 samples. Best checkpoint at epoch 3.
+
+| Metric | Base Student | Teacher v3 | Tuned Student | Δ vs Teacher |
+|---|---:|---:|---:|---:|
+| LLM-as-a-Judge (primary) | n/a¹ | 0.958 | **0.958** | +0.000 |
+| tool_call_equivalence | 0.208 | 0.958 | 0.875 | −0.083 |
+| binary_tool_call | 0.208 | 0.958 | 0.875 | −0.083 |
+| staged_tool_call | 0.240 | 0.958 | 0.938 | −0.020 |
+| ROUGE | 0.786 | 0.958 | 0.958 | +0.000 |
+
+¹ Trainer per-epoch eval does not log judge for the base; lift inferred
+from TCE (+0.667) and the row-level matrix.
+
+Per-row pairing (24 test rows, judge):
+22 both correct; 1 student-fix-of-teacher (row 15
+"Do I have any allergies?" — closes long-standing OQ-D10 at the **student** layer);
+1 teacher-fix-of-student (row 11 "What pills do I take at 8 AM?"); 0 both-wrong.
+
+**Verdict: DEPLOY.** Judge equivalence with teacher is exact, well inside
+the ≤0.05 DEPLOY band. TCE shortfall is fully attributable to two
+medication names being lower-cased by the student (rows 13/20) — judge
+correctly accepts these. One real content miss (row 11) on the
+AM-clock-time branch of `get_medications_at_time`.
+
+If iteration 002 is desired, the cheapest single-lever change is to add
+6–10 train seeds covering AM-clock paraphrases at the morning slot
+(expected +4.17pt to lock 24/24 on judge). All other levers documented in
+§§13/14/15 should remain in reserve.
+
+Full report: `distil_functiongemma_iteration_001/training-analysis.md`.
