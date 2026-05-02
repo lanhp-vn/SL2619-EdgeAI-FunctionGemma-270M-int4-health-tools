@@ -1,17 +1,38 @@
 # Plans
 
-> **Status: frozen historical narratives.** These plans were authored inside the [SynapticSL2619](https://github.com/nouslogic/SynapticSL2619) project and carried forward when this fine-tune workspace was extracted into a standalone repo. Internal paths inside the documents reference SynapticSL2619's `tools/` layout (e.g. `tools/data/`, `tools/src/sl2619_tools/`), not this repo's `src/gemma_tools/` and `data/` layout.
+Active forward-looking plans for the FunctionGemma track. The repository's
+focus is FunctionGemma 270M-IT (function-calling on the SL2619 board); the
+gemma3-270m health-QA work is preserved under
+`archive/gemma3-270m-health-qa/`.
 
-Read these as ground-truth records of what was planned and what was decided. Do not retroactively rewrite the SynapticSL2619 paths; the documents are useful only if they reflect the plan-of-record at the time it was executed. New plans go in new files alongside these.
+## Active plan files
 
-## Files
+Inside `functiongemma/`:
 
-| File | What it is | Phase |
-|---|---|---|
-| [`a55-gemma-fine-tune.md`](a55-gemma-fine-tune.md) | LoRA SFT recipe, hyperparameters, Q0–F5 phase plan, post-mortems on tokenizer / quantization issues | Phase 3 (executed) |
-| [`a55-gemma-h5-logits-equivalence.md`](a55-gemma-h5-logits-equivalence.md) | KL-divergence cross-arch equivalence gate (H5R: `Δ_same_top_p ≤ 1.0 pp`, `max_delta_p ratio ≤ 3.0×`) | Phase 0 (executed, GREEN) |
-| [`models-testing-plan.md`](models-testing-plan.md) | Bench protocol, prompt classes, gate definitions, P1–P5 path adjudications | Phase 1.5 (closed) |
+| File | Purpose |
+|---|---|
+| `recipe.md` | Working recipe — model identity, wire format, current train/eval paths |
+| `decisions-log.md` | Major decisions table with rationale and current status |
+| `quantization-plan.md` | INT4/INT8 SL2619 testing plan (current focus, NOT YET EXECUTED) |
+| `seed-authoring-recipe.md` | How to author a hand-seed conversation batch |
+| `llm-augmentation-prompt.md` | Verbatim prompt for LLM augmentation of seeds |
+| `upstream-issue-drafts.md` | Drafts for `--no-conversation`/`-no-cnv` and tools= upstream bugs |
+
+## Archived plans
+
+The Phase A–E historical narrative for FunctionGemma (2321 lines, 2026-04-29
+through 2026-05-01) is preserved verbatim at
+`archive/functiongemma-pre-distil/plans/phase-d-readme-original.md` for
+context and audit.
+
+The gemma3-270m health-QA plan documents are at
+`archive/gemma3-270m-health-qa/plans/gemma3-270M/`:
+- `a55-gemma-fine-tune.md` — LoRA SFT recipe, Q0–F5 phase plan
+- `a55-gemma-h5-logits-equivalence.md` — KL-divergence cross-arch gate
+- `models-testing-plan.md` — bench protocol, prompt classes
 
 ## Authoring conventions
 
-DRY-exempt per `docs/conventions/doc-update.md §8.2`. New plans should use the same style: numbered phases, status banner at top, dated update entries at bottom. Keep one plan per topic; do not split.
+DRY-exempt per `docs/conventions/doc-update.md §8.2`. Keep active plans concise
+and use mermaid for workflows where prose would be wordy. When a plan is
+superseded, move it to `archive/` and update this index.
