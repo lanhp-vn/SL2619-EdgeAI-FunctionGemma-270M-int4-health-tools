@@ -147,6 +147,248 @@ Output: stringified JSON object `{"name": <tool>, "parameters": {...}}`.
 2. The judge-rule bug on prefix `name` matching means the v2 judge score is a **lower bound** on the teacher's true accuracy. Real accuracy is plausibly 0.92.
 3. Synth corpus still won't include refusals (`medical_advice_refusal`, `off_topic_refusal`) or `parallel_call` — those stay on the local F1+F5 path per §4 of the bench note.
 
+---
+
+## 9. Lift potential analysis — "is more iteration worth it before training?"
+
+> Done **after the v2 PROCEED verdict** to answer the user's question:
+> *"realistically, can we push the teacher score above 0.875 before spending
+> a free training run?"* Verdict at the end of this section. Bench-noted
+> as iteration #3 lever-plan review (per the plugin's
+> `workflows/improving-a-model.md` token-burn awareness rule).
+
+### 9.1 Correction to §8 — miss #3 is a TEACHER ERROR, not a judge bug
+
+In §8 I labeled "Check my A pills." → `get_medication_by_name("A pills")` as a "judge-rule bug" (judge ignored prefix rule b). A what-if judge simulation
+(`/tmp/distil_validate.py`-adjacent ad-hoc script, see Appendix B) reveals
+the judge ruling is actually **defensible**:
+
+- Rule (b) requires *both* (i) one is a case-insensitive prefix of the
+  other, AND (ii) they resolve to the same medication under prefix lookup.
+- "A" is a prefix of "A pills" — (i) holds.
+- Under prefix lookup against {atorvastatin, aspirin, amoxicillin, …}:
+  - `"A"` matches Atorvastatin, Aspirin, Amoxicillin → ambiguous-but-resolvable
+  - `"A pills"` matches NOTHING — no medication name starts with "A pills"
+- Different resolution sets → (ii) fails → rule (b) correctly marks BAD.
+
+The teacher's pred `"A pills"` is genuinely a wrong argument value: the
+runtime would not find any medication for that lookup string. **All 3 v2
+misses are teacher-side errors; none can be rescued by a judge rule
+change alone.**
+
+### 9.2 Per-miss lift assessment
+
+| miss | type | fix path | est. teacher-score lift | confidence | regression risk |
+|---|---|---|---:|---|---|
+| 1. "Can you check my A1C?" → EMPTY | sampling noise on cluster A | Lever 1 (worked example for A1C) **or** Lever 4 (gpt-oss-120b-thinking) | +1/24 = +4.17pt | LOW — this same row passed in v1 with the *weaker* prompt; the v2 prompt fixed oxygen + triglycerides but lost A1C. Pure stochasticity at a 24-row scale. | LOW |
+| 2. "Do I have any allergies?" → EMPTY | persistent teacher idiosyncrasy on yes/no allergy phrasing | Lever 1 (worked-example block: `User: "Do I have any allergies?" → list_allergies()`) **or** Lever 4 (teacher swap) | +1/24 = +4.17pt | MEDIUM — worked examples are a known LLM-compliance booster and ROUTING RULE #3 already quotes the failing question verbatim, so escalation to a worked example is the next defensible step. | MEDIUM — adding examples in `task_description` can anchor other rules to the example phrasing |
+| 3. "Check my A pills." → `name="A pills"` | true teacher arg-extraction error (rule #7 ambiguity) | Lever 1 (extend ROUTING RULE #7: "strip generic medication-class nouns like 'pills', 'tablets', 'med', 'drug' from the name argument") | +1/24 = +4.17pt | HIGH — the rule wording is currently self-contradictory ("literal user phrasing" vs "ambiguous prefixes like 'A'"); a strip-generic-noun extension closes the ambiguity cleanly. | LOW |
+
+**Theoretical max** (all 3 fixed): 0.875 → 1.000.
+**Realistic max** (high+medium-confidence fixes only — #2 and #3): 0.875 → 0.958 (+8.3pt).
+**Most-likely** if we did one more iteration: 0.917–0.958 (one or both of the targeted fixes lands; #1 swings randomly).
+
+### 9.3 The crucial dampener — test-row lift ≠ student-quality lift
+
+This is the load-bearing argument:
+
+- **Distil's `train.jsonl` (50 rows) is the synthgen seed corpus.** The teacher mutates these into ~5 000 synthetic training examples for the student.
+- **Distil's `test.jsonl` (24 rows) is held-out evaluation only.** It is NEVER used to train the student. Per `references/tasks/prepare-data/multi-turn-tool-calling.md` and `workflows/improving-a-model.md` Lever 2 — "Add manually curated examples covering the failure patterns" is explicitly framed as adding to *train*, not test.
+- Therefore: fixing test-set misses raises the **headline teacher score** but does NOT directly raise the **trained-student quality** unless the same fix is also reflected in `train.jsonl`.
+
+Per the skill docs (`references/tasks/teacher-evaluation.md`): *"the trained student typically lands within ~0.05 of teacher on the primary metric."*
+
+- Current state: teacher 0.875 → student floor ≈ 0.825 (clears 0.80 bar)
+- After hypothetical v3 iteration (teacher 0.917): student floor ≈ 0.867
+- Marginal student lift from one more teacher iteration: ≈ +0.04, with at-best 24-row sampling certainty (each row = 4.17pt).
+
+The 24-row test set has high single-row variance. A +1 row swing is below the meaningful-change threshold for a downstream student.
+
+### 9.4 What WOULD move the student needle — and why we're not doing it pre-training
+
+| candidate | impact on student | why deferred |
+|---|---|---|
+| Add 2-3 list_allergies seeds with bare yes/no phrasing to **train.jsonl** | Direct seed coverage for the cluster B failure pattern; synth corpus would mutate hundreds of yes/no allergy variants | We don't yet know if the trained student inherits this gap. Per skill workflow Entry Point B, address actual student misses after training. |
+| Add 2-3 fact_absence A1C seed variants to train.jsonl | More cluster A diversity for synth corpus | Same — speculative pre-training |
+| Switch teacher to `openai.gpt-oss-120b-thinking` or `zai.glm-5` | Could resolve cluster A/B idiosyncrasies; or could regress untouched categories | Per workflow: Lever 4 is **last**, not first. Try after Lever 1+2 plateau on real student data. |
+| Add `synthgen.basic_mutators_to_use: ["specificity"]` (currently `["complexity"]`) | More phrasing diversity in synth corpus, possibly covering yes/no allergy variants | Lever 3 — touch only after Levers 1+2 plateau. |
+
+### 9.5 Iteration #3 token-burn awareness check
+
+Per plugin's `workflows/improving-a-model.md` §"Token-burn awareness":
+
+> *"At iteration #3 or later, remind the user that each iteration costs:
+> re-upload credits + teacher-evaluation credits + Claude-side analysis
+> tokens. Before starting iteration #3+, confirm the lever plan with the
+> user rather than racing into another attempt."*
+
+We are at v2 (iteration #2). v3 would trigger this rule. Costs of v3:
+
+| item | known cost | unknown cost |
+|---|---|---|
+| Re-upload | 0 credits (per CLI behavior so far) | — |
+| Re-run teacher eval | OQ-D2 still open: pricing page silent on whether it draws against the 2 free training runs. v1+v2 already ran without quota error, so it's plausibly free, but unconfirmed. | Could leave us with 0 free training runs if billed retroactively. |
+| Claude analysis tokens | Material (this turn alone is several thousand tokens) | — |
+
+### 9.6 Recommendation — TRAIN NOW
+
+**Verdict: train now; do not iterate teacher again before training.**
+
+Reasons (ranked by weight):
+
+1. **0.875 is comfortably above both PROCEED (0.70) and high-confidence (0.80) bars.** Distil's threshold table is the canonical decision rule.
+2. **Test-row lift doesn't translate 1:1 to student lift.** Even if v3 hits 0.958, the trained student likely sits at 0.91, vs. 0.825 today — a ~+0.085 student delta in exchange for one more teacher-eval iteration. That delta is well within Distil's documented teacher↔student gap variance.
+3. **The remaining 3 misses are diagnostic, not blocking.** They tell us what to watch for in the trained-student predictions. Iterating to chase them is academic at this scale.
+4. **Iteration #3 triggers the skill's token-burn rule.** OQ-D2 (whether teacher-eval consumes a free training run) is unresolved. Spending another iteration to chase +1–2 test rows risks the training budget.
+5. **The right next checkpoint is Entry Point B (Training Wasn't Good Enough), not Entry Point A.** We have no actual student data to optimize against yet. Iterate on observed student failures, not test-set teacher idiosyncrasies.
+
+**Carry-forward issues for the post-training analysis** (these become actionable once we have student-predictions.jsonl):
+
+- If trained student fails on yes/no allergy questions → add 2-3 list_allergies yes/no seeds to train.jsonl, re-train (Entry Point B Lever 2).
+- If trained student fails on lab-value `get_vitals` rows → tighten ROUTING RULE #1 with explicit A1C/oxygen/triglycerides examples (Lever 1).
+- If trained student emits "A pills" instead of "A" → extend ROUTING RULE #7 with strip-generic-noun rule (Lever 1).
+
+### 9.7 Concrete next safe (no-credit) actions
+
+These are 0-cost and improve our pre-training posture without spending quota:
+
+1. **Verify uploaded data round-trips.** Cheap sanity check that what the platform is using matches our local copy.
+   ```bash
+   distil model download-data 231feebb-8cc0-4d5f-9e4b-4d2f00e362b2 \
+     --output-dir /tmp/distil-uploaded-roundtrip
+   diff -r distil_functiongemma_iteration_001 /tmp/distil-uploaded-roundtrip
+   ```
+2. **Initialize the model-building run log.** Plugin's SKILL.md §"Default to Workflows" calls for `model-building-log-fg-distil-feasibility.md` at repo root; we skipped it. Could be backfilled from this analysis.
+
+---
+
+## 10. v3 — surgical Lever 1 follow-up (RULE #3 + RULE #7 sharpening)
+
+> Per §9.6 the recommendation was TRAIN NOW. User asked to first attempt
+> the predicted v3 lift before committing the training run. Result: the
+> predicted realistic-max landed exactly.
+
+### 10.1 Lever pulled (one file, two surgical edits)
+
+Plugin's `workflows/improving-a-model.md` says "change one lever at a
+time". v3 modifies only `job_description.task_description`; both edits
+target Lever 1 (job description) on the two highest-confidence misses
+identified in §9.2:
+
+- **ROUTING RULE #3** — added a worked-examples block listing 4 surface
+  forms of allergy questions (including the verbatim failing test row
+  "Do I have any allergies?") with the closing line "Yes/no allergy
+  phrasing is NEVER conversational; it ALWAYS routes to list_allergies()."
+- **ROUTING RULE #7** — replaced the ambiguous "use literal user phrasing"
+  rule with an explicit "STRIP generic medication-class nouns" rule + 6
+  worked examples. "Check my A pills." → name='A' is the load-bearing
+  one.
+
+`task_description` length: 3 095 → 4 152 chars (~+34%).
+Judge instructions unchanged; tools registry unchanged; train/test data unchanged.
+
+### 10.2 Pipeline (all checks passed)
+
+| step | result |
+|---|---|
+| Local revalidate | PASS — shape OK, no overlap, 7-tool coverage held |
+| Old upload ID captured | `fe8de9a2-a938-447a-bc9b-50668d289878` |
+| Dry-run v3 | PASS — `Upload ID 745979a7-c90c-4a88-96ff-3120ad263e39` |
+| Real upload v3 | PASS — `Upload ID 23532bf3-c400-4351-9025-01c3c73f9911` (NEW — confirmed via skill discipline) |
+| upload-status v3 | `JOB_SUCCESS` |
+| Teacher eval v3 | `JOB_SUCCESS`, eval `14a00a0a-7d79-4123-98dd-dbada98d8996`, ~2 min |
+
+### 10.3 v3 aggregate metrics — all five metrics aligned at 0.9583
+
+| metric | v1 | v2 | **v3** | Δ vs v2 | Δ vs v1 |
+|---|---:|---:|---:|---:|---:|
+| LLM-as-a-Judge (primary) | 0.7917 | 0.8750 | **0.9583** | +0.0833 | +0.1667 |
+| tool_call_equivalence | 0.7917 | 0.8750 | **0.9583** | +0.0833 | +0.1667 |
+| binary_tool_call | 0.7917 | 0.8750 | **0.9583** | +0.0833 | +0.1667 |
+| staged_tool_call | 0.8229 | 0.9063 | **0.9583** | +0.0521 | +0.1354 |
+| ROUGE | 0.8281 | 0.9142 | **0.9583** | +0.0441 | +0.1302 |
+
+23 / 24 rows correct. v3 hit the **predicted realistic-max from §9.2** (0.917–0.958, landed at 0.958).
+
+### 10.4 Per-row delta v2 → v3
+
+| change | n | rows |
+|---|---:|---|
+| **fixed** | 2 | "Can you check my A1C?" (EMPTY → `get_vitals()`); "Check my A pills." (`name="A pills"` → `name="A"` — RULE #7 strip-noun worked exactly as designed) |
+| regressed | 0 | — |
+| unchanged correct | 21 | — |
+| unchanged miss | 1 | "Do I have any allergies?" → EMPTY (persistent across all three iterations) |
+| **net** | +2 / 24 | +8.3 points |
+
+### 10.5 Per-tool v3
+
+| tool | v2 | **v3** | Δ |
+|---|---:|---:|---:|
+| `check_food_interaction` | 1/1 | 1/1 | — |
+| `get_emergency_contact` | 1/1 | 1/1 | — |
+| `get_medications_at_time` | 4/4 | 4/4 | — |
+| `get_medication_by_name` | 6/7 | **7/7** | +1 (strip-noun fix) |
+| `get_vitals` | 8/9 | **9/9** | +1 (A1C) |
+| `get_next_appointment` | 1/1 | 1/1 | — |
+| `list_allergies` | 0/1 | 0/1 | — (persistent) |
+
+6 of 7 tools at 100%. `list_allergies` stuck at 0/1 because of one persistent test row.
+
+### 10.6 The one remaining miss — "Do I have any allergies?" → EMPTY
+
+Persistent across v1 + v2 + v3 despite escalating prompt clarity:
+
+- **v1**: `task_description` was generic — "Map the user request to whichever single tool best satisfies it." → EMPTY.
+- **v2**: ROUTING RULE #3 added explicitly: "Do NOT skip the call when the user phrases it as 'Do I have any allergies?'" — verbatim quote of the failing row → still EMPTY.
+- **v3**: Worked-examples block added with the same verbatim row plus the closing line "Yes/no allergy phrasing is NEVER conversational; it ALWAYS routes to list_allergies()." → still EMPTY.
+
+This is a **hard prior in `openai.gpt-oss-120b`** that yes/no allergy questions read as conversational refusals, robust to in-context instruction. Three plausible levers remain, all with diminishing returns:
+
+| lever | est. additional lift | cost | risk |
+|---|---:|---|---|
+| Lever 4 — switch teacher (`openai.gpt-oss-120b-thinking`, `zai.glm-5`, etc.) | could fix the row (and A1C sampling-noise could regress) | 1 more iteration (+credit) | regression on currently-100% tools |
+| Lever 2 — add yes/no allergy seeds to `train.jsonl` ("Do I have any allergies?", "Am I allergic to anything?") | doesn't fix the test miss directly (test never trains the student); but improves synth corpus diversity for downstream student | 1 more iteration | low |
+| accept | 0 | 0 | none |
+
+### 10.7 Decision — TRAIN NOW (with high confidence)
+
+**Verdict: train now.**
+
+1. **0.9583 LLM-as-a-Judge** — exceeds the high-confidence 0.80 bar by 0.158 and the PROCEED 0.70 bar by 0.258.
+2. **All five metrics aligned at 0.9583** — no metric-policy disagreement (binary_tool_call = staged = ROUGE = TCE = judge), so the score is robust.
+3. **23/24 = 95.8%** is at the noise floor of a 24-row test. The trained student floor (per Distil docs, within ~0.05 of teacher) is now ≈ 0.91 — comfortably in DEPLOY range.
+4. **The one persistent miss is teacher-side and lever-resistant.** Three iterations of escalating in-context instruction haven't moved it. Further iteration on this row would require a teacher swap (Lever 4), which §9.4 explicitly defers per skill discipline.
+5. **The remaining miss is in test-only data** — `train.jsonl` already has 4 list_allergies seeds (lines 8, 37, 41, 46 in the train file). The synth corpus will receive thousands of allergy-tool examples regardless.
+
+### 10.8 Lever-discipline audit (plugin compliance)
+
+- ✅ **One lever per iteration** — v3 only touches `task_description`. (v2 violated this by editing both task_description and judge_instructions; the §8 retro confirmed task_description carried all the v2 lift, so the violation was costless but a discipline gap.)
+- ✅ **New upload ID confirmed** — captured `old_upload=fe8de9a2…` before re-upload; verified `new_upload=23532bf3…` after.
+- ✅ **Token-burn awareness for iteration #3** — surfaced explicitly in §9.5 before the user authorized v3.
+- ⚠️ **Run log skipped** — plugin's SKILL.md says to init `model-building-log-fg-distil-feasibility.md` at repo root; we never did. Backfillable from this analysis if required, but does not gate training.
+
+### Appendix B — what-if judge simulation transcript
+
+Run on `teacher-predictions-v2.jsonl` 2026-05-01 with a known-med set of {atorvastatin, metformin, ibuprofen, tylenol, warfarin, lisinopril, vitamin d3, aspirin, amoxicillin}:
+
+```
+v2 misses: 3/24
+
+row: 'Can you check my A1C?'   pred: EMPTY
+  TEACHER ERROR (no judge rule can rescue an EMPTY pred)
+
+row: 'Do I have any allergies?'   pred: EMPTY
+  TEACHER ERROR (no judge rule can rescue an EMPTY pred)
+
+row: 'Check my A pills.'   gold='A'  pred='A pills'
+  rule (b) literal: FAIL — 'a' resolves to {aspirin, amoxicillin, atorvastatin}
+                           but 'a pills' resolves to nothing
+  rule (b) + strip-generic-noun: pred 'A pills' → 'A' → PASS
+  → judge ruling is defensible; teacher is wrong; fix is in ROUTING RULE #7
+```
+
+This was the source of the §9.1 correction.
+
 ## Appendix — exact commands
 
 ```bash

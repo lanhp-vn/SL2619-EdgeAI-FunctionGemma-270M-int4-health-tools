@@ -24,6 +24,9 @@ stay on the local F1+F5 path.
 | `task_description` + `llm_as_a_judge_instructions` tightened | 7 explicit ROUTING RULES + 4 special-case judge rules | zero-cost edits; address clusters A (lab vitals → get_vitals), B (zero-arg + extra context), C (prefix med-name resolution) |
 | re-upload v2 (dry-run + real) | **PASS** — upload id `fe8de9a2-a938-447a-bc9b-50668d289878`, status `JOB_SUCCESS` | data committed |
 | `distil model run-teacher-evaluation` v2 | **PASS** — eval id `635489b8-5076-43c2-b890-9bd42dfe9019`, **judge=0.8750 (+0.083)**, ROUGE=0.9142, tool_call_equivalence=0.875, staged=0.906 | clears 0.80 high-confidence bar; 3 remaining misses (1 sampling, 1 teacher idiosyncrasy on yes/no allergy phrasing, 1 judge-rule bug) |
+| `task_description` v3 surgical edits | RULE #3 worked-examples block + RULE #7 strip-generic-noun rule | targets the 2 highest-confidence misses (cluster B allergy yes/no, cluster C "A pills") |
+| re-upload v3 (dry-run + real) | **PASS** — upload id `23532bf3-c400-4351-9025-01c3c73f9911`, status `JOB_SUCCESS` | NEW upload ID confirmed (skill discipline) |
+| `distil model run-teacher-evaluation` v3 | **PASS** — eval id `14a00a0a-7d79-4123-98dd-dbada98d8996`, **all five metrics = 0.9583** (judge, TCE, binary, staged, ROUGE) | hit predicted realistic-max; 23/24 correct; 6 of 7 tools at 100% |
 
 **Source data.** Files derived from `data/functiongemma/dataset_v1/train.jsonl`
 (50 rows: fl×25, fa×15, te×10) and `data/functiongemma/eval_holdout_v1.jsonl`

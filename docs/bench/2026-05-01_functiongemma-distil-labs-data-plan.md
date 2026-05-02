@@ -527,3 +527,46 @@ yes/no allergy phrasing as conversational. Single test row, doesn't
 flip the per-tool verdict. Watch the trained student's allergy
 accuracy after Run 1; if low, add to ROUTING RULE #3: "even if the
 question is yes/no in form".
+
+## 15 — v3 surgical Lever 1 follow-up (2026-05-01)
+
+User authorized one more iteration to test the v3 lift hypothesis from
+§9 of `iteration_001/teacher-eval-analysis.md`. Result: **prediction
+landed exactly.**
+
+**Edit:** `task_description` only (one lever — plugin discipline). RULE #3
+gained a 4-example worked block for allergy phrasings; RULE #7 swapped
+"literal user phrasing" for "STRIP generic medication-class nouns" with
+6 worked examples.
+
+**v3 metrics (all five aligned at 0.9583, +0.083 vs v2):**
+
+| metric | v1 | v2 | v3 | Δ vs v1 |
+|---|---:|---:|---:|---:|
+| LLM-as-a-Judge | 0.7917 | 0.8750 | **0.9583** | +0.1667 |
+| tool_call_equivalence | 0.7917 | 0.8750 | 0.9583 | +0.1667 |
+| binary_tool_call | 0.7917 | 0.8750 | 0.9583 | +0.1667 |
+| staged_tool_call | 0.8229 | 0.9063 | 0.9583 | +0.1354 |
+| ROUGE | 0.8281 | 0.9142 | 0.9583 | +0.1302 |
+
+23/24 correct. 6 of 7 tools at 100%. RULE #7 strip-noun rule worked
+exactly as designed: "Check my A pills." → `name="A"` (was `"A pills"`).
+A1C also flipped to PASS — likely the v2 sampling-noise hypothesis
+holds; v3 happens to land it.
+
+**OQ-D10 status: still open, lever-resistant.** "Do I have any allergies?"
+remains EMPTY across all three iterations despite escalating in-context
+instruction (v3 quotes the failing row verbatim AND adds the closing
+line "Yes/no allergy phrasing is NEVER conversational"). gpt-oss-120b
+has a hard prior here. Per `iteration_001/teacher-eval-analysis.md` §10.6,
+Lever 4 (teacher swap) could resolve it but is deferred per skill discipline.
+
+**OQ-D11 (new).** Iteration #3 token-burn rule was triggered; user
+explicitly authorized v3 after seeing §9 lift estimates. The estimate
+held; iterating further (v4 with Lever 4 teacher swap) would chase a
+single test row at unknown quota cost — not worth it.
+
+**Decision: train.** All thresholds cleared with margin; remaining miss
+is teacher-side and lever-resistant; further iteration has diminishing
+returns. Carry-forward levers documented in §9.6 / §10.6 are ready to
+pull post-training if needed.

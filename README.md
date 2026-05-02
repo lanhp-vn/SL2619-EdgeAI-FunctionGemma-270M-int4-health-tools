@@ -1,227 +1,84 @@
-# gemma3-270M-finetune
 
-Fine-tuning, evaluation, and deployment tooling for **Gemma 3 270M-IT** and
-**FunctionGemma** (function-calling + reasoning variant).
+# Deployment instructions
 
-The reference deployment target is the [Synaptics Astra Machina SL2619](https://github.com/nouslogic/SynapticSL2619)
-Cortex-A55 edge platform via llama.cpp + GGUF — see [`docs/deployment/sl2619-board.md`](docs/deployment/sl2619-board.md).
-The repo also stands alone as a generic Gemma 3 270M fine-tune workspace and may
-optionally be mounted as a git submodule at `SynapticSL2619/models/gemma-3-270m-it`.
+## Introduction
 
----
+Once your model has successfully been fine-tuned, it is ready for deployment.
 
-## Repository layout
+This page outline two ways to deploy your model. Which method you choose depends on which approach fits best with your other applications.
 
-```
-gemma3-270M-finetune/
-├── src/gemma_tools/          # Python package
-│   ├── health_table.py       # Health-YAML schema + patient loader
-│   ├── prompt_composer.py    # Directive-form system-prompt builder
-│   ├── sft_dataset.py        # Chat-template → JSONL dataset builder
-│   ├── sft_build.py          # CLI: build sft_v1.{train,val,test}.jsonl
-│   ├── bench_prompt.py       # Local prompt bench runner
-│   ├── bench_eval.py         # JSONL → Markdown scorer
-│   ├── bench_remote.py       # Remote llama-server bench runner
-│   ├── chat_probe.py         # Interactive chat probe (remote server)
-│   └── logits_equivalence.py # Logits-equivalence gate (cross-arch KL)
-├── scripts/
-│   ├── finetune.py           # LoRA/QLoRA SFT entry point (GPU server)
-│   ├── merge.py              # Merge LoRA adapter → full BF16
-│   ├── smoke_test.py         # Side-by-side smoke: base vs merged
-│   ├── server-bootstrap.sh   # Idempotent Ubuntu server setup
-│   └── chat_remote.sh        # Interactive chat via llama-server on board
-├── data/
-│   ├── health_table_v1.yaml  # Health-QA fixture (patients, conditions, meds…)
-│   ├── prompts.yaml          # Prompt suite for bench + logits-equivalence
-│   ├── sft_v1.{train,val,test,audit}.jsonl   # Built SFT dataset (path B)
-│   └── sft_v1_pathA.{train,val,test}.jsonl  # Built SFT dataset (path A)
-├── docs/
-│   ├── conventions/          # Coding/repo/workflow rules (normative)
-│   │   ├── code-style-python.md
-│   │   ├── code-style-shell.md
-│   │   ├── doc-update.md     # DRY registry + AGENTS/README refresh protocol
-│   │   ├── git-workflow.md
-│   │   ├── module-layering.md
-│   │   ├── slm-system-prompt.md  # Normative SLM prompt rules R-1…R-10
-│   │   └── testing.md
-│   ├── references/           # Upstream sources (notes + opt-in submodules)
-│   │   ├── gemma.md
-│   │   ├── llama-cpp.md
-│   │   ├── transformers-trl-peft.md
-│   │   ├── model-compiler-runtime.md
-│   │   └── upstream/              # git submodules (opt-in init)
-│   │       ├── gemma/             # google-deepmind/gemma (shallow)
-│   │       ├── llama.cpp/         # ggml-org/llama.cpp (shallow)
-│   │       └── unsloth-notebooks/ # sparse clone: FunctionGemma_(270M).ipynb
-│   ├── guides/               # Human-facing how-tos
-│   ├── deployment/           # Per-target deployment runbooks (SL2619, …)
-│   ├── plans/                # Frozen historical narratives (read-only)
-│   │   └── FunctionGemma/    # Phase D SFT plan (Unsloth-based, PLANNED)
-│   └── bench/                # Frozen bench run records (read-only)
-└── models/
-    └── gemma-3-270m-it/
-        └── README.md         # Per-model analysis: IFEval, quant, prompt strategy
-```
-
----
+Note that the following instructions have been tested on a cloud VM with an NVIDIA GPU (i.e. AWS EC2 g6e.xlarge).
 
 ## Setup
 
-Requires Python ≥ 3.11 and [uv](https://github.com/astral-sh/uv).
+Extract the files from the model tarball in the same directory you are planning to work in. You should see the following files:
+```
+├── model/
+├── model-adapters/
+├── model_client.py
+├── README.md
+```
 
+To get started, we recommend setting up a fresh environment.
+
+Run the following to create and activate a virtual environment:
 ```bash
-uv venv .venv && source .venv/bin/activate
-uv pip install -e ".[dev]"
+ python -m venv serve
+ source serve/bin/activate
 ```
 
-### Optional — FunctionGemma host stack
 
-For FunctionGemma (270M function-calling) host-side work — Phase A CPU smoke
-and §15 GGUF pre-flight — install the heavier extra:
+## Option 1: Ollama
 
+Install Ollama by following the instructions outlined here:
+https://ollama.com/
+
+Install OpenAI:
 ```bash
-uv sync --extra functiongemma
-# or, matching the editable install above:
-uv pip install -e ".[functiongemma]"
+pip install openai
 ```
 
-Adds ~1.5 GiB (torch + transformers + accelerate + sentencepiece + gguf).
-See [`docs/plans/FunctionGemma/README.md`](docs/plans/FunctionGemma/README.md)
-for the full milestone plan.
+Change into the `model/` directory, you should see the following files:
+```
+├── Modelfile
+├── config.json
+├── model.safetensors
+├── ...
+```
 
-### Optional — initialize upstream submodules
-
-`docs/references/upstream/{gemma,llama.cpp}` are git submodules pinned to
-shallow clones of their respective `main`/`master` branches. They are
-**opt-in** (`update = none` in `.gitmodules`); `git clone` does not pull them.
-Initialize only what you need:
-
+Create the model:
 ```bash
-git submodule update --init docs/references/upstream/llama.cpp
-git submodule update --init docs/references/upstream/gemma
+ollama create model -f Modelfile
 ```
 
----
-
-## Workflows
-
-### 1. Build SFT dataset
-
+You can then use the python script (`model_client.py`) to invoke the model, which allows you to pass in your own question and context:
 ```bash
-uv run sft-build --yaml data/health_table_v1.yaml \
-    --out-train data/sft_v1.train.jsonl \
-    --out-val   data/sft_v1.val.jsonl \
-    --out-test  data/sft_v1.test.jsonl \
-    --seed 42
+python model_client.py --question "QUESTION" --context "CONTEXT"
 ```
 
-### 2. Fine-tune on GPU server
+If you invoke this script without providing the `--question` and `--context` arguments, an example from your test data will be used so you can familarize yourself with the output.
 
-Bootstrap the server once (Ubuntu 24.04 + RTX GPU):
 
+## Option 2: vLLM
+
+Install vLLM and OpenAI using pip:
 ```bash
-scp scripts/server-bootstrap.sh nouslogic-server:~/
-ssh -t nouslogic-server 'bash ~/server-bootstrap.sh --with-system-deps'
+pip install vllm openai
 ```
 
-Upload data and run LoRA/QLoRA SFT:
-
+To start the server, run:
 ```bash
-scp data/sft_v1.train.jsonl data/sft_v1.val.jsonl nouslogic-server:~/sl2619-finetune/
-ssh nouslogic-server 'cd ~/sl2619-finetune && source .venv/bin/activate && \
-    python finetune.py --base google/gemma-3-270m-it \
-        --train ./sft_v1.train.jsonl --val ./sft_v1.val.jsonl \
-        --out ./checkpoints/v1'
+vllm serve model --api-key EMPTY
 ```
 
-### 3. Merge + quantize
+Note that `model` in the command above refers to the directory which contains our model weights.
 
+When running the server using `vllm serve`, the process does not run in the background so you will need to use another terminal session to invoke the model.
+
+You can use the python script (`model_client.py`) to invoke the model, which allows you to pass in your own question and context:
 ```bash
-# Merge LoRA adapter into full BF16
-ssh nouslogic-server 'cd ~/sl2619-finetune && python merge.py \
-    --base google/gemma-3-270m-it --adapter ./checkpoints/v1 --out ./merged_v1'
-
-# Quantize to Q4_K_M GGUF via llama.cpp (primary target: better tool-call JSON fidelity)
-ssh nouslogic-server 'cd ~/llama.cpp && python convert_hf_to_gguf.py \
-    ~/sl2619-finetune/merged_v1 --outfile ~/sl2619-finetune/merged_v1.bf16.gguf --outtype bf16 && \
-    ./llama-quantize ~/sl2619-finetune/merged_v1.bf16.gguf \
-        ~/sl2619-finetune/merged_v1.q4_k_m.gguf Q4_K_M'
+python model_client.py --port 8000 --question "QUESTION" --context "CONTEXT"
 ```
 
-### 4. Logits-equivalence gate
+If you invoke this script without providing the `--question` and `--context` arguments, an example from your test data will be used so you can familarize yourself with the output.
 
-Validates that the fine-tuned Q4_K_M GGUF preserves token-rank vs the BF16
-reference before deploying to a target. Frozen historical spec:
-`docs/plans/a55-gemma-h5-logits-equivalence.md`.
-
-```bash
-# Build Q1 corpus (host)
-uv run logits-equiv build-corpus --out .cache/q1/q1_corpus.txt
-
-# Run on server (BF16 reference .kld)
-# Run on x86 host (KL delta vs BF16)
-# Run on A55 board (cross-arch KL delta)
-# Gate: same_top_p delta ≤ 1.0 pp, max_delta ratio A55/x86 ≤ 3.0×
-```
-
-### 5. Smoke test (base vs merged)
-
-```bash
-# Build prompt bundle on host
-python scripts/smoke_test.py --dry-run --bundle /tmp/smoke_bundle.json
-
-# Run side-by-side on server
-scp scripts/smoke_test.py /tmp/smoke_bundle.json nouslogic-server:~/sl2619-finetune/
-ssh nouslogic-server 'cd ~/sl2619-finetune && source .venv/bin/activate && \
-    python smoke_test.py --bundle ./smoke_bundle.json \
-        --base google/gemma-3-270m-it --merged ./merged_v1 \
-        --out-dir ./logs'
-```
-
-### 6. Deploy to board
-
-See `docs/deployment/sl2619-board.md` for the cross-compile runbook and empirical
-perf numbers (5.87 tok/s decode, 37.2 tok/s prompt-eval at `-t 2`).
-
-```bash
-# Deploy GGUF to board (user-performed)
-scp merged_v1.q4_k_m.gguf nouslogic-sl2619:/mnt/sdcard/models/gemma-3-270m-it-q4_k_m-ft-v1/
-```
-
-### 7. Run tests
-
-```bash
-uv run pytest               # all tests
-uv run pytest tests/test_health_table.py   # specific module
-```
-
----
-
-## Data and model artifact policy
-
-- **SFT datasets** (`data/sft_v1*.jsonl`) are git-tracked — they are small (< 4 MB)
-  and are the canonical training artifacts for reproducibility.
-- **Model weights** (`.gguf`, `.bin`, `.safetensors`, `.pt`) are gitignored.
-  Store them on the GPU server or board SD card; reference them by path.
-- **Fine-tune checkpoints** (`checkpoints/`) are gitignored. Use the merge + quantize
-  pipeline to produce the deployable GGUF; that artifact lives on the server.
-- **HuggingFace base model** (`google/gemma-3-270m-it`) is downloaded by the
-  training stack at runtime — not stored in this repo. Set `HF_TOKEN` (or run
-  `huggingface-cli login`) before the first SFT run; see
-  [`docs/references/gemma.md`](docs/references/gemma.md) for the model card link.
-
----
-
-## Relationship to SynapticSL2619
-
-This repo is a peer of `SynapticSL2619/` on disk. It will be imported as:
-
-```
-SynapticSL2619/
-└── models/
-    └── gemma-3-270m-it/   ← git submodule pointing here
-```
-
-The robotic arm project's conventions (`docs/conventions/`) and board-control
-code do not depend on this repo at build time — the only integration point is
-the deployed GGUF on the SD card (`/mnt/sdcard/models/`).
