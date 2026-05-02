@@ -9,7 +9,7 @@ student expects this exact v3 task description). Each turn:
   2. Generate via llama-cpp (greedy, low max-tokens — function calls are short).
   3. Parse the ``<start_function_call>...<end_function_call>`` block.
   4. Dispatch the call against ``data/health_table_v1.yaml`` through
-     ``gemma_tools.functiongemma_tools.execute_tool`` and print the JSON result.
+     ``gemma_tools.functiongemma.tools.execute_tool`` and print the JSON result.
   5. Report decode tok/s.
 
 Pass ``--no-tools`` to print the parsed call only (no dispatch).
@@ -38,7 +38,7 @@ import time
 from pathlib import Path
 from typing import Any
 
-REPO_ROOT = Path(__file__).resolve().parent.parent
+REPO_ROOT = Path(__file__).resolve().parents[2]
 
 # SYSTEM_PROMPT and TOOLS are mirrored from model_client.py (vendor-supplied)
 # instead of imported because that file (a) imports `openai` at module top
@@ -101,13 +101,13 @@ TOOLS: list[dict[str, Any]] = [
     {"type": "function", "function": {"name": "get_emergency_contact", "description": "Return the first listed emergency contact (name, relation, phone).", "parameters": {"type": "object", "properties": {}, "required": [], "additionalProperties": False}}},
 ]
 
-sys.path.insert(0, str(REPO_ROOT / "scripts"))
-from functiongemma_smoke import parse_function_calls  # noqa: E402
+sys.path.insert(0, str(REPO_ROOT / "scripts" / "functiongemma"))
+from smoke import parse_function_calls  # noqa: E402
 
 DEFAULT_MODEL_PATH = REPO_ROOT / "model.gguf"
 DEFAULT_TOKENIZER_DIR = REPO_ROOT / "model"
 # health_table_v1.yaml is the in-repo patient-record fixture that
-# gemma_tools.functiongemma_tools is built against. Schema/loader:
+# gemma_tools.functiongemma.tools is built against. Schema/loader:
 # src/gemma_tools/health_table.py.
 DEFAULT_HEALTH_TABLE = REPO_ROOT / "data" / "health_table_v1.yaml"
 # 4096 covers system+history with margin while keeping KV cache modest on CPU.
@@ -361,7 +361,7 @@ def main(argv: list[str] | None = None) -> int:
     if not args.no_tools:
         # gemma_tools is the in-repo editable package; src/ on sys.path comes
         # via `uv pip install -e .`, so a plain import works.
-        from gemma_tools.functiongemma_tools import execute_tool as _exec
+        from gemma_tools.functiongemma.tools import execute_tool as _exec
         from gemma_tools.health_table import load_health_table
         execute_tool = _exec
         table = load_health_table(data_path)

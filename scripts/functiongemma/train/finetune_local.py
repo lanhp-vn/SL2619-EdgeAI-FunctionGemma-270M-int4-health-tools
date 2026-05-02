@@ -80,7 +80,7 @@ from typing import Any
 
 # `gemma_tools` ships without a py.typed marker; suppress missing-stubs noise so
 # `mypy scripts/finetune_functiongemma_v2.py` runs clean on the host.
-from gemma_tools.functiongemma_dataset import (  # type: ignore[import-untyped]
+from gemma_tools.functiongemma.dataset import (  # type: ignore[import-untyped]
     load_jsonl,
     validate_file,
 )
@@ -94,7 +94,7 @@ _HOST_TOKENIZER_FALLBACKS: tuple[str, ...] = (
 )
 
 _SCRIPT_DIR = Path(__file__).resolve().parent
-_REPO_ROOT = _SCRIPT_DIR.parent
+_REPO_ROOT = _SCRIPT_DIR.parents[2]
 _DEFAULT_DATA_DIR = _REPO_ROOT / "data" / "functiongemma" / "dataset_v1"
 
 

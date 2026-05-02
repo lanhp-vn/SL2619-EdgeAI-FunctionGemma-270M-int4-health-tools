@@ -40,7 +40,7 @@ from enum import StrEnum
 from pathlib import Path
 from typing import Any
 
-from gemma_tools.functiongemma_dataset import load_jsonl  # type: ignore[import-untyped]
+from gemma_tools.functiongemma.dataset import load_jsonl  # type: ignore[import-untyped]
 
 # Refusal categories: the gate is "predicted zero tool_calls". The post-tool
 # NL answer is informational only; tool-call shape is the contract.

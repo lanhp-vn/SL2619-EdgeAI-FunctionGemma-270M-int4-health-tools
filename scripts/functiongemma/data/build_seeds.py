@@ -29,7 +29,7 @@ from typing import Any
 
 import yaml
 
-_REPO = Path(__file__).resolve().parents[1]
+_REPO = Path(__file__).resolve().parents[3]
 _TOOLS_YAML = _REPO / "data" / "functiongemma" / "tools_v1.yaml"
 _OUT_PATH = _REPO / "data" / "functiongemma" / "seed_conversations.jsonl"
 

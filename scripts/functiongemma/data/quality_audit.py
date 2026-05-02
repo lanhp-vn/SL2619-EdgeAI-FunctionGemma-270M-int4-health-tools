@@ -36,11 +36,11 @@ import numpy as np
 from sentence_transformers import SentenceTransformer
 from sklearn.cluster import KMeans
 
-from gemma_tools.functiongemma_dataset import load_jsonl
+from gemma_tools.functiongemma.dataset import load_jsonl
 
 # region constants ----------------------------------------------------------
 
-_REPO = Path(__file__).resolve().parents[1]
+_REPO = Path(__file__).resolve().parents[3]
 _FG_DIR = _REPO / "data" / "functiongemma"
 _DEFAULT_SEED = _FG_DIR / "seed_conversations.jsonl"
 _DEFAULT_LLM_EXPANDED = _FG_DIR / "llm_expanded_v1.jsonl"

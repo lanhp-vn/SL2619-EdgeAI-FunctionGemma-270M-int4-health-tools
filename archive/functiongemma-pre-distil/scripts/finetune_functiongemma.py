@@ -57,7 +57,7 @@ os.environ.setdefault("UNSLOTH_RETURN_LOGITS", "1")
 # `gemma_tools` ships without a py.typed marker today (see pyproject — adding
 # one is out of scope for this script). Suppress the missing-stubs warning
 # locally so `mypy scripts/finetune_functiongemma.py` runs clean on the host.
-from gemma_tools.functiongemma_dataset import (  # type: ignore[import-untyped]
+from gemma_tools.functiongemma.dataset import (  # type: ignore[import-untyped]
     load_jsonl,
     render_training_text,
     validate_file,

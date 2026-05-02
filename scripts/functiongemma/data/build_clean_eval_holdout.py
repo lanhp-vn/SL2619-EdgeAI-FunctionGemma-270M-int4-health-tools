@@ -33,9 +33,9 @@ import re
 from pathlib import Path
 from typing import Any
 
-from gemma_tools.functiongemma_dataset import load_jsonl  # type: ignore[import-untyped]
+from gemma_tools.functiongemma.dataset import load_jsonl  # type: ignore[import-untyped]
 
-_REPO = Path(__file__).resolve().parents[1]
+_REPO = Path(__file__).resolve().parents[3]
 _FG_DIR = _REPO / "data" / "functiongemma"
 
 

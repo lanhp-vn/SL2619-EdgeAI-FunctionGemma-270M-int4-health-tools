@@ -47,9 +47,9 @@ from collections.abc import Iterable
 from pathlib import Path
 from typing import Any
 
-from gemma_tools.functiongemma_dataset import load_jsonl, validate_file
+from gemma_tools.functiongemma.dataset import load_jsonl, validate_file
 
-_REPO = Path(__file__).resolve().parents[1]
+_REPO = Path(__file__).resolve().parents[3]
 _FG_DIR = _REPO / "data" / "functiongemma"
 _SEED_PATH = _FG_DIR / "seed_conversations.jsonl"
 _EXPANDED_PATH = _FG_DIR / "llm_expanded_v1.jsonl"

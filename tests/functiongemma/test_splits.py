@@ -29,10 +29,10 @@ from typing import Any
 
 import pytest
 
-from gemma_tools.functiongemma_dataset import load_jsonl, validate_file
+from gemma_tools.functiongemma.dataset import load_jsonl, validate_file
 
-_REPO = Path(__file__).resolve().parents[1]
-_BUILD_PATH = _REPO / "scripts" / "build_functiongemma_splits.py"
+_REPO = Path(__file__).resolve().parents[2]
+_BUILD_PATH = _REPO / "scripts" / "functiongemma" / "data" / "build_splits.py"
 _FG_DIR = _REPO / "data" / "functiongemma"
 _SEED_PATH = _FG_DIR / "seed_conversations.jsonl"
 _EXPANDED_PATH = _FG_DIR / "llm_expanded_v1.jsonl"

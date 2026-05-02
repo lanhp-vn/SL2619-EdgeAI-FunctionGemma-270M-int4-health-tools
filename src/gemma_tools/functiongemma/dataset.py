@@ -39,7 +39,7 @@ from typing import Any, Literal, TypeAlias
 
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
-from gemma_tools.functiongemma_tools import ToolSpec, default_registry
+from gemma_tools.functiongemma.tools import ToolSpec, default_registry
 
 # Vendor-mandated developer-trigger string. Source: `scripts/functiongemma_smoke.py`
 # which lifts it verbatim from cookbook cell 14. Both the system role

@@ -19,8 +19,8 @@ import pytest
 
 # `scripts/` is not a package; load via spec to keep imports clean and avoid
 # polluting the package layout.
-_REPO_ROOT = Path(__file__).resolve().parents[1]
-_SCRIPT_PATH = _REPO_ROOT / "scripts" / "eval_functiongemma_holdout.py"
+_REPO_ROOT = Path(__file__).resolve().parents[2]
+_SCRIPT_PATH = _REPO_ROOT / "scripts" / "functiongemma" / "eval" / "eval_holdout.py"
 
 
 def _load_module() -> ModuleType:

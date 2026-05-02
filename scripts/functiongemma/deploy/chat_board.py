@@ -148,7 +148,7 @@ def parse_perf(stream: str) -> dict[str, float]:
 
 # endregion
 
-# region: tool dispatch (pure stdlib; mirrors gemma_tools.functiongemma_tools)
+# region: tool dispatch (pure stdlib; mirrors gemma_tools.functiongemma.tools)
 
 
 _HHMM_RE = re.compile(r"^([01]\d|2[0-3]):[0-5]\d$")

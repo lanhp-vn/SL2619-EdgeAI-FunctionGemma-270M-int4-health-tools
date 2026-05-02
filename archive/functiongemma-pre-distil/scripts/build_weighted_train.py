@@ -33,7 +33,7 @@ import json
 import sys
 from pathlib import Path
 
-from gemma_tools.functiongemma_dataset import (  # type: ignore[import-untyped]
+from gemma_tools.functiongemma.dataset import (  # type: ignore[import-untyped]
     load_jsonl,
     validate_file,
 )

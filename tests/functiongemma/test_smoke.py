@@ -17,8 +17,8 @@ from types import ModuleType
 
 import pytest
 
-_REPO = Path(__file__).resolve().parents[1]
-_SCRIPT = _REPO / "scripts" / "functiongemma_smoke.py"
+_REPO = Path(__file__).resolve().parents[2]
+_SCRIPT = _REPO / "scripts" / "functiongemma" / "smoke.py"
 _FG_TOKENIZER = Path(os.path.expanduser("~/hf-cache/functiongemma-270m-it"))
 
 

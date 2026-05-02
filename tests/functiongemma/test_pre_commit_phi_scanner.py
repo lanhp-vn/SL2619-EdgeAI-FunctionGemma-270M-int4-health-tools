@@ -14,8 +14,8 @@ from types import ModuleType
 
 import pytest
 
-_REPO = Path(__file__).resolve().parents[1]
-_SCANNER_PATH = _REPO / "scripts" / "pre-commit-functiongemma.py"
+_REPO = Path(__file__).resolve().parents[2]
+_SCANNER_PATH = _REPO / "scripts" / "pre_commit_phi_scanner.py"
 _SEED_PATH = _REPO / "data" / "functiongemma" / "seed_conversations.jsonl"
 
 

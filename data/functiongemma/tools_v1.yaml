@@ -1,5 +1,5 @@
-# Auto-generated mirror of gemma_tools.functiongemma_tools.as_function_declarations().
-# Regenerate with: uv run python -c 'import yaml, sys; sys.path.insert(0, "src"); from gemma_tools.functiongemma_tools import as_function_declarations; print(yaml.safe_dump(as_function_declarations(), sort_keys=True, default_flow_style=False, width=88))' > data/functiongemma/tools_v1.yaml
+# Auto-generated mirror of gemma_tools.functiongemma.tools.as_function_declarations().
+# Regenerate with: uv run python -c 'import yaml, sys; sys.path.insert(0, "src"); from gemma_tools.functiongemma.tools import as_function_declarations; print(yaml.safe_dump(as_function_declarations(), sort_keys=True, default_flow_style=False, width=88))' > data/functiongemma/tools_v1.yaml
 # tests/test_functiongemma_tools.py asserts this stays in sync.
 - function:
     description: Return the patient's most recent vital-sign measurements (heart rate, blood

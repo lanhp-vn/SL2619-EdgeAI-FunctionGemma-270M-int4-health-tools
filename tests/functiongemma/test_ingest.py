@@ -27,14 +27,14 @@ from typing import Any
 
 import pytest
 
-from gemma_tools.functiongemma_dataset import (
+from gemma_tools.functiongemma.dataset import (
     load_jsonl,
     split_by_validation,
     validate_conversation,
 )
 
-_REPO = Path(__file__).resolve().parents[1]
-_INGEST_PATH = _REPO / "scripts" / "functiongemma_ingest.py"
+_REPO = Path(__file__).resolve().parents[2]
+_INGEST_PATH = _REPO / "scripts" / "functiongemma" / "data" / "ingest.py"
 _SEED_PATH = _REPO / "data" / "functiongemma" / "seed_conversations.jsonl"
 
 

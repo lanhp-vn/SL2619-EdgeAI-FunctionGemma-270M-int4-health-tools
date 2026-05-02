@@ -42,11 +42,11 @@ from collections import Counter, defaultdict
 from pathlib import Path
 from typing import Any
 
-from gemma_tools.functiongemma_dataset import (
+from gemma_tools.functiongemma.dataset import (
     SYSTEM_TRIGGER,
     validate_conversation,
 )
-from gemma_tools.functiongemma_tools import as_function_declarations
+from gemma_tools.functiongemma.tools import as_function_declarations
 
 _REPO = Path(__file__).resolve().parents[1]
 _OUTPUT = (

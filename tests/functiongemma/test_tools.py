@@ -14,7 +14,7 @@ from pathlib import Path
 import pytest
 import yaml
 
-from gemma_tools.functiongemma_tools import (
+from gemma_tools.functiongemma.tools import (
     EmptyArgs,
     FoodArgs,
     NameArgs,
@@ -31,7 +31,7 @@ from gemma_tools.health_table import (
     load_health_table,
 )
 
-_REPO = Path(__file__).resolve().parents[1]
+_REPO = Path(__file__).resolve().parents[2]
 _FIXTURE = _REPO / "data" / "health_table_v1.yaml"
 _TOOLS_YAML = _REPO / "data" / "functiongemma" / "tools_v1.yaml"
 

@@ -53,15 +53,15 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
-REPO_ROOT = Path(__file__).resolve().parent.parent
+REPO_ROOT = Path(__file__).resolve().parents[2]
 
 # Reuse the chat REPL's lock-step copy of SYSTEM_PROMPT + TOOLS + parse so the
 # bench renders the SAME tokens the deployed model is contracted on. This
 # makes the bench's tok/s directly comparable to whatever functiongemma_chat.py
 # observes interactively.
-sys.path.insert(0, str(REPO_ROOT / "scripts"))
-from functiongemma_chat import SYSTEM_PROMPT, TOOLS  # noqa: E402
-from functiongemma_smoke import parse_function_calls  # noqa: E402
+sys.path.insert(0, str(REPO_ROOT / "scripts" / "functiongemma"))
+from chat import SYSTEM_PROMPT, TOOLS  # noqa: E402
+from smoke import parse_function_calls  # noqa: E402
 
 # Reuse the bench_prompt perf-footer parser. It already accepts both
 # `llama_perf_context_print:` and the newer `common_perf_print:` (b8925+),

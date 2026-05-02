@@ -19,7 +19,7 @@ from typing import Any
 
 import pytest
 
-from gemma_tools.functiongemma_dataset import (
+from gemma_tools.functiongemma.dataset import (
     SYSTEM_TRIGGER,
     backfill_tool_message_names,
     load_jsonl,
@@ -27,9 +27,9 @@ from gemma_tools.functiongemma_dataset import (
     validate_conversation,
     validate_file,
 )
-from gemma_tools.functiongemma_tools import default_registry
+from gemma_tools.functiongemma.tools import default_registry
 
-_REPO = Path(__file__).resolve().parents[1]
+_REPO = Path(__file__).resolve().parents[2]
 _SEED_PATH = _REPO / "data" / "functiongemma" / "seed_conversations.jsonl"
 
 # Per §9.3 of the plan. The M4 acceptance row in §14 ("≈ 50 hand seeds")
@@ -323,7 +323,7 @@ def test_seed_file_has_no_real_phi_patterns() -> None:
 
 def _minimal_tools() -> list[dict[str, Any]]:
     """Full-registry tools list, harvested from the registry to dodge drift."""
-    from gemma_tools.functiongemma_tools import as_function_declarations
+    from gemma_tools.functiongemma.tools import as_function_declarations
     return as_function_declarations()
 
 

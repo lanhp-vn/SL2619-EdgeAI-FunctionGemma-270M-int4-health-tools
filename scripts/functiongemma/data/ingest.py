@@ -6,7 +6,7 @@ Pipeline:
 1.  PHI scan the candidate file FIRST. On any hit, exit 1 and write nothing —
     the merged dataset never contains a row that would have tripped the guard.
     This is the §9.5 hard rule (synthetic-only) enforced at the ingest seam.
-2.  Validate every row with `gemma_tools.functiongemma_dataset.split_by_validation`.
+2.  Validate every row with `gemma_tools.functiongemma.dataset.split_by_validation`.
 3.  Append passing rows to `data/functiongemma/llm_expanded_v1.jsonl`.
 4.  Append failing rows to `data/functiongemma/quarantine.jsonl` wrapped as
     `{"row": <original>, "errors": [...], "row_id": ..., "category": ...}`
@@ -48,15 +48,15 @@ from pathlib import Path
 from types import ModuleType
 from typing import Any
 
-from gemma_tools.functiongemma_dataset import (
+from gemma_tools.functiongemma.dataset import (
     ValidationOutcome,
     split_by_validation,
 )
 
-_REPO = Path(__file__).resolve().parents[1]
+_REPO = Path(__file__).resolve().parents[3]
 _DEFAULT_EXPANDED = _REPO / "data" / "functiongemma" / "llm_expanded_v1.jsonl"
 _DEFAULT_QUARANTINE = _REPO / "data" / "functiongemma" / "quarantine.jsonl"
-_PHI_SCANNER_PATH = _REPO / "scripts" / "pre-commit-functiongemma.py"
+_PHI_SCANNER_PATH = _REPO / "scripts" / "pre_commit_phi_scanner.py"
 
 # §14 M4.5 acceptance bar.
 _MIN_PASS_RATE = 0.80
