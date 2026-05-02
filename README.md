@@ -185,6 +185,58 @@ ssh nouslogic-sl2619 'python3 /mnt/sdcard/models/functiongemma-270m/chat_board.p
 # Subsequent turns: ~6 s wall, 10.3 tok/s decode.
 ```
 
+## On-board demo proof
+
+This transcript is from the SL2619 board running the Q4_0 GGUF with the
+synthetic health record loaded. It demonstrates direct health-record
+questions, tool dispatch, natural-language formatting, and follow-up
+questions such as resolving "her" after asking for the emergency contact.
+
+```text
+root@nouslogic:~# python3 /mnt/sdcard/models/functiongemma-270m/chat_board.py
+[chat] model=/mnt/sdcard/models/functiongemma-270m/finetuned_functiongemma_q4_0.gguf threads=2 n_predict=64
+[chat] prefix=7187b suffix=35b health-record loaded (5 meds, 2 allergies)
+[chat] prompt-cache: /tmp/fg_pc_finetuned_functiongemma_q4_0.gguf.bin (existing, 20242 KiB)
+
+FunctionGemma chat (on-board) — model.gguf staged. Slash commands: /exit /quit /reset /history /raw
+
+you> what is my heart rate?
+[thinking…]
+
+→ {"tool": "get_vitals", "args": {}}
+  ⤷ {"heart_rate_bpm": 72, "blood_pressure_systolic": 118, "blood_pressure_diastolic": 76, "spo2_percent": 98, "body_temperature_c": 36.7, "respiratory_rate": 16, "last_measured": "2026-04-24 08:15"}
+  >> Your heart rate is 72 bpm (measured 2026-04-24 08:15).
+  [prompt 13 (32.8 tok/s) + decode 10 (10.7 tok/s) in 6.05s wall]
+you> when is my next appointment?
+[thinking…]
+
+→ {"tool": "get_next_appointment", "args": {}}
+  ⤷ {"date": "2026-05-06", "time": "10:30", "provider": "Dr. Evelyn Chen", "purpose": "quarterly diabetes check-up", "location": "Maple Clinic, Room 204"}
+  >> Your next appointment is on 2026-05-06 at 10:30.
+  [prompt 13 (32.8 tok/s) + decode 11 (10.6 tok/s) in 6.15s wall]
+you> Why am I taking Aspirin?
+[thinking…]
+
+→ {"tool": "get_medication_by_name", "args": {"name": "Aspirin"}}
+  ⤷ {"name": "Aspirin", "dose": "81 mg", "schedule": "08:00", "with_food": true, "purpose": "cardiovascular protection", "avoid_foods": [], "avoid_drugs": ["Ibuprofen", "Warfarin"]}
+  >> You take Aspirin for cardiovascular protection.
+  [prompt 14 (32.1 tok/s) + decode 22 (10.7 tok/s) in 7.24s wall]
+you> who is my emergency contact?
+[thinking…]
+
+→ {"tool": "get_emergency_contact", "args": {}}
+  ⤷ {"name": "Jane Doe", "relation": "daughter", "phone": "+1-555-0142"}
+  >> Your emergency contact is Jane Doe (daughter).
+  [prompt 13 (32.7 tok/s) + decode 11 (10.7 tok/s) in 6.14s wall]
+you> what is her phone number?
+[thinking…]
+
+→ {"tool": "get_emergency_contact", "args": {}}
+  ⤷ {"name": "Jane Doe", "relation": "daughter", "phone": "+1-555-0142"}
+  >> Call Jane Doe (daughter) at +1-555-0142.
+  [prompt 13 (32.7 tok/s) + decode 11 (10.6 tok/s) in 6.15s wall]
+```
+
 ## Tool registry
 
 Seven read-only tools defined in
