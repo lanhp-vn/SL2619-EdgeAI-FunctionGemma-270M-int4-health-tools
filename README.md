@@ -1,4 +1,4 @@
-# gemma3-270M-finetune
+# function-gemma-270m-health-tools
 
 Fine-tune **FunctionGemma 270M-IT** for closed-world function-calling against
 a synthetic patient-record registry, quantize to Q4_0, and deploy to the
