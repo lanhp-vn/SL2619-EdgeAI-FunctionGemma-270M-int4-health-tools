@@ -1,6 +1,6 @@
 """On-board bench harness for Phase D closed-world health-YAML QA.
 
-Drives Gemma 3 270M-IT against the prompt suite in `data/prompts.yaml`,
+Drives Gemma 3 270M-IT against the prompt suite in `data/_legacy/prompts.yaml`,
 emits JSONL rows to `/mnt/sdcard/bench/<date>_gemma3-sweep.jsonl` plus a
 companion `.log` of raw stdout.
 
@@ -36,7 +36,7 @@ from typing import Literal, Protocol, get_args
 import yaml
 
 from gemma_tools.health_table import HealthTable, load_health_table
-from gemma_tools.prompt_composer import compose_user_text
+from gemma_tools._legacy.prompt_composer import compose_user_text
 
 PromptClass = Literal[
     "calibration",
@@ -344,7 +344,7 @@ _VALID_CLASSES: frozenset[str] = frozenset(get_args(PromptClass))
 
 @dataclass(frozen=True, slots=True)
 class PromptSpec:
-    """One prompt from data/prompts.yaml, schema-validated.
+    """One prompt from data/_legacy/prompts.yaml, schema-validated.
 
     `prompt_class` is named with a trailing suffix because `class` is a
     Python keyword; the YAML-side name is preserved as `class`.
@@ -965,7 +965,7 @@ def _build_arg_parser() -> argparse.ArgumentParser:
                         "torq runner (NPU VMFB); llama_completion shells "
                         "out per prompt to llama-completion (A55 CPU GGUF).")
     p.add_argument("--prompts", type=Path, required=True,
-                   help="Path to prompts.yaml (see data/prompts.yaml).")
+                   help="Path to prompts.yaml (see data/_legacy/prompts.yaml).")
     p.add_argument("--health-table", type=Path, required=True,
                    help="Path to health_table_v1.yaml.")
     p.add_argument("--output", type=Path, required=True,

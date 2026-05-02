@@ -50,7 +50,7 @@ BODY="$(cd "$TOOLS_DIR" && uv run python -c "
 import sys
 from datetime import date
 from pathlib import Path
-from gemma_tools.prompt_composer import compose_user_text
+from gemma_tools._legacy.prompt_composer import compose_user_text
 from gemma_tools.health_table import load_health_table
 ht = load_health_table(Path('${HEALTH_TABLE}'))
 sys.stdout.write(compose_user_text(ht, date.today(), '''${QUESTION//\'/\'\\\'\'}'''))

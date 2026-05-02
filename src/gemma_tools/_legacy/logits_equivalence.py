@@ -21,14 +21,14 @@ from pathlib import Path
 
 import yaml
 
-from gemma_tools.bench_prompt import wrap_gemma3_chat_template
+from gemma_tools._legacy.bench_prompt import wrap_gemma3_chat_template
 
-_REPO_ROOT = Path(__file__).resolve().parents[2]  # src/gemma_tools/ → repo root
-_PROMPTS_YAML = _REPO_ROOT / "data" / "prompts.yaml"
-_SFT_PATH_A = _REPO_ROOT / "data" / "sft_v1_pathA.test.jsonl"
+_REPO_ROOT = Path(__file__).resolve().parents[3]  # src/gemma_tools/ → repo root
+_PROMPTS_YAML = _REPO_ROOT / "data" / "_legacy" / "prompts.yaml"
+_SFT_PATH_A = _REPO_ROOT / "data" / "_legacy" / "sft_v1_pathA.test.jsonl"
 # Q1 corpus source: Path B test split (composed prompt = directive + YAML + question;
 # matches the deployment shape and the SFT training shape, unlike _SFT_PATH_A).
-_SFT_PATH_B_TEST = _REPO_ROOT / "data" / "sft_v1.test.jsonl"
+_SFT_PATH_B_TEST = _REPO_ROOT / "data" / "_legacy" / "sft_v1.test.jsonl"
 _NATIVE_BIN = (
     _REPO_ROOT
     / ".cache"
@@ -586,7 +586,7 @@ def main(argv: list[str] | None = None) -> int:
     p_q1.add_argument("--seed", type=int, default=1)
     p_q1.add_argument(
         "--test-jsonl", default="",
-        help="Override sft_v1.test.jsonl path (default: data/sft_v1.test.jsonl)",
+        help="Override sft_v1.test.jsonl path (default: data/_legacy/sft_v1.test.jsonl)",
     )
 
     p_cls = sub.add_parser(

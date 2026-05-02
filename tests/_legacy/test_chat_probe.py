@@ -14,7 +14,7 @@ from pathlib import Path
 
 import pytest
 
-from gemma_tools.chat_probe import (
+from gemma_tools._legacy.chat_probe import (
     compose_probe_prompt,
     main,
     patched_sys_prompt,
@@ -27,7 +27,7 @@ from gemma_tools.health_table import (
     load_health_table,
 )
 
-_REPO = Path(__file__).resolve().parents[1]
+_REPO = Path(__file__).resolve().parents[2]
 CANONICAL_HEALTH = _REPO / "data" / "health_table_v1.yaml"
 
 _MINIMAL = HealthTable(

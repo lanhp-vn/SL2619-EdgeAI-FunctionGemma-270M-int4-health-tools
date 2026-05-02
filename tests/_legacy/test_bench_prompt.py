@@ -15,7 +15,7 @@ from typing import Any
 
 import pytest
 
-from gemma_tools.bench_prompt import (
+from gemma_tools._legacy.bench_prompt import (
     BenchAdapter,
     BenchRow,
     Gemma3BenchAdapter,
@@ -42,10 +42,10 @@ from gemma_tools.bench_prompt import (
     write_row,
     write_rows,
 )
-from gemma_tools.prompt_composer import compose_prompt
+from gemma_tools._legacy.prompt_composer import compose_prompt
 
-_REPO = Path(__file__).resolve().parents[1]
-CANONICAL_PROMPTS = _REPO / "data" / "prompts.yaml"
+_REPO = Path(__file__).resolve().parents[2]
+CANONICAL_PROMPTS = _REPO / "data" / "_legacy" / "prompts.yaml"
 CANONICAL_HEALTH = _REPO / "data" / "health_table_v1.yaml"
 
 # Shared fixture values — a minimal well-formed timing+row pair used across tests.
@@ -739,7 +739,7 @@ def test_wrap_gemma3_chat_template_round_trips_compose_prompt() -> None:
     assert direct.endswith(expected_suffix), "wrap closes with model-turn marker"
     assert user_text in direct, "user_text passes through verbatim"
     # Cross-check against compose_prompt for a real composed body.
-    from gemma_tools.prompt_composer import compose_user_text
+    from gemma_tools._legacy.prompt_composer import compose_user_text
     composed = compose_user_text(health, now, "what is my heart rate?")
     assert wrap_gemma3_chat_template(composed) == compose_prompt(
         candidate="gemma3", utterance="what is my heart rate?",

@@ -16,8 +16,8 @@ from pathlib import Path
 
 import pytest
 
-from gemma_tools.bench_prompt import PromptSpec
-from gemma_tools.bench_remote import (
+from gemma_tools._legacy.bench_prompt import PromptSpec
+from gemma_tools._legacy.bench_remote import (
     RemoteBenchConfig,
     build_ssh_argv,
     parse_jinja_response,
@@ -25,7 +25,7 @@ from gemma_tools.bench_remote import (
 )
 from gemma_tools.health_table import load_health_table
 
-REPO_ROOT = Path(__file__).resolve().parent.parent
+REPO_ROOT = Path(__file__).resolve().parents[2]
 HEALTH_PATH = REPO_ROOT / "data" / "health_table_v1.yaml"
 
 

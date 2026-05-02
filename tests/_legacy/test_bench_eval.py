@@ -12,7 +12,7 @@ from pathlib import Path
 
 import pytest
 
-from gemma_tools.bench_eval import (
+from gemma_tools._legacy.bench_eval import (
     ScoredRow,
     load_jsonl,
     main,
@@ -20,10 +20,10 @@ from gemma_tools.bench_eval import (
     score_response,
     score_sweep,
 )
-from gemma_tools.bench_prompt import compile_pattern_flags
+from gemma_tools._legacy.bench_prompt import compile_pattern_flags
 
-_REPO = Path(__file__).resolve().parents[1]
-CANONICAL_PROMPTS = _REPO / "data" / "prompts.yaml"
+_REPO = Path(__file__).resolve().parents[2]
+CANONICAL_PROMPTS = _REPO / "data" / "_legacy" / "prompts.yaml"
 
 
 def _make_jsonl_row(**overrides: object) -> dict[str, object]:

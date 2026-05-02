@@ -18,7 +18,7 @@ import sys
 from dataclasses import dataclass
 from pathlib import Path
 
-from gemma_tools.bench_prompt import (
+from gemma_tools._legacy.bench_prompt import (
     PromptSpec,
     load_prompt_suite,
     score_response,

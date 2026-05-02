@@ -1,7 +1,7 @@
 """Smoke tests for gemma_tools.sft_build (CLI entrypoint).
 
 These run the full pipeline end-to-end against the canonical fixtures,
-writing into a tmp_path so the in-tree `data/sft_v1*.jsonl` files
+writing into a tmp_path so the in-tree `data/_legacy/sft_v1*.jsonl` files
 are never clobbered by the test run.
 """
 
@@ -10,19 +10,19 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from gemma_tools.sft_build import main
+from gemma_tools._legacy.sft_build import main
 
 
 def _repo() -> Path:
-    return Path(__file__).resolve().parents[1]
+    return Path(__file__).resolve().parents[2]
 
 
 def test_sft_build_writes_all_artifacts(tmp_path: Path) -> None:
     repo = _repo()
     rc = main(
         [
-            "--pool", str(repo / "data" / "clean_sft_dataset.json"),
-            "--prompts", str(repo / "data" / "prompts.yaml"),
+            "--pool", str(repo / "data" / "_legacy" / "clean_sft_dataset.json"),
+            "--prompts", str(repo / "data" / "_legacy" / "prompts.yaml"),
             "--health", str(repo / "data" / "health_table_v1.yaml"),
             "--out-dir", str(tmp_path),
             "--now", "2026-04-25",
@@ -74,8 +74,8 @@ def test_sft_build_skip_path_a(tmp_path: Path) -> None:
     repo = _repo()
     rc = main(
         [
-            "--pool", str(repo / "data" / "clean_sft_dataset.json"),
-            "--prompts", str(repo / "data" / "prompts.yaml"),
+            "--pool", str(repo / "data" / "_legacy" / "clean_sft_dataset.json"),
+            "--prompts", str(repo / "data" / "_legacy" / "prompts.yaml"),
             "--health", str(repo / "data" / "health_table_v1.yaml"),
             "--out-dir", str(tmp_path),
             "--skip-path-a",

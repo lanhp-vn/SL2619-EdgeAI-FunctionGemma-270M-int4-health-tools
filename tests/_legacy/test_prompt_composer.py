@@ -19,7 +19,7 @@ from gemma_tools.health_table import (
     Vitals,
     load_health_table,
 )
-from gemma_tools.prompt_composer import (
+from gemma_tools._legacy.prompt_composer import (
     Candidate,
     compose_prompt,
     compose_user_text,
@@ -27,9 +27,9 @@ from gemma_tools.prompt_composer import (
     render_system_prompt,
 )
 
-_REPO = Path(__file__).resolve().parents[1]
+_REPO = Path(__file__).resolve().parents[2]
 CANONICAL_FIXTURE = _REPO / "data" / "health_table_v1.yaml"
-PROMPTS_FIXTURE = _REPO / "data" / "prompts.yaml"
+PROMPTS_FIXTURE = _REPO / "data" / "_legacy" / "prompts.yaml"
 
 # Single canonical HealthTable instance reused across cases — the composer is
 # pure-functional, so sharing is safe and keeps test runtime under a tick.
@@ -156,7 +156,7 @@ def test_compose_prompt_rejects_unknown_candidate(
 @pytest.mark.parametrize(
     ("source_path", "desc"),
     [
-        (PROMPTS_FIXTURE,  "committed data/prompts.yaml entries are well-formed"),
+        (PROMPTS_FIXTURE,  "committed data/_legacy/prompts.yaml entries are well-formed"),
         ("inline_minimal", "inline doc with the same schema parses identically"),
     ],
 )

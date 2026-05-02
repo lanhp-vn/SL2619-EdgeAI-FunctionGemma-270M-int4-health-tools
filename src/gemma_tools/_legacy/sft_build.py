@@ -31,7 +31,7 @@ from datetime import date
 from pathlib import Path
 
 from gemma_tools.health_table import load_health_table
-from gemma_tools.sft_dataset import (
+from gemma_tools._legacy.sft_dataset import (
     SplitName,
     dedupe_pool,
     load_bench_prompts,
@@ -44,9 +44,9 @@ from gemma_tools.sft_dataset import (
 # Defaults match the canonical fixture paths under data/. Callers can
 # override via CLI flags but the in-tree defaults exist so a `sft-build` with
 # no args runs the canonical pipeline straight from a clean checkout.
-_REPO = Path(__file__).resolve().parents[2]
-_DEFAULT_POOL = _REPO / "data" / "clean_sft_dataset.json"
-_DEFAULT_PROMPTS = _REPO / "data" / "prompts.yaml"
+_REPO = Path(__file__).resolve().parents[3]
+_DEFAULT_POOL = _REPO / "data" / "_legacy" / "clean_sft_dataset.json"
+_DEFAULT_PROMPTS = _REPO / "data" / "_legacy" / "prompts.yaml"
 _DEFAULT_HEALTH = _REPO / "data" / "health_table_v1.yaml"
 _DEFAULT_OUT = _REPO / "data"
 

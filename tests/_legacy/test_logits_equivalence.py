@@ -7,8 +7,8 @@ from pathlib import Path
 
 import pytest
 
-from gemma_tools.bench_prompt import wrap_gemma3_chat_template
-from gemma_tools.logits_equivalence import (
+from gemma_tools._legacy.bench_prompt import wrap_gemma3_chat_template
+from gemma_tools._legacy.logits_equivalence import (
     _OOD_PROMPTS,
     H5RVerdict,
     KLStats,

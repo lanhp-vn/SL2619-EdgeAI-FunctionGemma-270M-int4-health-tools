@@ -39,12 +39,14 @@ functiongemma = [
 ]
 
 [project.scripts]
-bench-prompt = "gemma_tools.bench_prompt:main"
-bench-eval = "gemma_tools.bench_eval:main"
-bench-remote = "gemma_tools.bench_remote:main"
-chat-probe = "gemma_tools.chat_probe:main"
-sft-build = "gemma_tools.sft_build:main"
-logits-equiv = "gemma_tools.logits_equivalence:main"
+# Legacy gemma3-270m health-QA SFT path — kept runnable for reference.
+# Active modules live under src/gemma_tools/_legacy/.
+bench-prompt = "gemma_tools._legacy.bench_prompt:main"
+bench-eval = "gemma_tools._legacy.bench_eval:main"
+bench-remote = "gemma_tools._legacy.bench_remote:main"
+chat-probe = "gemma_tools._legacy.chat_probe:main"
+sft-build = "gemma_tools._legacy.sft_build:main"
+logits-equiv = "gemma_tools._legacy.logits_equivalence:main"
 
 [build-system]
 requires = ["hatchling"]

@@ -67,7 +67,7 @@ from functiongemma_smoke import parse_function_calls  # noqa: E402
 # `llama_perf_context_print:` and the newer `common_perf_print:` (b8925+),
 # matching the on-board build (`0adede8`).
 sys.path.insert(0, str(REPO_ROOT / "src"))
-from gemma_tools.bench_prompt import parse_llama_perf  # noqa: E402
+from gemma_tools._legacy.bench_prompt import parse_llama_perf  # noqa: E402
 
 DEFAULT_MODEL_PATH = REPO_ROOT / "model.gguf"
 DEFAULT_TOKENIZER_DIR = REPO_ROOT / "model"

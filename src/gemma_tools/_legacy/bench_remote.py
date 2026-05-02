@@ -44,7 +44,7 @@ from dataclasses import asdict, dataclass
 from datetime import date, datetime
 from pathlib import Path
 
-from gemma_tools.bench_prompt import (
+from gemma_tools._legacy.bench_prompt import (
     BenchRow,
     LlamaCompletionError,
     PromptSpec,
@@ -54,7 +54,7 @@ from gemma_tools.bench_prompt import (
     score_response,
 )
 from gemma_tools.health_table import HealthTable, load_health_table
-from gemma_tools.prompt_composer import compose_user_text
+from gemma_tools._legacy.prompt_composer import compose_user_text
 
 __all__ = [
     "RemoteBenchConfig",

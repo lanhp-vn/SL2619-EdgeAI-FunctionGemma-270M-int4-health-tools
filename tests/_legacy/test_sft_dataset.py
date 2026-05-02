@@ -14,7 +14,7 @@ from pathlib import Path
 import pytest
 
 from gemma_tools.health_table import HealthTable, Patient, Vitals
-from gemma_tools.sft_dataset import (
+from gemma_tools._legacy.sft_dataset import (
     NEAR_DUPLICATE_RATIO,
     SFT_CLASSES,
     TEST_CLASS_DRAIN_LIMIT,
@@ -34,9 +34,9 @@ from gemma_tools.sft_dataset import (
     write_split_jsonl,
 )
 
-_REPO = Path(__file__).resolve().parents[1]
-_CANONICAL_POOL = _REPO / "data" / "clean_sft_dataset.json"
-_CANONICAL_PROMPTS = _REPO / "data" / "prompts.yaml"
+_REPO = Path(__file__).resolve().parents[2]
+_CANONICAL_POOL = _REPO / "data" / "_legacy" / "clean_sft_dataset.json"
+_CANONICAL_PROMPTS = _REPO / "data" / "_legacy" / "prompts.yaml"
 
 
 def _write_pool(tmp_path: Path, records: list[dict[str, object]]) -> Path:
@@ -250,7 +250,7 @@ def test_classify_record_canonical_pool_distribution() -> None:
 
 def test_load_bench_prompts_canonical_count() -> None:
     prompts = load_bench_prompts(_CANONICAL_PROMPTS)
-    # 15 entries in data/prompts.yaml today; bound is exact and fails
+    # 15 entries in data/_legacy/prompts.yaml today; bound is exact and fails
     # loudly on intentional drift.
     assert len(prompts) == 15, f"prompts.yaml entry count drifted: {len(prompts)}"
 
