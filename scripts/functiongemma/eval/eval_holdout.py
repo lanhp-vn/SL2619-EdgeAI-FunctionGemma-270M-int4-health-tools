@@ -524,7 +524,7 @@ def _build_arg_parser() -> argparse.ArgumentParser:
         "--output",
         type=Path,
         default=None,
-        help="Output Markdown summary. Default: docs/bench/<today>_functiongemma-eval.md.",
+        help="Output Markdown summary. Default: docs/bench-notes/functiongemma/<today>_functiongemma-eval.md.",
     )
     p.add_argument(
         "--list-categories",
@@ -584,7 +584,7 @@ def main(argv: list[str] | None = None) -> int:
         return 2
 
     output: Path = args.output or (
-        Path("docs/bench") / f"{datetime.date.today().isoformat()}_functiongemma-eval.md"
+        Path("docs/bench-notes/functiongemma") / f"{datetime.date.today().isoformat()}_functiongemma-eval.md"
     )
 
     # Inference loop. Pass the messages-prefix (everything before the first

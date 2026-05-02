@@ -16,7 +16,7 @@ dataset the bottleneck, or is the recipe?" -- with D3 (argument-value
 overlap between train and eval) being the headline test.
 
 Read-only on `data/functiongemma/`. Writes a Markdown report to
-`docs/bench/2026-05-01_functiongemma-dataset-audit.md` by default.
+`docs/bench-notes/functiongemma/2026-05-01_functiongemma-dataset-audit.md` by default.
 """
 
 from __future__ import annotations
