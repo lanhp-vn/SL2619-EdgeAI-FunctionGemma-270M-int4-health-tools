@@ -1,0 +1,118 @@
+{
+  "task_description": "You are an intelligent assistant for a single patient. Given the conversation history and the most recent user message, you MUST emit exactly one function call against the patient-record tool registry. Never reply in natural language, never refuse, never explain that the data is unavailable \u2014 the runtime handles all of that downstream. The patient record covers vitals, current medication schedule, allergies, food interactions, next appointment, and emergency contact.\n\nROUTING RULES (apply in order; the first match wins):\n\n1. Any question about a vital sign, lab value, or biometric \u2014 INCLUDING values not directly listed in get_vitals's schema (cholesterol, LDL, HDL, total cholesterol, triglycerides, A1C, fasting glucose, blood glucose, oxygen saturation / SpO2 / oxygen level, body temperature, blood pressure, heart rate, respiratory rate, weight, BMI, blood type, immunization status, smoking status, alcohol use, family history) \u2014 call get_vitals() with empty parameters. Do NOT skip the call just because the registry does not store that specific value; the runtime decides what to surface.\n\n2. Any question about an upcoming appointment, scheduled visit, or named provider (e.g. 'When do I see Dr. Chen next?', 'Who is my primary care physician?', 'What is the date of my upcoming visit?') \u2014 call get_next_appointment() with empty parameters. The tool takes no arguments; do NOT try to filter by provider name.\n\n3. Any question about allergies (existence, severity, reaction, specific allergens) \u2014 call list_allergies() with empty parameters. Do NOT skip the call when the user phrases it as 'Do I have any allergies?' or names a specific allergen \u2014 the tool returns the full list and the runtime filters.\n\n4. Any question about an emergency contact, insurance information, mailing address, home address, or member ID \u2014 call get_emergency_contact() with empty parameters. Insurance and address fields not stored in the schema still route here.\n\n5. Any question about whether a food interacts with the patient's medication or diet (e.g. 'Can I have grapefruit?', 'Is it OK to drink milk with this?') \u2014 call check_food_interaction(food=<the food in the question, lowercased>).\n\n6. Any question about which medications are scheduled at a given clock time (morning = 08:00, noon = 12:00, afternoon ~ 15:00, evening / dinner = 19:00, night ~ 21:00) \u2014 call get_medications_at_time(time_24h=<HH:MM>). Always use 24-hour HH:MM, padded with a leading zero.\n\n7. Any question about a specific medication by name, dose, purpose, or food-interaction guidance for a single med \u2014 call get_medication_by_name(name=<the medication string from the user phrasing>). Use the user's literal medication phrasing, including ambiguous prefixes like 'A' or 'at'; the lookup is case-insensitive and the runtime resolves prefixes itself.\n\nFor zero-parameter tools (get_vitals, list_allergies, get_next_appointment, get_emergency_contact), parameters MUST be the empty object {} \u2014 even when the user provides extra context like a provider name, severity, or specific value. Always emit a single function call.",
+  "tools": [
+    {
+      "type": "function",
+      "function": {
+        "name": "get_vitals",
+        "description": "Return the patient's most recent vital-sign measurements (heart rate, blood pressure, SpO2, body temperature, respiratory rate) along with the timestamp they were taken.",
+        "parameters": {
+          "additionalProperties": false,
+          "properties": {},
+          "type": "object",
+          "required": []
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "get_medications_at_time",
+        "description": "List medications scheduled to be taken at a specific 24-hour clock time. Match is exact against the normalized HH:MM schedule.",
+        "parameters": {
+          "additionalProperties": false,
+          "properties": {
+            "time_24h": {
+              "description": "24-hour clock time in HH:MM format, e.g. '08:00' or '19:00'.",
+              "type": "string"
+            }
+          },
+          "required": [
+            "time_24h"
+          ],
+          "type": "object"
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "get_medication_by_name",
+        "description": "Look up a medication by name. Match is case-insensitive: exact match wins, otherwise a unique prefix match. An ambiguous prefix returns an error dict so the caller can re-prompt.",
+        "parameters": {
+          "additionalProperties": false,
+          "properties": {
+            "name": {
+              "description": "Medication name. Lookup is case-insensitive: exact match wins; otherwise a unique prefix match wins; ambiguous prefixes return an error dict.",
+              "type": "string"
+            }
+          },
+          "required": [
+            "name"
+          ],
+          "type": "object"
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "list_allergies",
+        "description": "List all known allergies for the patient with their severity and reaction.",
+        "parameters": {
+          "additionalProperties": false,
+          "properties": {},
+          "type": "object",
+          "required": []
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "check_food_interaction",
+        "description": "Check whether a given food interacts with any of the patient's medications or dietary restrictions. Returns an `interacts` bool, the list of medication names that flag the food, and the matching dietary-restriction rule if any.",
+        "parameters": {
+          "additionalProperties": false,
+          "properties": {
+            "food": {
+              "description": "Food name to check for medication or dietary interactions, e.g. 'grapefruit'. Case-insensitive.",
+              "type": "string"
+            }
+          },
+          "required": [
+            "food"
+          ],
+          "type": "object"
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "get_next_appointment",
+        "description": "Return the earliest upcoming appointment by date and time, with provider, purpose, and location.",
+        "parameters": {
+          "additionalProperties": false,
+          "properties": {},
+          "type": "object",
+          "required": []
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "get_emergency_contact",
+        "description": "Return the first listed emergency contact (name, relation, phone).",
+        "parameters": {
+          "additionalProperties": false,
+          "properties": {},
+          "type": "object",
+          "required": []
+        }
+      }
+    }
+  ],
+  "llm_as_a_judge_instructions": "Mark a prediction good if and only if (1) the predicted tool name equals the gold tool name exactly, and (2) the predicted parameters dict matches the gold parameters dict after lowercasing all string values and trimming surrounding whitespace, with the special-case rules below. Ignore the order of keys in parameters. Do not penalize formatting differences in floats (e.g. 36.7 vs 36.70). Mark bad if the prediction returns multiple tool calls, returns natural-language only, or returns a tool name not in the registry.\n\nSPECIAL-CASE RULES for parameter equivalence:\n\n(a) For tools whose schema declares no parameters (get_vitals, list_allergies, get_next_appointment, get_emergency_contact), the predicted parameters MUST be an empty object {}.\n\n(b) For get_medication_by_name(name=...): treat a predicted `name` as equivalent to the gold `name` if EITHER (i) they match exactly after lowercasing/trimming, OR (ii) one is a case-insensitive prefix of the other and would resolve to the same medication under a case-insensitive prefix lookup. Examples that should be marked GOOD: gold='at' / pred='Atorvastatin' (prefix resolves to a unique medication); gold='Atorvastatin' / pred='atorvastatin' (case folds match); gold='A' / pred='A' (literal match). Examples that should be marked BAD: gold='atorvastatin' / pred='metformin' (different medications).\n\n(c) For check_food_interaction(food=...): accept any case-insensitive substring match of the gold food in the predicted food (or vice versa) — 'grapefruit' and 'grapefruit juice' both refer to the same interaction.\n\n(d) For get_medications_at_time(time_24h=...): accept the predicted time if it parses to the same hour and minute as the gold (e.g. '8:00' is equivalent to '08:00'). Reject if the hour or minute differs."
+}

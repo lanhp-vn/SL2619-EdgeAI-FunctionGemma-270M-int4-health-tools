@@ -28,6 +28,15 @@
 >    also does not expose the synthesized training corpus (only test-set
 >    predictions per `references/tasks/retrieve-predictions.md`), so "use Distil
 >    as a synthetic-data generator only" is not a viable workaround.
+>    **>>> SUPERSEDED 2026-05-01:** the local catalog snapshot is stale.
+>    The distil-labs blog "Making FunctionGemma Work" and the public HF model
+>    `distil-labs/distil-home-assistant-functiongemma` both train
+>    `functiongemma-270m-it` on `multi-turn-tool-calling-closed-book` and ship
+>    the resulting checkpoint. The conflict is resolved at platform-call time
+>    via `distil model upload-data --dry-run` (no credit cost). See
+>    [`docs/bench/2026-05-01_functiongemma-distil-labs-data-plan.md`](../../bench/2026-05-01_functiongemma-distil-labs-data-plan.md).
+>    The "Distil as synthetic-data generator only" rejection still holds —
+>    Distil ships a model artifact, not its synthetic dataset.
 > 2. **SyNAP toolkit is not for LLMs.** Vendor working-with-models doc lists
 >    only TFLite/ONNX/TorchScript/TF/Caffe → vision toolkit. **llama.cpp is the
 >    canonical CPU runtime** — Distil's own `deployment-integration.md` agrees.
@@ -1705,6 +1714,44 @@ Tests: `tests/test_finetune_functiongemma_weighting.py` — 14 cases including
 the equivalence-with-weight-1.0 guarantee and the
 `test_weighted_collator_prefers_row_weight_over_category` test that pins the
 collator behavior. 551 host tests green.
+
+#### Distil Labs path status — plan landed (2026-05-01) — AWAITING DRY-RUN
+
+Bench note `docs/bench/2026-05-01_functiongemma-distil-labs-data-plan.md`
++ candidate iteration directory `distil_functiongemma_iteration_001/`
+(50 train + 24 test rows, fl + fa + te only) drafted. **Strategy: use
+Distil for the 5 tool-call categories; keep refusals on the local F1+F5
+path.** Refusals (`medical_advice_refusal`, `off_topic_refusal`) and
+`parallel_call` are deliberately excluded from the iteration_001 set —
+they violate Distil's "exactly one tool call per assistant turn" rule
+without a contract change.
+
+The §"Two findings" 2026-04-29 conclusion that Distil cannot train FG-270M
+for tool-calling is **superseded** by the distil-labs blog +
+`distil-labs/distil-home-assistant-functiongemma` HF model card, both of
+which train FunctionGemma on `multi-turn-tool-calling-closed-book`. The
+local skill catalog snapshot is stale; resolution is the platform
+itself, via `distil model upload-data --dry-run` (no credit cost).
+
+Next runnable command (awaiting user "go"):
+
+```bash
+distil update
+distil model create fg-distil-feasibility
+distil model upload-data <model-id> \
+  --data ./distil_functiongemma_iteration_001 --dry-run
+```
+
+Acceptance: exit 0 ⇒ proceed to Run 1 (consumes ≥ 1 of the 2 free runs);
+rejection on `student_model_name` ⇒ fall back to Plan B (Qwen3-0.6B
+benchmark, same data). All other failure modes (file format, JSON
+escaping) are caught by the `--dry-run` itself, before any credit-bearing
+call.
+
+Local preflight gates green at file authoring time:
+- PHI scan: clean (`scripts/pre-commit-functiongemma.py`)
+- JSONL parse: 50 train rows + 24 test rows, all valid
+- Tool registry: 7 tools byte-equal to `data/functiongemma/tools_v1.yaml`
 
 #### Dropped hypotheses (saved investigators a week of dead ends)
 

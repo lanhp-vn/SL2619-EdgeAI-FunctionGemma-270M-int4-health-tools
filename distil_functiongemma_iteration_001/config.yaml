@@ -1,0 +1,30 @@
+# Distil iteration 001 — FunctionGemma 270M-IT, multi-turn tool calling.
+# Authoritative reference: docs/bench/2026-05-01_functiongemma-distil-labs-data-plan.md §5.
+#
+# Catalog conflict (resolved at upload-time via --dry-run): the local
+# distil-cli-skill model-catalog says tool-calling tasks are restricted
+# to Qwen3 / Llama 3-family students, but the public distil-labs blog
+# (and the distil-labs/distil-home-assistant-functiongemma HF model card)
+# both train functiongemma-270m-it on multi-turn-tool-calling-closed-book.
+# The dry-run is the keystone test; if the platform rejects FG-270M,
+# switch to Plan B (Qwen3-0.6B benchmark, same data).
+
+base:
+  task: multi-turn-tool-calling-closed-book
+  student_model_name: functiongemma-270m-it
+  teacher_model_name: openai.gpt-oss-120b
+  random_seed: 3407
+
+synthgen:
+  generation_target: 5000
+  output_is_json: true
+  validation_similarity_threshold: 0.90  # default 0.95; loosened to widen scenario coverage
+  parallel_llm_calls: true
+  basic_mutators_to_use: ["complexity"]
+  mutation_topics:
+    - ["lab and vitals queries", "non-stored measurements", "scheduled medication slot lookup", "tool error recovery", "follow-up dependent on prior turn"]
+    - ["short single-turn", "two-turn slot fill", "noisy or colloquial phrasing"]
+
+evaluation:
+  num_few_shot_examples: 1
+  expand_tool_calling_turns: true

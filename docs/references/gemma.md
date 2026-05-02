@@ -18,7 +18,7 @@ is the contract for `prompt_composer.py` literals (`<start_of_turn>`,
 **Vendor policy:** link-only. The chat-template token strings are inlined
 in `src/gemma_tools/prompt_composer.py` as constants — replicate, don't import.
 
-## FunctionGemma (270M function-calling variant)
+## FunctionGemma (270M function-calling variant)cl
 
 | Source | URL | Authoritative for |
 |---|---|---|

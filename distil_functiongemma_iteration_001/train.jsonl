@@ -1,0 +1,50 @@
+{"question": "[{\"role\": \"user\", \"content\": \"What's my cholesterol level?\"}]", "answer": "{\"name\": \"get_vitals\", \"parameters\": {}}"}
+{"question": "[{\"role\": \"user\", \"content\": \"What's my fasting blood glucose?\"}]", "answer": "{\"name\": \"get_vitals\", \"parameters\": {}}"}
+{"question": "[{\"role\": \"user\", \"content\": \"What was my weight at the last visit?\"}]", "answer": "{\"name\": \"get_vitals\", \"parameters\": {}}"}
+{"question": "[{\"role\": \"user\", \"content\": \"What's my A1C?\"}]", "answer": "{\"name\": \"get_vitals\", \"parameters\": {}}"}
+{"question": "[{\"role\": \"user\", \"content\": \"What's my heart rate?\"}]", "answer": "{\"name\": \"get_vitals\", \"parameters\": {}}"}
+{"question": "[{\"role\": \"user\", \"content\": \"What is my blood pressure?\"}]", "answer": "{\"name\": \"get_vitals\", \"parameters\": {}}"}
+{"question": "[{\"role\": \"user\", \"content\": \"What's my body temperature?\"}]", "answer": "{\"name\": \"get_vitals\", \"parameters\": {}}"}
+{"question": "[{\"role\": \"user\", \"content\": \"What allergies do I have?\"}]", "answer": "{\"name\": \"list_allergies\", \"parameters\": {}}"}
+{"question": "[{\"role\": \"user\", \"content\": \"What medications do I take in the morning?\"}]", "answer": "{\"name\": \"get_medications_at_time\", \"parameters\": {\"time_24h\": \"08:00\"}}"}
+{"question": "[{\"role\": \"user\", \"content\": \"What dose of metformin do I take?\"}]", "answer": "{\"name\": \"get_medication_by_name\", \"parameters\": {\"name\": \"metformin\"}}"}
+{"question": "[{\"role\": \"user\", \"content\": \"When is my next appointment?\"}]", "answer": "{\"name\": \"get_next_appointment\", \"parameters\": {}}"}
+{"question": "[{\"role\": \"user\", \"content\": \"Who's my emergency contact?\"}]", "answer": "{\"name\": \"get_emergency_contact\", \"parameters\": {}}"}
+{"question": "[{\"role\": \"user\", \"content\": \"Does grapefruit interact with my medications?\"}]", "answer": "{\"name\": \"check_food_interaction\", \"parameters\": {\"food\": \"grapefruit\"}}"}
+{"question": "[{\"role\": \"user\", \"content\": \"What is my SpO2?\"}]", "answer": "{\"name\": \"get_vitals\", \"parameters\": {}}"}
+{"question": "[{\"role\": \"user\", \"content\": \"When do I take Atorvastatin?\"}]", "answer": "{\"name\": \"get_medication_by_name\", \"parameters\": {\"name\": \"atorvastatin\"}}"}
+{"question": "[{\"role\": \"user\", \"content\": \"What should I take at 7 pm?\"}]", "answer": "{\"name\": \"get_medications_at_time\", \"parameters\": {\"time_24h\": \"19:00\"}}"}
+{"question": "[{\"role\": \"user\", \"content\": \"Tell me about that A-something pill.\"}]", "answer": "{\"name\": \"get_medication_by_name\", \"parameters\": {\"name\": \"A\"}}"}
+{"question": "[{\"role\": \"user\", \"content\": \"Do I take ibuprofen?\"}]", "answer": "{\"name\": \"get_medication_by_name\", \"parameters\": {\"name\": \"ibuprofen\"}}"}
+{"question": "[{\"role\": \"user\", \"content\": \"Am I on warfarin?\"}]", "answer": "{\"name\": \"get_medication_by_name\", \"parameters\": {\"name\": \"warfarin\"}}"}
+{"question": "[{\"role\": \"user\", \"content\": \"Anything to take at noon?\"}]", "answer": "{\"name\": \"get_medications_at_time\", \"parameters\": {\"time_24h\": \"12:00\"}}"}
+{"question": "[{\"role\": \"user\", \"content\": \"Anything at 3 pm?\"}]", "answer": "{\"name\": \"get_medications_at_time\", \"parameters\": {\"time_24h\": \"15:00\"}}"}
+{"question": "[{\"role\": \"user\", \"content\": \"Am I prescribed Tylenol?\"}]", "answer": "{\"name\": \"get_medication_by_name\", \"parameters\": {\"name\": \"Tylenol\"}}"}
+{"question": "[{\"role\": \"user\", \"content\": \"Can you show me my immunization history?\"}]", "answer": "{\"name\": \"get_vitals\", \"parameters\": {}}"}
+{"question": "[{\"role\": \"user\", \"content\": \"Am I up to date on my COVID vaccine?\"}]", "answer": "{\"name\": \"get_vitals\", \"parameters\": {}}"}
+{"question": "[{\"role\": \"user\", \"content\": \"When did I last get my flu shot?\"}]", "answer": "{\"name\": \"get_next_appointment\", \"parameters\": {}}"}
+{"question": "[{\"role\": \"user\", \"content\": \"What is my insurance policy number?\"}]", "answer": "{\"name\": \"get_emergency_contact\", \"parameters\": {}}"}
+{"question": "[{\"role\": \"user\", \"content\": \"Can you pull up my insurance member ID?\"}]", "answer": "{\"name\": \"get_emergency_contact\", \"parameters\": {}}"}
+{"question": "[{\"role\": \"user\", \"content\": \"What is my current home address?\"}]", "answer": "{\"name\": \"get_emergency_contact\", \"parameters\": {}}"}
+{"question": "[{\"role\": \"user\", \"content\": \"Do you have my mailing address on file?\"}]", "answer": "{\"name\": \"get_emergency_contact\", \"parameters\": {}}"}
+{"question": "[{\"role\": \"user\", \"content\": \"Who is listed as my primary care physician?\"}]", "answer": "{\"name\": \"get_next_appointment\", \"parameters\": {}}"}
+{"question": "[{\"role\": \"user\", \"content\": \"Is my smoking status updated?\"}]", "answer": "{\"name\": \"get_vitals\", \"parameters\": {}}"}
+{"question": "[{\"role\": \"user\", \"content\": \"How much alcohol use is noted in my file?\"}]", "answer": "{\"name\": \"get_vitals\", \"parameters\": {}}"}
+{"question": "[{\"role\": \"user\", \"content\": \"Is my family history of heart disease documented?\"}]", "answer": "{\"name\": \"get_vitals\", \"parameters\": {}}"}
+{"question": "[{\"role\": \"user\", \"content\": \"what meds do I take at 7pm\"}]", "answer": "{\"name\": \"get_medications_at_time\", \"parameters\": {\"time_24h\": \"19:00\"}}"}
+{"question": "[{\"role\": \"user\", \"content\": \"Why am I taking Vitamin D3?\"}]", "answer": "{\"name\": \"get_medication_by_name\", \"parameters\": {\"name\": \"Vitamin D3\"}}"}
+{"question": "[{\"role\": \"user\", \"content\": \"Can I have a grapefruit for breakfast?\"}]", "answer": "{\"name\": \"check_food_interaction\", \"parameters\": {\"food\": \"grapefruit\"}}"}
+{"question": "[{\"role\": \"user\", \"content\": \"Do I have any known allergies?\"}]", "answer": "{\"name\": \"list_allergies\", \"parameters\": {}}"}
+{"question": "[{\"role\": \"user\", \"content\": \"what was my last body temperature reading?\"}]", "answer": "{\"name\": \"get_vitals\", \"parameters\": {}}"}
+{"question": "[{\"role\": \"user\", \"content\": \"Do I need to eat when taking metformin?\"}]", "answer": "{\"name\": \"get_medication_by_name\", \"parameters\": {\"name\": \"metformin\"}}"}
+{"question": "[{\"role\": \"user\", \"content\": \"Who am I seeing for my next medical appointment?\"}]", "answer": "{\"name\": \"get_next_appointment\", \"parameters\": {}}"}
+{"question": "[{\"role\": \"user\", \"content\": \"How bad is my shellfish allergy?\"}]", "answer": "{\"name\": \"list_allergies\", \"parameters\": {}}"}
+{"question": "[{\"role\": \"user\", \"content\": \"What's my blood pressure?\"}]", "answer": "{\"name\": \"get_vitals\", \"parameters\": {}}"}
+{"question": "[{\"role\": \"user\", \"content\": \"What's the date of my upcoming visit?\"}]", "answer": "{\"name\": \"get_next_appointment\", \"parameters\": {}}"}
+{"question": "[{\"role\": \"user\", \"content\": \"Who should I call in an emergency?\"}]", "answer": "{\"name\": \"get_emergency_contact\", \"parameters\": {}}"}
+{"question": "[{\"role\": \"user\", \"content\": \"What's my SpO2?\"}]", "answer": "{\"name\": \"get_vitals\", \"parameters\": {}}"}
+{"question": "[{\"role\": \"user\", \"content\": \"List the allergies on my chart.\"}]", "answer": "{\"name\": \"list_allergies\", \"parameters\": {}}"}
+{"question": "[{\"role\": \"user\", \"content\": \"What about the medication beginning with A?\"}]", "answer": "{\"name\": \"get_medication_by_name\", \"parameters\": {\"name\": \"A\"}}"}
+{"question": "[{\"role\": \"user\", \"content\": \"The A one. What's its dose?\"}]", "answer": "{\"name\": \"get_medication_by_name\", \"parameters\": {\"name\": \"A\"}}"}
+{"question": "[{\"role\": \"user\", \"content\": \"A pill?\"}]", "answer": "{\"name\": \"get_medication_by_name\", \"parameters\": {\"name\": \"A\"}}"}
+{"question": "[{\"role\": \"user\", \"content\": \"How much Lisinopril do I take?\"}]", "answer": "{\"name\": \"get_medication_by_name\", \"parameters\": {\"name\": \"Lisinopril\"}}"}
