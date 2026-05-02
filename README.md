@@ -400,7 +400,3 @@ The legacy `_legacy/` track is preserved as a runnable reference (its tests stil
 - **PHI scanner gates ingest** — `scripts/pre_commit_phi_scanner.py` runs on every staged JSONL before merge.
 - **SSH to the board is read-only from agents** (R3) — deploy `scp`/`ssh` commands are emitted; the human runs them. `docs/tmp/` snapshots from `/board_probe` are gitignored.
 - **No private keys / passphrases / Tailscale IPs in tracked files.** SSH credentials live in `.claude/CLAUDE.local.md` (gitignored). `.gitignore` covers `.claude/`, model weights, and `docs/tmp/`.
-
-## License
-
-Model weights inherit the `gemma` license (open weights, license-gated download). Inference and finetune scripts in this repo are first-party. See [`releases/functiongemma-270m/001-baseline/merged/{LICENSE,STUDENT_LICENSE,TEACHER_LICENSE}`](releases/functiongemma-270m/001-baseline/merged/).
