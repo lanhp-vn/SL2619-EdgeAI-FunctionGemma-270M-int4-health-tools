@@ -137,6 +137,179 @@ def _render(tokenizer: Any, messages: list[dict[str, Any]]) -> str:
     return rendered
 
 
+# --------------------------------------------------------------------------
+# Natural-language formatter. The distilled model is closed-book — it only
+# emits tool calls. The application is responsible for turning the JSON tool
+# result into a sentence. This is rule-based (keyword sub-routing on the user
+# question), not another LLM call: zero latency, deterministic, easy to
+# debug. Keys are matched on the lowercased question.
+# --------------------------------------------------------------------------
+
+
+def _has(q: str, *keywords: str) -> bool:
+    return any(k in q for k in keywords)
+
+
+def _format_vitals(q: str, result: dict) -> str:
+    last = result.get("last_measured", "")
+    suffix = f" (measured {last})" if last else ""
+    if _has(q, "blood pressure", " bp", "bp?", "systolic", "diastolic", "tension"):
+        return (
+            f"Your blood pressure is {result['blood_pressure_systolic']}/"
+            f"{result['blood_pressure_diastolic']}{suffix}."
+        )
+    if _has(q, "heart rate", "pulse", "bpm", " hr"):
+        return f"Your heart rate is {result['heart_rate_bpm']} bpm{suffix}."
+    if _has(q, "oxygen", "spo2", "o2", "saturation"):
+        return f"Your oxygen saturation is {result['spo2_percent']}%{suffix}."
+    if _has(q, "temperature", "temp", "fever"):
+        return f"Your body temperature is {result['body_temperature_c']}°C{suffix}."
+    if _has(q, "breathing", "respiratory", "respiration"):
+        return f"Your respiratory rate is {result['respiratory_rate']} breaths/min{suffix}."
+    # Vitals fields the YAML doesn't store — model still calls get_vitals per
+    # RULE #1 ("do not skip the call just because the registry does not store
+    # that specific value"). Owning the graceful "no data" answer is exactly
+    # what the closed-book contract pushes onto the runtime.
+    if _has(q, "cholesterol", "ldl", "hdl", "triglyceride", "a1c", "glucose",
+            "sugar", "weight", "bmi", "blood type"):
+        return (
+            "That value isn't recorded in your vitals. "
+            "Available: heart rate, blood pressure, SpO2, temperature, respiratory rate"
+            f"{suffix}."
+        )
+    return (
+        f"HR {result['heart_rate_bpm']} bpm, "
+        f"BP {result['blood_pressure_systolic']}/{result['blood_pressure_diastolic']}, "
+        f"SpO2 {result['spo2_percent']}%, "
+        f"temp {result['body_temperature_c']}°C, "
+        f"resp {result['respiratory_rate']}/min{suffix}."
+    )
+
+
+def _format_allergies(q: str, result: list) -> str:
+    if not result:
+        return "No known allergies on file."
+    for entry in result:
+        sub = entry["substance"].lower()
+        if sub in q:
+            return (
+                f"Yes — you have a {entry['severity']} {entry['substance']} allergy "
+                f"({entry['reaction']})."
+            )
+    parts = [f"{e['substance']} ({e['severity']}, {e['reaction']})" for e in result]
+    plural = "y" if len(result) == 1 else "ies"
+    return f"You have {len(result)} known allerg{plural}: " + "; ".join(parts) + "."
+
+
+def _format_emergency(q: str, result: dict) -> str:
+    if _has(q, "phone", "number", "call", "reach"):
+        return f"Call {result['name']} ({result['relation']}) at {result['phone']}."
+    if _has(q, "who ", "name"):
+        return f"Your emergency contact is {result['name']} ({result['relation']})."
+    return (
+        f"Your emergency contact is {result['name']}, your {result['relation']}, "
+        f"at {result['phone']}."
+    )
+
+
+def _format_appointment(q: str, result: dict) -> str:
+    when = f"{result['date']} at {result['time']}"
+    # `why`/`purpose` must check before `who`/`doctor` — "Why am I seeing
+    # the doctor?" is a purpose question and contains both keywords.
+    if _has(q, "why", "purpose", "what for", "about"):
+        return f"Your next appointment is for {result['purpose']}."
+    if _has(q, "where", "location", "address"):
+        return f"Your next appointment is at {result['location']}."
+    if _has(q, "when", "date", "time"):
+        return f"Your next appointment is on {when}."
+    if _has(q, "who", "doctor", "provider", "with"):
+        return f"Your next appointment is with {result['provider']}."
+    return (
+        f"Your next appointment is {when} with {result['provider']} "
+        f"for {result['purpose']} at {result['location']}."
+    )
+
+
+def _format_medication(q: str, result: dict) -> str:
+    if "error" in result:
+        if result["error"] == "ambiguous":
+            return (
+                f'"{result["name"]}" is ambiguous — could be: '
+                + ", ".join(result["matches"]) + "."
+            )
+        if result["error"] == "no_match":
+            return f'No medication named "{result["name"]}" is on your record.'
+        return f"Lookup error: {result['error']}."
+    name = result["name"]
+    if _has(q, "dose", "how much", "how many"):
+        return f"Your {name} dose is {result['dose']}."
+    if _has(q, "purpose", "what for", "why am i taking", "why do i take"):
+        return f"You take {name} for {result['purpose']}."
+    if _has(q, "when", "schedule", "what time"):
+        return f"You take {name} at {result['schedule']}."
+    if "with food" in q:
+        clause = "with food" if result["with_food"] else "without a food requirement"
+        return f"Take {name} {clause}."
+    if _has(q, "avoid", "interact"):
+        foods = result.get("avoid_foods") or []
+        drugs = result.get("avoid_drugs") or []
+        if not foods and not drugs:
+            return f"No interaction warnings on file for {name}."
+        bits = []
+        if foods:
+            bits.append("avoid " + ", ".join(foods))
+        if drugs:
+            bits.append("avoid " + ", ".join(drugs) + " (drug interaction)")
+        return f"{name}: " + "; ".join(bits) + "."
+    food_clause = "with food" if result["with_food"] else "without food required"
+    return (
+        f"{name} {result['dose']} taken at {result['schedule']} "
+        f"({food_clause}) for {result['purpose']}."
+    )
+
+
+def _format_meds_at_time(args: dict, result: list) -> str:
+    when = args.get("time_24h", "(unknown)")
+    if not result:
+        return f"You have no medications scheduled at {when}."
+    parts = [f"{m['name']} {m['dose']}" for m in result]
+    return f"At {when} you take: " + ", ".join(parts) + "."
+
+
+def _format_food(args: dict, result: dict) -> str:
+    food = result.get("food", args.get("food", "that food"))
+    if not result["interacts"]:
+        return f"{food.capitalize()} is fine — no interaction with your medications or diet."
+    meds = result.get("with_meds") or []
+    rule = result.get("rule")
+    bits = []
+    if meds:
+        bits.append(f"interacts with {', '.join(meds)}")
+    if rule:
+        bits.append(f'flagged by your dietary rule: "{rule}"')
+    return f"Avoid {food} — " + " and ".join(bits) + "."
+
+
+def format_response(user_text: str, tool: str, args: dict, result: Any) -> str:
+    """Render a tool result as a single English sentence keyed off the question."""
+    q = user_text.lower()
+    if tool == "get_vitals":
+        return _format_vitals(q, result)
+    if tool == "list_allergies":
+        return _format_allergies(q, result)
+    if tool == "get_emergency_contact":
+        return _format_emergency(q, result)
+    if tool == "get_next_appointment":
+        return _format_appointment(q, result)
+    if tool == "get_medication_by_name":
+        return _format_medication(q, result)
+    if tool == "get_medications_at_time":
+        return _format_meds_at_time(args, result)
+    if tool == "check_food_interaction":
+        return _format_food(args, result)
+    return f"[no formatter for tool: {tool}]"
+
+
 def main(argv: list[str] | None = None) -> int:
     p = argparse.ArgumentParser(
         description="Interactive REPL for the distilled FunctionGemma GGUF.",
@@ -258,6 +431,7 @@ def main(argv: list[str] | None = None) -> int:
                         print(f"  [tool error] {exc}")
                     else:
                         print(f"  ⤷ {json.dumps(result, ensure_ascii=False, default=str)}")
+                        print(f"  >> {format_response(user_text, c['tool'], c['args'], result)}")
         else:
             # Surface malformed output so the tester sees the failure mode
             # instead of silently appending junk to history.
