@@ -155,9 +155,13 @@ Upstream skill reference: `.claude/skills/distil-cli/distil-cli/SKILL.md`.
 
 `scripts/functiongemma/train/finetune_local.py` is the runnable fallback
 when the Distil platform is unavailable or when full hyperparameter control
-is needed. Mirrors the LoRA r=64 / α=64 / `q_proj,v_proj` / 4-epoch shape
-of iteration 001. Server-side: requires `nouslogic-server` (RTX 5080,
-~16 GiB VRAM, cu128 stack provisioned by `scripts/setup/server-bootstrap.sh`).
+is needed. Implements two vendor-faithful baselines selectable via
+`--recipe {mobile_actions_hf, mobile_actions_tunix}`. Mirrors the LoRA
+r=64 / `q_proj,v_proj` / 4-epoch shape of iteration 001 via the override
+flags. Server-side: requires `nouslogic-server` (RTX 5080, ~16 GiB VRAM,
+cu128 stack provisioned by `scripts/setup/server-bootstrap.sh`).
+Run `uv run python scripts/functiongemma/train/finetune_local.py --help`
+for the full flag set; `--dry-run` validates splits without a GPU.
 
 ## Tool registry
 

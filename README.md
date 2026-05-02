@@ -168,8 +168,11 @@ scp -r src/gemma_tools/functiongemma/ src/gemma_tools/health_table.py \
     nouslogic-server:~/functiongemma-finetune/gemma_tools/
 
 # 4. Run SFT (server-side; takes ~60 min on RTX 5080)
+#    Flags match `finetune_local.py --help` (vendor-faithful recipes).
 ssh nouslogic-server 'cd ~/functiongemma-finetune && source .venv/bin/activate && \
-    python finetune_local.py --output-dir outputs/iter-002'
+    python finetune_local.py --recipe mobile_actions_hf \
+        --train-file data/train.jsonl --val-file data/val.jsonl \
+        --output-dir outputs/iter-002 --epochs 4'
 
 # 5. Pull merged weights back to host
 scp -r nouslogic-server:~/functiongemma-finetune/outputs/iter-002/ \

@@ -150,15 +150,16 @@ scp -r src/gemma_tools/functiongemma/ src/gemma_tools/health_table.py \
 scp data/functiongemma/dataset_v1/{train,val,test}.jsonl \
     nouslogic-server:~/functiongemma-finetune/data/
 
-# 4. Run SFT (~60 min on RTX 5080)
+# 4. Run SFT (~60 min on RTX 5080) — flags follow finetune_local.py --help
 ssh nouslogic-server 'cd ~/functiongemma-finetune && source .venv/bin/activate && \
     python finetune_local.py \
-        --train-data data/train.jsonl \
-        --val-data data/val.jsonl \
+        --recipe mobile_actions_hf \
+        --train-file data/train.jsonl \
+        --val-file data/val.jsonl \
         --output-dir outputs/iter-002 \
-        --lora-r 64 --lora-alpha 64 --lora-dropout 0.0 \
-        --target-modules q_proj v_proj \
-        --num-epochs 4'
+        --lora-r 64 --lora-dropout 0.0 \
+        --target-modules q_proj,v_proj \
+        --epochs 4'
 
 # 5. Merge LoRA → full BF16 (server-side)
 ssh nouslogic-server 'cd ~/functiongemma-finetune && python merge_v2.py \
