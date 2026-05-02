@@ -165,8 +165,6 @@ Every normative fact, procedure, spec, or reusable table lives in **one** Markdo
 | Python 3.11+ style | `docs/conventions/code-style-python.md` |
 | Bash style | `docs/conventions/code-style-shell.md` |
 | Testing pyramid + table-driven idioms | `docs/conventions/testing.md` |
-| Git workflow (branches, commits, PRs) | `docs/conventions/git-workflow.md` |
-| Module layering discipline | `docs/conventions/module-layering.md` |
 | Doc-update protocol + DRY registry (this file) | `docs/conventions/doc-update.md` |
 
 #### Upstream source code

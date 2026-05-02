@@ -17,10 +17,10 @@ Distil Labs).
 | Final eval (24-row contaminated holdout) | judge 0.9583, ROUGE 0.9142, tool-call equivalence 0.9583, binary 0.9583, staged 0.9583 |
 
 The full upload / re-upload / teacher-eval timeline is in
-`distil/iterations/001-baseline/README.md` (3 prompt-engineering iterations
+`distil/README.md` (3 prompt-engineering iterations
 v1 → v2 → v3 lifted judge from 0.7917 → 0.8750 → 0.9583).
 
-Per-row analysis: `distil/iterations/001-baseline/training-analysis.md`.
+Per-row analysis: `distil/training-analysis.md`.
 
 ## Hyperparameters
 
@@ -38,16 +38,16 @@ Per-row analysis: `distil/iterations/001-baseline/training-analysis.md`.
 | Synthetic data generated | 5004 examples (57 iterations) |
 | Final train shape | 5054 (50 seeds + 5004 synth), expanded to 7481 multi-turn samples |
 
-Full Distil config: `distil/iterations/001-baseline/config.yaml`.
+Full Distil config: `distil/config.yaml`.
 Full job description (routing rules + judge instructions):
-`distil/iterations/001-baseline/job_description.json`.
+`distil/job_description.json`.
 
 ## Source data
 
 | File | Rows | Origin |
 |---|---|---|
-| `distil/iterations/001-baseline/data/train.jsonl` | 50 | Hand-authored seeds covering 7 tools (fl×25, fa×15, te×10) |
-| `distil/iterations/001-baseline/data/test.jsonl` | 24 | Held-out gold (fl×8, fa×8, te×8) — byte-equal to `data/functiongemma/eval_holdout_v1.jsonl` |
+| `distil/data/train.jsonl` | 50 | Hand-authored seeds covering 7 tools (fl×25, fa×15, te×10) |
+| `distil/data/test.jsonl` | 24 | Held-out gold (fl×8, fa×8, te×8) — byte-equal to `data/functiongemma/eval_holdout_v1.jsonl` |
 
 Refusal classes (`medical_advice_refusal`, `off_topic_refusal`) and
 `parallel_call` are deliberately excluded from this iteration — Distil's
@@ -67,7 +67,7 @@ training; it failed to clear the bar (see
    ```
 
 3. **Stage training data** in the same shape as
-   `distil/iterations/001-baseline/data/`:
+   `distil/data/`:
    - `train.jsonl` — seed conversations.
    - `test.jsonl` — held-out gold; cross-set duplicates of `(question, answer)`
      are rejected by the platform.
@@ -178,7 +178,7 @@ scp -r nouslogic-server:~/functiongemma-finetune/outputs/iter-002* \
 
 ```bash
 uv run python scripts/functiongemma/chat.py \
-    --model releases/functiongemma-270m/001-baseline/gguf/model.gguf \
+    --model releases/functiongemma-270m/001-baseline/gguf/finetuned_functiongemma_fp16.gguf \
     --tokenizer releases/functiongemma-270m/001-baseline/merged \
     --probe "What is my blood pressure?"
 ```
@@ -197,8 +197,11 @@ Expected output:
 |---|---|
 | `merged/` | HF merged BF16 weights + tokenizer + chat template (for vLLM, Ollama, transformers) |
 | `adapter/` | LoRA adapter only (r=64, alpha=64) — re-attach to base model with `peft` |
-| `gguf/model.gguf` | FP16 GGUF for llama.cpp (518 MiB) |
-| `gguf/Modelfile` | Ollama Modelfile pointing at `model.gguf` |
+| `gguf/finetuned_functiongemma_fp16.gguf` | FP16 GGUF for llama.cpp (518 MiB) — distil iter-001 deployable, sha256 `1add620fbd45…`. Originally named `model.gguf`; renamed 2026-05-02 for unambiguous lineage. |
+| `gguf/finetuned_functiongemma_{q4_0,q4_k_m,q5_k_m,q8_0,iq4_xs}.gguf` | INT4/INT8 quants from the FP16 baseline — see `docs/bench-notes/functiongemma/2026-05-02_quantization-sweep.md` for the on-board sweep + recommended variant. Generate via `scripts/functiongemma/quantize/build_variants.sh`. |
+| `gguf/CHECKSUMS.txt` | sha256 of every `finetuned_functiongemma_*.gguf` — only authoritative record committed to git (.gguf files themselves are gitignored). |
+| `gguf/Modelfile` | Ollama Modelfile pointing at `finetuned_functiongemma_fp16.gguf` |
+| `gguf/RECOMMENDED.md` | Pinned recommendation for the on-board variant (filled in after the quant sweep). |
 | `model_client.py` | Distil deploy client (Ollama/vLLM HTTP wrapper) |
 | `RECIPE.md` | This file |
 

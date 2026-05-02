@@ -54,13 +54,27 @@ class EmptyArgs(_StrictBase):
 
 
 class TimeArgs(_StrictBase):
+    # Schema stays a plain string so the chat-template render the model
+    # sees matches the training shape (FG was trained on
+    # `{"type": "string", "required": ["time_24h"]}`); the only relaxation
+    # is `required: []` + empty-string default so `get_medications_at_time({})`
+    # is a list-all request, not an error. The model already emits `({})`
+    # for broad questions like "when should I take my pills?" — see
+    # 2026-05-02 REPL session, fixed alongside `_format_meds_at_time`.
     time_24h: str = Field(
-        description="24-hour clock time in HH:MM format, e.g. '08:00' or '19:00'.",
+        default="",
+        description=(
+            "24-hour clock time in HH:MM format, e.g. '08:00' or '19:00'. "
+            "Omit (or pass an empty string) to list every medication with "
+            "its full schedule."
+        ),
     )
 
     @field_validator("time_24h")
     @classmethod
     def _validate_hhmm(cls, value: str) -> str:
+        if value == "":
+            return ""
         if not _HHMM_RE.match(value):
             raise ValueError(
                 f"time_24h must match HH:MM in [00:00..23:59], got {value!r}",
@@ -127,6 +141,11 @@ def _get_vitals(_args: EmptyArgs, table: HealthTable) -> dict[str, Any]:
 
 def _get_medications_at_time(args: TimeArgs, table: HealthTable) -> list[dict[str, Any]]:
     target = args.time_24h
+    meds = (
+        table.medications
+        if target == ""
+        else [m for m in table.medications if target in _split_schedule(m.schedule)]
+    )
     return [
         {
             "name": m.name,
@@ -135,8 +154,7 @@ def _get_medications_at_time(args: TimeArgs, table: HealthTable) -> list[dict[st
             "with_food": m.with_food,
             "purpose": m.purpose,
         }
-        for m in table.medications
-        if target in _split_schedule(m.schedule)
+        for m in meds
     ]
 
 

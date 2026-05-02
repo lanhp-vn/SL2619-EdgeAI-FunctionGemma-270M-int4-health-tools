@@ -70,7 +70,7 @@ sys.path.insert(0, str(REPO_ROOT / "src"))
 from gemma_tools._legacy.bench_prompt import parse_llama_perf  # noqa: E402
 
 DEFAULT_RELEASE_DIR = REPO_ROOT / "releases" / "functiongemma-270m" / "001-baseline"
-DEFAULT_MODEL_PATH = DEFAULT_RELEASE_DIR / "gguf" / "model.gguf"
+DEFAULT_MODEL_PATH = DEFAULT_RELEASE_DIR / "gguf" / "finetuned_functiongemma_fp16.gguf"
 DEFAULT_TOKENIZER_DIR = DEFAULT_RELEASE_DIR / "merged"
 DEFAULT_BENCH_DIR = REPO_ROOT / "bench" / "functiongemma" / "runs"
 DEFAULT_CTX_SIZE = 4096
@@ -241,6 +241,12 @@ def _build_remote_argv(
     temperature: float,
     top_k: int,
     seed: int,
+    *,
+    ctx_size: int | None = None,
+    batch_size: int | None = None,
+    cache_type_k: str | None = None,
+    cache_type_v: str | None = None,
+    flash_attn: bool = False,
 ) -> list[str]:
     """SSH argv: `ssh HOST 'BODY=$(cat); BINARY -m MODEL -p "$BODY" ...'`.
 
@@ -254,14 +260,34 @@ def _build_remote_argv(
 
     `-r "<end_function_call>"` (`--reverse-prompt`) is the early-stop guard
     against the user-reported repeated-call drift on greedy decoding.
+
+    Optional sweep knobs (None = let llama-completion use its built-in default
+    so quant sweep stage-1 stays minimal-and-comparable):
+      - ctx_size: -c
+      - batch_size: -b (logical prompt batch)
+      - cache_type_k / cache_type_v: --cache-type-k / --cache-type-v (e.g. q8_0)
+      - flash_attn: -fa (CPU flash attention)
     """
+    extra: list[str] = []
+    if ctx_size is not None:
+        extra += ["-c", str(ctx_size)]
+    if batch_size is not None:
+        extra += ["-b", str(batch_size)]
+    if cache_type_k is not None:
+        extra += ["--cache-type-k", cache_type_k]
+    if cache_type_v is not None:
+        extra += ["--cache-type-v", cache_type_v]
+    if flash_attn:
+        extra += ["-fa"]
+    extra_str = (" " + " ".join(extra)) if extra else ""
     remote_cmd = (
         f"BODY=$(cat); {binary_path} "
         f"-m {model_path} "
         f'-p "$BODY" '
         f"-t {n_threads} -n {max_new_tokens} "
         f"--temp {temperature} --top-k {top_k} --seed {seed} "
-        f'-r "<end_function_call>" '
+        f'-r "<end_function_call>"'
+        f"{extra_str} "
         f"-no-cnv --single-turn"
     )
     return ["ssh", ssh_host, remote_cmd]
@@ -300,6 +326,12 @@ def _run_remote(
     top_k: int,
     seed: int,
     timeout_s: float,
+    *,
+    ctx_size: int | None = None,
+    batch_size: int | None = None,
+    cache_type_k: str | None = None,
+    cache_type_v: str | None = None,
+    flash_attn: bool = False,
 ) -> BenchResult:
     """One prompt via SSH-piped llama-completion on the board.
 
@@ -324,6 +356,11 @@ def _run_remote(
             temperature=temperature,
             top_k=top_k,
             seed=seed,
+            ctx_size=ctx_size,
+            batch_size=batch_size,
+            cache_type_k=cache_type_k,
+            cache_type_v=cache_type_v,
+            flash_attn=flash_attn,
         )
         t0 = time.perf_counter()
         proc = subprocess.run(
@@ -451,8 +488,10 @@ def main(argv: list[str] | None = None) -> int:
                    help="SSH alias for mode=remote (e.g. nouslogic-sl2619).")
     p.add_argument("--remote-binary", default="/mnt/sdcard/llama-cpp/llama-completion",
                    help="Remote llama-completion path on the board.")
-    p.add_argument("--remote-model", default="/mnt/sdcard/models/functiongemma-270m/model.gguf",
-                   help="Remote GGUF path on the board.")
+    p.add_argument("--remote-model",
+                   default="/mnt/sdcard/models/functiongemma-270m/finetuned_functiongemma_fp16.gguf",
+                   help="Remote GGUF path on the board (default: FP16 baseline; pass an explicit "
+                        "path for any quant variant).")
     p.add_argument("--threads", type=int,
                    default=max(1, (os.cpu_count() or 4) // 2),
                    help="CPU threads (default: half of host cpu_count; on board pass --threads 2).")
@@ -468,6 +507,20 @@ def main(argv: list[str] | None = None) -> int:
                    help="Sampling seed (mode=remote only; default: 42 for reproducibility).")
     p.add_argument("--remote-timeout-s", type=float, default=DEFAULT_REMOTE_TIMEOUT_S,
                    help=f"Per-prompt SSH timeout (default: {DEFAULT_REMOTE_TIMEOUT_S}s).")
+    # Stage-2 sweep knobs (mode=remote only). None = let llama-completion's
+    # built-in default apply, so back-compat with stage-1 / earlier scripts.
+    p.add_argument("--remote-ctx-size", type=int, default=None,
+                   help="Pass -c <N> to remote llama-completion (default: built-in).")
+    p.add_argument("--remote-batch-size", type=int, default=None,
+                   help="Pass -b <N> to remote llama-completion (default: built-in).")
+    p.add_argument("--remote-cache-type-k", default=None,
+                   choices=("f16", "q8_0", "q4_0"),
+                   help="--cache-type-k for KV cache (default: built-in/f16).")
+    p.add_argument("--remote-cache-type-v", default=None,
+                   choices=("f16", "q8_0", "q4_0"),
+                   help="--cache-type-v for KV cache (default: built-in/f16).")
+    p.add_argument("--remote-flash-attn", action="store_true",
+                   help="Pass -fa to remote llama-completion (CPU flash attention).")
     p.add_argument("--limit", type=int, default=None,
                    help="Run only the first N prompts (smoke).")
     p.add_argument("--warmup", type=int, default=1,
@@ -533,7 +586,12 @@ def main(argv: list[str] | None = None) -> int:
                 _run_remote(args.ssh_host, _expand(args.remote_binary),
                             _expand(args.remote_model), tokenizer, pid, expected, text,
                             args.threads, args.max_new_tokens, args.temperature,
-                            args.top_k, args.seed, args.remote_timeout_s)
+                            args.top_k, args.seed, args.remote_timeout_s,
+                            ctx_size=args.remote_ctx_size,
+                            batch_size=args.remote_batch_size,
+                            cache_type_k=args.remote_cache_type_k,
+                            cache_type_v=args.remote_cache_type_v,
+                            flash_attn=args.remote_flash_attn)
 
     print(f"[bench] running {len(prompts)} prompt(s)...", file=sys.stderr)
     rows: list[BenchResult] = []
@@ -552,7 +610,12 @@ def main(argv: list[str] | None = None) -> int:
                 res = _run_remote(args.ssh_host, _expand(args.remote_binary),
                                   _expand(args.remote_model), tokenizer, pid, expected, text,
                                   args.threads, args.max_new_tokens, args.temperature,
-                                  args.top_k, args.seed, args.remote_timeout_s)
+                                  args.top_k, args.seed, args.remote_timeout_s,
+                                  ctx_size=args.remote_ctx_size,
+                                  batch_size=args.remote_batch_size,
+                                  cache_type_k=args.remote_cache_type_k,
+                                  cache_type_v=args.remote_cache_type_v,
+                                  flash_attn=args.remote_flash_attn)
             rows.append(res)
             f.write(json.dumps(asdict(res), ensure_ascii=False))
             f.write("\n")

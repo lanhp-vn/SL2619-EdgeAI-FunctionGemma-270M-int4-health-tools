@@ -6,7 +6,30 @@ SL2619 board, where "best" balances tool-call accuracy against decode latency.
 
 ## Status
 
-PLANNED, not yet executed. Kicks off the post-iteration-001 work track.
+**Stage 1 EXECUTED 2026-05-02.** Recommended variant: `finetuned_functiongemma_q4_0.gguf`.
+Full results + per-variant breakdown:
+[`docs/bench-notes/functiongemma/2026-05-02_quantization-sweep.md`](../../bench-notes/functiongemma/2026-05-02_quantization-sweep.md).
+Pinned recommendation:
+[`releases/functiongemma-270m/001-baseline/gguf/RECOMMENDED.md`](../../../releases/functiongemma-270m/001-baseline/gguf/RECOMMENDED.md).
+
+### Headline result
+
+Q4_0 is the only quant that preserves the FunctionGemma wire format on the
+board's `llama-completion` (build `b8925`/`0adede8`, Apr 24). Every other
+quant (Q4_K_M, Q5_K_M, Q8_0, IQ4_XS) damages the post-`<start_of_turn>model`
+distribution enough that the model drops the `<start_function_call>` open
+token or stops decoding after `?`. K-quant scale-factor encoding skew
+between the host quantize tool (`b8981`, Apr 29) and the board runtime
+(`b8925`, Apr 24) is the empirical cause; refreshing the on-board binary
+to a matched runtime should recover the K-quants and is captured as a
+deferred follow-up.
+
+### Stage 2 / 3 collapsed (per advisor)
+
+Per advisor review, Stage 2 (ctx/cache/FA/batch grid) was collapsed to a
+deferred follow-up since Stage 1 produced a clear winner. Stage 3 (holdout
+eval) was run on host via `llama-cpp-python` (5–10× faster than board)
+and is included in the bench note above.
 
 ## Goals
 

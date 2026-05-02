@@ -16,7 +16,7 @@ dataset the bottleneck, or is the recipe?" -- with D3 (argument-value
 overlap between train and eval) being the headline test.
 
 Read-only on `data/functiongemma/`. Writes a Markdown report to
-`docs/bench-notes/functiongemma/2026-05-01_functiongemma-dataset-audit.md` by default.
+`docs/bench-notes/functiongemma/<today>_dataset-audit.md` by default.
 """
 
 from __future__ import annotations
@@ -47,7 +47,7 @@ _DEFAULT_LLM_EXPANDED = _FG_DIR / "llm_expanded_v1.jsonl"
 _DEFAULT_TRAIN = _FG_DIR / "dataset_v1" / "train.jsonl"
 _DEFAULT_VAL = _FG_DIR / "dataset_v1" / "val.jsonl"
 _DEFAULT_EVAL_HOLDOUT = _FG_DIR / "eval_holdout_v1.jsonl"
-_DEFAULT_OUTPUT = _REPO / "docs" / "bench" / "2026-05-01_functiongemma-dataset-audit.md"
+_DEFAULT_OUTPUT = _REPO / "docs" / "bench-notes" / "functiongemma" / "dataset-audit.md"
 
 _CATEGORIES = (
     "fact_absence",

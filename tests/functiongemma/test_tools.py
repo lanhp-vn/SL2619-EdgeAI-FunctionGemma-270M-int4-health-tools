@@ -132,11 +132,17 @@ def test_function_declarations_shape() -> None:
 def test_required_args_in_schema_match_pydantic_models() -> None:
     """Each tool's declared `required` list must match the Pydantic model's
     required fields exactly. This catches a class of drifts where someone
-    relaxes a Field default but forgets to regenerate `tools_v1.yaml`."""
+    relaxes a Field default but forgets to regenerate `tools_v1.yaml`.
+
+    `get_medications_at_time` deliberately has NO required args after
+    2026-05-02 — the model emits `({})` for broad questions like "when
+    should I take my meds?" and the runtime returns the full schedule list.
+    See `TimeArgs` in `gemma_tools/functiongemma/tools.py`.
+    """
     decls = {d["function"]["name"]: d for d in as_function_declarations()}
     expected: dict[str, list[str]] = {
         "get_vitals":                  [],
-        "get_medications_at_time":     ["time_24h"],
+        "get_medications_at_time":     [],
         "get_medication_by_name":      ["name"],
         "list_allergies":              [],
         "check_food_interaction":      ["food"],
@@ -394,7 +400,8 @@ def test_empty_table_food_interaction_no_match(empty_table: HealthTable) -> None
         ("24:00",     "hour 24 is out of range"),
         ("23:60",     "minute 60 is out of range"),
         ("morning",   "non-numeric time string"),
-        ("",          "empty time string"),
+        # NB: empty / omitted time_24h is now LEGAL — see
+        # `test_get_medications_at_time_no_filter_returns_all` below.
     ],
 )
 def test_get_medications_at_time_rejects_invalid_format(
@@ -403,6 +410,27 @@ def test_get_medications_at_time_rejects_invalid_format(
     out = execute_tool("get_medications_at_time", {"time_24h": bad_time}, table)
     assert out.get("error") == "invalid_arguments", desc
     assert any("time_24h" in m for m in out["messages"]), desc
+
+
+def test_get_medications_at_time_no_filter_returns_all(
+    table: HealthTable,
+) -> None:
+    """When `time_24h` is omitted (or empty), return every medication on
+    the patient record with its full schedule. This is the contract used by
+    the REPL when the model emits `get_medications_at_time({})` for broad
+    questions like "when should I take my pills?" — there is no separate
+    list-medications tool and the strict-required contract used to crash
+    the formatter.
+    """
+    expected_meds = {"Lisinopril", "Metformin", "Atorvastatin", "Aspirin", "Vitamin D3"}
+    for arguments in ({}, {"time_24h": ""}):
+        out = execute_tool("get_medications_at_time", arguments, table)
+        assert isinstance(out, list), arguments
+        names = {m["name"] for m in out}
+        assert names == expected_meds, arguments
+        # Schedule must round-trip — that's what the REPL formatter renders.
+        for m in out:
+            assert m["schedule"], f"missing schedule for {m['name']}"
 
 
 def test_invalid_arguments_unknown_field(table: HealthTable) -> None:

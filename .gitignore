@@ -43,3 +43,6 @@ docs/references/upstream/Synaptics/*/out/
 docs/references/upstream/Synaptics/*/*.ko
 docs/references/upstream/Synaptics/*/Module.symvers
 docs/references/upstream/Synaptics/*/modules.order
+
+# /board_probe + server-probe snapshots — local only, contain personal info
+docs/tmp/

@@ -10,10 +10,6 @@ edited.
 docs/bench-notes/
 ├── README.md                          # this file
 └── functiongemma/                     # FunctionGemma current-state notes
-    ├── 2026-05-01_functiongemma-distil-labs-data-plan.md
-    ├── 2026-05-01_functiongemma-eval-deepdive.md
-    ├── 2026-05-01_functiongemma-eval.md
-    └── 2026-05-01_functiongemma-dataset-audit.md
 ```
 
 ## Naming

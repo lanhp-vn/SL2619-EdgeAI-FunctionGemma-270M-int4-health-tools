@@ -1,7 +1,8 @@
 # FunctionGemma 270M — working recipe
 
 What FunctionGemma is, how the wire format works, and the live training/eval
-paths that produce `releases/functiongemma-270m/001-baseline/gguf/model.gguf`.
+paths that produce `releases/functiongemma-270m/001-baseline/gguf/finetuned_functiongemma_fp16.gguf`
+(the canonical distil iter-001 deployable; renamed from `model.gguf` 2026-05-02).
 
 For the full historical narrative (Phase A–E plan, 2321 lines), see
 `archive/functiongemma-pre-distil/plans/phase-d-readme-original.md`.
@@ -128,7 +129,7 @@ flowchart TB
         DS --> Distil[Distil Labs platform<br/>current production path]
         DS --> Local[scripts/functiongemma/train/finetune_local.py<br/>Unsloth fallback - no platform dep]
     end
-    Distil --> Iter[distil/iterations/001-baseline/]
+    Distil --> Iter[releases/functiongemma-270m/001-baseline/distil/]
     Local --> Out[outputs/]
     Iter --> Rel[releases/functiongemma-270m/001-baseline/]
     Out --> Rel
@@ -139,14 +140,14 @@ flowchart TB
 
 ### Current production path: Distil Labs
 
-`distil/iterations/001-baseline/` holds the iteration that produced
+`releases/functiongemma-270m/001-baseline/distil/` holds the iteration that produced
 `releases/functiongemma-270m/001-baseline/`. The hyperparameters live in
-`distil/iterations/001-baseline/config.yaml`; the metrics in
+`releases/functiongemma-270m/001-baseline/distil/config.yaml`; the metrics in
 `training-analysis.md` and `teacher-eval-analysis.md` next to it.
 
 Hit rate at iteration 001: **0.9583** on every metric (judge, ROUGE,
 tool-call equivalence, binary, staged) on the 24-row contaminated
-holdout. See `distil/iterations/001-baseline/README.md` for the full
+holdout. See `releases/functiongemma-270m/001-baseline/distil/README.md` for the full
 upload/run/eval timeline.
 
 Upstream skill reference: `.claude/skills/distil-cli/distil-cli/SKILL.md`.

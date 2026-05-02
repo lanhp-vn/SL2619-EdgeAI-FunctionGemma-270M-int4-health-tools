@@ -1,88 +1,93 @@
-# Auto-generated mirror of gemma_tools.functiongemma.tools.as_function_declarations().
-# Regenerate with: uv run python -c 'import yaml, sys; sys.path.insert(0, "src"); from gemma_tools.functiongemma.tools import as_function_declarations; print(yaml.safe_dump(as_function_declarations(), sort_keys=True, default_flow_style=False, width=88))' > data/functiongemma/tools_v1.yaml
-# tests/test_functiongemma_tools.py asserts this stays in sync.
-- function:
-    description: Return the patient's most recent vital-sign measurements (heart rate, blood
-      pressure, SpO2, body temperature, respiratory rate) along with the timestamp they were
-      taken.
+# AUTO-GENERATED — JSON-Schema mirror of the FunctionGemma tool registry.
+# Regenerate after edits to gemma_tools/functiongemma/tools.py with:
+#   uv run python -c "from gemma_tools.functiongemma.tools import as_function_declarations; import yaml, sys; yaml.safe_dump(as_function_declarations(), sys.stdout, sort_keys=False)" > data/functiongemma/tools_v1.yaml
+# Test gate: tests/functiongemma/test_tools.py::test_tools_yaml_matches_registry.
+- type: function
+  function:
     name: get_vitals
+    description: Return the patient's most recent vital-sign measurements (heart rate,
+      blood pressure, SpO2, body temperature, respiratory rate) along with the timestamp
+      they were taken.
     parameters:
       additionalProperties: false
       properties: {}
-      required: []
       type: object
-  type: function
-- function:
-    description: List medications scheduled to be taken at a specific 24-hour clock time.
-      Match is exact against the normalized HH:MM schedule.
+      required: []
+- type: function
+  function:
     name: get_medications_at_time
+    description: List medications scheduled to be taken at a specific 24-hour clock
+      time. Match is exact against the normalized HH:MM schedule.
     parameters:
       additionalProperties: false
       properties:
         time_24h:
+          default: ''
           description: 24-hour clock time in HH:MM format, e.g. '08:00' or '19:00'.
+            Omit (or pass an empty string) to list every medication with its full
+            schedule.
           type: string
-      required:
-      - time_24h
       type: object
-  type: function
-- function:
-    description: 'Look up a medication by name. Match is case-insensitive: exact match wins,
-      otherwise a unique prefix match. An ambiguous prefix returns an error dict so the caller
-      can re-prompt.'
+      required: []
+- type: function
+  function:
     name: get_medication_by_name
+    description: 'Look up a medication by name. Match is case-insensitive: exact match
+      wins, otherwise a unique prefix match. An ambiguous prefix returns an error
+      dict so the caller can re-prompt.'
     parameters:
       additionalProperties: false
       properties:
         name:
-          description: 'Medication name. Lookup is case-insensitive: exact match wins; otherwise
-            a unique prefix match wins; ambiguous prefixes return an error dict.'
+          description: 'Medication name. Lookup is case-insensitive: exact match wins;
+            otherwise a unique prefix match wins; ambiguous prefixes return an error
+            dict.'
           type: string
       required:
       - name
       type: object
-  type: function
-- function:
-    description: List all known allergies for the patient with their severity and reaction.
+- type: function
+  function:
     name: list_allergies
+    description: List all known allergies for the patient with their severity and
+      reaction.
     parameters:
       additionalProperties: false
       properties: {}
-      required: []
       type: object
-  type: function
-- function:
-    description: Check whether a given food interacts with any of the patient's medications
-      or dietary restrictions. Returns an `interacts` bool, the list of medication names that
-      flag the food, and the matching dietary-restriction rule if any.
+      required: []
+- type: function
+  function:
     name: check_food_interaction
+    description: Check whether a given food interacts with any of the patient's medications
+      or dietary restrictions. Returns an `interacts` bool, the list of medication
+      names that flag the food, and the matching dietary-restriction rule if any.
     parameters:
       additionalProperties: false
       properties:
         food:
-          description: Food name to check for medication or dietary interactions, e.g. 'grapefruit'.
-            Case-insensitive.
+          description: Food name to check for medication or dietary interactions,
+            e.g. 'grapefruit'. Case-insensitive.
           type: string
       required:
       - food
       type: object
-  type: function
-- function:
+- type: function
+  function:
+    name: get_next_appointment
     description: Return the earliest upcoming appointment by date and time, with provider,
       purpose, and location.
-    name: get_next_appointment
     parameters:
       additionalProperties: false
       properties: {}
-      required: []
       type: object
-  type: function
-- function:
-    description: Return the first listed emergency contact (name, relation, phone).
+      required: []
+- type: function
+  function:
     name: get_emergency_contact
+    description: Return the first listed emergency contact (name, relation, phone).
     parameters:
       additionalProperties: false
       properties: {}
-      required: []
       type: object
-  type: function
+      required: []

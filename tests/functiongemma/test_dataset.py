@@ -442,7 +442,14 @@ def test_validate_conversation_rejects_unknown_tool() -> None:
 
 
 def test_validate_conversation_rejects_invalid_arguments() -> None:
-    """`get_medications_at_time` requires `time_24h` — missing it must fail."""
+    """Pydantic `extra=forbid` rejects unknown fields in tool_call arguments.
+
+    Until 2026-05-02 this case used `get_medications_at_time({})` (missing
+    required `time_24h`); after the schema relaxed `time_24h` to optional
+    (the model emits `({})` for broad questions like "when should I take
+    my pills?"), the still-invalid case is a typo'd / extra field. The
+    validator must catch that drift before it reaches the model.
+    """
     row = {
         "messages": [
             _system_msg(),
@@ -451,7 +458,10 @@ def test_validate_conversation_rejects_invalid_arguments() -> None:
                 "role": "assistant",
                 "content": "<think>x</think>",
                 "tool_calls": [
-                    {"id": "c1", "type": "function", "function": {"name": "get_medications_at_time", "arguments": {}}}
+                    {"id": "c1", "type": "function", "function": {
+                        "name": "get_medications_at_time",
+                        "arguments": {"time_24h": "08:00", "tyop": "morning"},
+                    }}
                 ],
             },
             {"role": "tool", "name": "get_medications_at_time", "tool_call_id": "c1", "content": "[]"},

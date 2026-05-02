@@ -71,7 +71,7 @@ uv run mypy src
 uv run python scripts/functiongemma/chat.py
 ```
 
-Defaults to `releases/functiongemma-270m/001-baseline/{gguf/model.gguf, merged/}`
+Defaults to `releases/functiongemma-270m/001-baseline/{gguf/finetuned_functiongemma_fp16.gguf, merged/}`
 and `data/health_table_v1.yaml` for tool dispatch.
 
 ### Bench
@@ -81,7 +81,7 @@ uv run python scripts/functiongemma/bench.py --mode local --warmup 1
 uv run python scripts/functiongemma/bench.py --mode remote \
     --ssh-host nouslogic-sl2619 \
     --remote-binary /mnt/sdcard/llama-cpp/llama-completion \
-    --remote-model  /mnt/sdcard/models/functiongemma-270m/model.gguf
+    --remote-model  /mnt/sdcard/models/functiongemma-270m/finetuned_functiongemma_fp16.gguf
 ```
 
 Output lands in `bench/functiongemma/runs/`.

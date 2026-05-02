@@ -1,1 +1,1 @@
-FROM ./model.gguf
+FROM ./finetuned_functiongemma_fp16.gguf

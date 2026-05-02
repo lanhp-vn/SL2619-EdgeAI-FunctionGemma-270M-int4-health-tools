@@ -9,7 +9,6 @@
 >
 > Companion artifacts:
 > - `distil_functiongemma_iteration_001/teacher-eval-analysis.md` — per-iteration narrative + per-row diffs
-> - `docs/bench/2026-05-01_functiongemma-distil-labs-data-plan.md` — strategic plan and OQ register
 > - Plugin: `~/.claude/plugins/marketplaces/distil-cli-skill/` (mirrors `docs/references/upstream/distil-cli-skill/`)
 
 ## 1 — The canonical pipeline (executable recipe)

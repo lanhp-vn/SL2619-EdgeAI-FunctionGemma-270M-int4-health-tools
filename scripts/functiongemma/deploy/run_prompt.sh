@@ -1,6 +1,8 @@
 #!/bin/bash
 # Minimal FunctionGemma on-board prompt runner.
-# Usage: ./run-prompt.sh "What is my blood pressure?"
+# Usage:
+#   ./run-prompt.sh "What is my blood pressure?"                     # default model
+#   FG_MODEL=<other_quant>.gguf ./run-prompt.sh "..."               # override (rare)
 # Shows raw model output + llama.cpp perf footer, no parsing.
 
 set -e
@@ -12,6 +14,8 @@ fi
 
 prompt="$1"
 model_dir="/mnt/sdcard/models/functiongemma-270m"
+# Default to the recommended on-board variant; override via FG_MODEL env.
+model_name="${FG_MODEL:-finetuned_functiongemma_q4_0.gguf}"
 llama_bin="/mnt/sdcard/llama-cpp/llama-completion"
 threads=2
 n_predict=64
@@ -24,8 +28,9 @@ if [ ! -f "$llama_bin" ]; then
     exit 2
 fi
 
-if [ ! -f "$model_dir/model.gguf" ]; then
-    echo "ERROR: model.gguf not found at $model_dir/model.gguf" >&2
+if [ ! -f "$model_dir/$model_name" ]; then
+    echo "ERROR: $model_name not found at $model_dir/$model_name" >&2
+    echo "       (set FG_MODEL=<basename> to override)" >&2
     exit 2
 fi
 
@@ -43,11 +48,12 @@ cat "$model_dir/prompt-prefix.txt" > "$tmpfile"
 echo -n "$prompt" >> "$tmpfile"
 cat "$model_dir/prompt-suffix.txt" >> "$tmpfile"
 
+echo "[fg] model: $model_name" >&2
 echo "[fg] prompt: $prompt" >&2
 echo "[fg] running inference..." >&2
 
 "$llama_bin" \
-    -m "$model_dir/model.gguf" \
+    -m "$model_dir/$model_name" \
     -f "$tmpfile" \
     -t $threads \
     -c 2048 \

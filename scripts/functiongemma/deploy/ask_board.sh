@@ -8,16 +8,17 @@
 # llama_perf_context_print footer (which contains tok/s).
 #
 # Layout assumed (set by the host-side scp commands in
-# docs/deployment/sl2619-functiongemma.md §3a):
+# docs/deployment/functiongemma-board-deploy.md):
 #   /mnt/sdcard/models/functiongemma-270m/prompt-prefix.txt
 #   /mnt/sdcard/models/functiongemma-270m/prompt-suffix.txt
-#   /mnt/sdcard/models/functiongemma-270m/model.gguf
+#   /mnt/sdcard/models/functiongemma-270m/finetuned_functiongemma_q4_0.gguf
 #   /mnt/sdcard/llama-cpp/llama-completion
 #
 # Usage:
 #   ./fg-ask-board.sh "What's my blood pressure?"
 #   echo "When is my next appointment?" | ./fg-ask-board.sh
 #   N_PREDICT=128 ./fg-ask-board.sh "Why am I taking Atorvastatin?"
+#   FG_MODEL=<other_quant>.gguf ./fg-ask-board.sh "..."   # override (rare)
 #
 # Loop form (paste into the board shell after the script is in place):
 #   while IFS= read -p 'fg> ' Q; do [ -z "$Q" ] && continue; ./fg-ask-board.sh "$Q"; done
@@ -34,7 +35,8 @@ SEED=${SEED:-42}
 
 PREFIX="$MODEL_DIR/prompt-prefix.txt"
 SUFFIX="$MODEL_DIR/prompt-suffix.txt"
-MODEL="$MODEL_DIR/model.gguf"
+# Default to the recommended on-board variant; override via FG_MODEL env.
+MODEL="$MODEL_DIR/${FG_MODEL:-finetuned_functiongemma_q4_0.gguf}"
 
 for f in "$PREFIX" "$SUFFIX" "$MODEL" "$LLAMA"; do
     [ -e "$f" ] || { echo "missing: $f" >&2; exit 2; }

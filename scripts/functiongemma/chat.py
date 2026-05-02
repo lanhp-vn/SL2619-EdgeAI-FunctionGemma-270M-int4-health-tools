@@ -105,7 +105,9 @@ sys.path.insert(0, str(REPO_ROOT / "scripts" / "functiongemma"))
 from smoke import parse_function_calls  # noqa: E402
 
 DEFAULT_RELEASE_DIR = REPO_ROOT / "releases" / "functiongemma-270m" / "001-baseline"
-DEFAULT_MODEL_PATH = DEFAULT_RELEASE_DIR / "gguf" / "model.gguf"
+# Default to FP16. Pass --model finetuned_functiongemma_q4_0.gguf (or any
+# other variant under releases/.../gguf/) to chat against a quantized build.
+DEFAULT_MODEL_PATH = DEFAULT_RELEASE_DIR / "gguf" / "finetuned_functiongemma_fp16.gguf"
 DEFAULT_TOKENIZER_DIR = DEFAULT_RELEASE_DIR / "merged"
 # health_table_v1.yaml is the in-repo patient-record fixture that
 # gemma_tools.functiongemma.tools is built against. Schema/loader:
@@ -151,7 +153,36 @@ def _has(q: str, *keywords: str) -> bool:
     return any(k in q for k in keywords)
 
 
+def _format_tool_error(tool: str, result: dict) -> str:
+    """Render an `{"error": ...}` payload from any tool as a user-friendly
+    sentence. Tools that take required args (e.g. `get_medications_at_time`)
+    return this shape when the model emits a tool call with a missing or
+    invalid argument; without this guard the per-tool formatters KeyError
+    or TypeError on the unexpected result.
+    """
+    err = result.get("error", "unknown")
+    if err == "invalid_arguments":
+        msgs = result.get("messages") or []
+        msg_str = "; ".join(msgs) if msgs else "missing required argument"
+        return f"I couldn't run `{tool}` — {msg_str}. Try rephrasing the question."
+    if err == "no_contacts":
+        return "No emergency contact is on file."
+    if err == "no_appointments":
+        return "No upcoming appointments are on file."
+    if err == "invalid_food":
+        return "Tell me which food you'd like to check (e.g. grapefruit, alcohol)."
+    if err == "invalid_name":
+        return "Tell me which medication you'd like to look up by name."
+    return f"Tool error: {err}."
+
+
+def _is_error(result: Any) -> bool:
+    return isinstance(result, dict) and "error" in result
+
+
 def _format_vitals(q: str, result: dict) -> str:
+    if _is_error(result):
+        return _format_tool_error("get_vitals", result)
     last = result.get("last_measured", "")
     suffix = f" (measured {last})" if last else ""
     if _has(q, "blood pressure", " bp", "bp?", "systolic", "diastolic", "tension"):
@@ -203,6 +234,8 @@ def _format_allergies(q: str, result: list) -> str:
 
 
 def _format_emergency(q: str, result: dict) -> str:
+    if _is_error(result):
+        return _format_tool_error("get_emergency_contact", result)
     if _has(q, "phone", "number", "call", "reach"):
         return f"Call {result['name']} ({result['relation']}) at {result['phone']}."
     if _has(q, "who ", "name"):
@@ -214,6 +247,8 @@ def _format_emergency(q: str, result: dict) -> str:
 
 
 def _format_appointment(q: str, result: dict) -> str:
+    if _is_error(result):
+        return _format_tool_error("get_next_appointment", result)
     when = f"{result['date']} at {result['time']}"
     # `why`/`purpose` must check before `who`/`doctor` — "Why am I seeing
     # the doctor?" is a purpose question and contains both keywords.
@@ -269,15 +304,29 @@ def _format_medication(q: str, result: dict) -> str:
     )
 
 
-def _format_meds_at_time(args: dict, result: list) -> str:
-    when = args.get("time_24h", "(unknown)")
+def _format_meds_at_time(args: dict, result: list | dict) -> str:
+    if _is_error(result):
+        return _format_tool_error("get_medications_at_time", result)  # type: ignore[arg-type]
+    when = args.get("time_24h")
     if not result:
-        return f"You have no medications scheduled at {when}."
-    parts = [f"{m['name']} {m['dose']}" for m in result]
-    return f"At {when} you take: " + ", ".join(parts) + "."
+        if when:
+            return f"You have no medications scheduled at {when}."
+        return "No medications are on your record."
+    if when:
+        parts = [f"{m['name']} {m['dose']}" for m in result]
+        return f"At {when} you take: " + ", ".join(parts) + "."
+    # No time filter — caller asked "when should I take my meds?" or similar.
+    # List every med with its full schedule (with-food annotation when set).
+    parts = []
+    for m in result:
+        food = " (with food)" if m.get("with_food") else ""
+        parts.append(f"{m['name']} {m['dose']} at {m['schedule']}{food}")
+    return "Your medications: " + "; ".join(parts) + "."
 
 
 def _format_food(args: dict, result: dict) -> str:
+    if _is_error(result):
+        return _format_tool_error("check_food_interaction", result)
     food = result.get("food", args.get("food", "that food"))
     if not result["interacts"]:
         return f"{food.capitalize()} is fine — no interaction with your medications or diet."
@@ -398,16 +447,29 @@ def main(argv: list[str] | None = None) -> int:
         # duplicate leading <bos>.
         gen_prompt = prompt.removeprefix("<bos>")
         t0 = time.perf_counter()
+        # `stop=["<end_function_call>"]` halts decoding the moment the first
+        # function call closes. Without it, FunctionGemma greedy decoding
+        # frequently loops the same call until n_predict (`<start_function_call>`
+        # / `<end_function_call>` are single-token IDs and the model has high
+        # bias to repeat them). Mirrors the bench harness — see bench.py:182.
+        # Both KV cache and history must be reset so a stuck loop on one turn
+        # doesn't leak into the next.
+        llm.reset()
         out = llm(
             gen_prompt,
             max_tokens=args.max_new_tokens,
             temperature=args.temperature,
             top_p=1.0,
             echo=False,
+            stop=["<end_function_call>"],
         )
         elapsed = time.perf_counter() - t0
         assert isinstance(out, dict), f"unexpected llama-cpp response: {type(out)}"
         text = out["choices"][0]["text"]
+        # `stop` strips the matched terminator; re-attach so the parser sees
+        # a complete `<start_function_call>...<end_function_call>` block.
+        if text and "<start_function_call>" in text and "<end_function_call>" not in text:
+            text = text + "<end_function_call>"
         # llama-cpp's `usage` block reports prompt + decode token counts. We
         # measure wall-clock around the single `llm()` call, so `elapsed`
         # bundles prompt-eval and decode together — that's what the user
@@ -422,21 +484,28 @@ def main(argv: list[str] | None = None) -> int:
         if show_raw:
             print(f"\n[raw] {text!r}")
         calls = parse_function_calls(text)
-        if calls:
-            for c in calls:
-                print(f"\n→ {json.dumps(c, ensure_ascii=False)}")
-                if execute_tool is not None and table is not None:
-                    try:
-                        result = execute_tool(c["tool"], c["args"], table)
-                    except KeyError as exc:
-                        print(f"  [tool error] {exc}")
-                    else:
-                        print(f"  ⤷ {json.dumps(result, ensure_ascii=False, default=str)}")
-                        print(f"  >> {format_response(user_text, c['tool'], c['args'], result)}")
-        else:
+        if not calls:
             # Surface malformed output so the tester sees the failure mode
             # instead of silently appending junk to history.
             print(f"\n[no parsable function call] {text!r}")
+        else:
+            # Take ONLY the first call. Even with stop=["<end_function_call>"]
+            # set, we re-attach the close tag above to make the parser happy,
+            # which means a buggy build that emitted multiple calls before the
+            # first close would still show up as len(calls) > 1. Note + take
+            # the first — same contract as chat_board.py.
+            if len(calls) > 1:
+                print(f"\n[note: model emitted {len(calls)} calls; using the first]")
+            c = calls[0]
+            print(f"\n→ {json.dumps(c, ensure_ascii=False)}")
+            if execute_tool is not None and table is not None:
+                try:
+                    result = execute_tool(c["tool"], c["args"], table)
+                except KeyError as exc:
+                    print(f"  [tool error] {exc}")
+                else:
+                    print(f"  ⤷ {json.dumps(result, ensure_ascii=False, default=str)}")
+                    print(f"  >> {format_response(user_text, c['tool'], c['args'], result)}")
         print(
             f"  [prompt {n_in} + decode {n_out} tok in {elapsed:.2f}s "
             f"= {rate:.1f} tok/s overall]"

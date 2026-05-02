@@ -50,7 +50,7 @@ from typing import Any
 os.environ.setdefault("PYTHONIOENCODING", "utf-8")
 for _stream in (sys.stdout, sys.stderr):
     with contextlib.suppress(AttributeError, OSError):
-        _stream.reconfigure(encoding="utf-8", errors="replace")
+        _stream.reconfigure(encoding="utf-8", errors="replace")  # type: ignore[attr-defined]
 
 # Defaults match the on-board layout from
 # docs/deployment/sl2619-functiongemma.md §3a.
@@ -188,13 +188,23 @@ def dispatch(name: str, args: dict[str, Any], table: dict[str, Any]) -> Any:
         return dict(nxt)
     if name == "get_medications_at_time":
         t = str(args.get("time_24h", "")).strip()
+        meds = table.get("medications", [])
+        # Empty / omitted time_24h ⇒ list every med with its full schedule
+        # (matches `src/gemma_tools/functiongemma/tools.py:TimeArgs` after the
+        # 2026-05-02 schema relaxation — model emits {} for broad questions).
+        if not t:
+            return [
+                {"name": m["name"], "dose": m["dose"], "schedule": m["schedule"],
+                 "with_food": m["with_food"], "purpose": m["purpose"]}
+                for m in meds
+            ]
         if not _HHMM_RE.match(t):
             return {"error": "invalid_arguments", "tool": name,
                     "messages": [f"time_24h must match HH:MM, got {t!r}"]}
         return [
             {"name": m["name"], "dose": m["dose"], "schedule": m["schedule"],
              "with_food": m["with_food"], "purpose": m["purpose"]}
-            for m in table.get("medications", [])
+            for m in meds
             if t in _split_schedule(m["schedule"])
         ]
     if name == "get_medication_by_name":
@@ -240,7 +250,33 @@ def _has(q: str, *keywords: str) -> bool:
     return any(k in q for k in keywords)
 
 
+def _fmt_tool_error(tool: str, r: dict) -> str:
+    """Render an `{"error": ...}` payload from any tool as a user-friendly
+    sentence. Mirrors `chat.py:_format_tool_error` — keep in sync.
+    """
+    err = r.get("error", "unknown")
+    if err == "invalid_arguments":
+        msgs = r.get("messages") or []
+        msg_str = "; ".join(msgs) if msgs else "missing required argument"
+        return f"I couldn't run `{tool}` — {msg_str}. Try rephrasing the question."
+    if err == "no_contacts":
+        return "No emergency contact is on file."
+    if err == "no_appointments":
+        return "No upcoming appointments are on file."
+    if err == "invalid_food":
+        return "Tell me which food you'd like to check (e.g. grapefruit, alcohol)."
+    if err == "invalid_name":
+        return "Tell me which medication you'd like to look up by name."
+    return f"Tool error: {err}."
+
+
+def _is_error(r: Any) -> bool:
+    return isinstance(r, dict) and "error" in r
+
+
 def _fmt_vitals(q: str, r: dict) -> str:
+    if _is_error(r):
+        return _fmt_tool_error("get_vitals", r)
     last = r.get("last_measured", "")
     suf = f" (measured {last})" if last else ""
     if _has(q, "blood pressure", " bp", "bp?", "systolic", "diastolic", "tension"):
@@ -275,6 +311,8 @@ def _fmt_allergies(q: str, r: list) -> str:
 
 
 def _fmt_emergency(q: str, r: dict) -> str:
+    if _is_error(r):
+        return _fmt_tool_error("get_emergency_contact", r)
     if _has(q, "phone", "number", "call", "reach"):
         return f"Call {r['name']} ({r['relation']}) at {r['phone']}."
     if _has(q, "who ", "name"):
@@ -283,6 +321,8 @@ def _fmt_emergency(q: str, r: dict) -> str:
 
 
 def _fmt_appointment(q: str, r: dict) -> str:
+    if _is_error(r):
+        return _fmt_tool_error("get_next_appointment", r)
     when = f"{r['date']} at {r['time']}"
     if _has(q, "why", "purpose", "what for", "about"):
         return f"Your next appointment is for {r['purpose']}."
@@ -327,15 +367,27 @@ def _fmt_medication(q: str, r: dict) -> str:
     return f"{name} {r['dose']} taken at {r['schedule']} ({food_clause}) for {r['purpose']}."
 
 
-def _fmt_meds_at_time(args: dict, r: list) -> str:
-    when = args.get("time_24h", "(unknown)")
+def _fmt_meds_at_time(args: dict, r: list | dict) -> str:
+    if _is_error(r):
+        return _fmt_tool_error("get_medications_at_time", r)  # type: ignore[arg-type]
+    when = args.get("time_24h")
     if not r:
-        return f"You have no medications scheduled at {when}."
-    parts = [f"{m['name']} {m['dose']}" for m in r]
-    return f"At {when} you take: " + ", ".join(parts) + "."
+        if when:
+            return f"You have no medications scheduled at {when}."
+        return "No medications are on your record."
+    if when:
+        parts = [f"{m['name']} {m['dose']}" for m in r]
+        return f"At {when} you take: " + ", ".join(parts) + "."
+    parts = []
+    for m in r:
+        food = " (with food)" if m.get("with_food") else ""
+        parts.append(f"{m['name']} {m['dose']} at {m['schedule']}{food}")
+    return "Your medications: " + "; ".join(parts) + "."
 
 
 def _fmt_food(args: dict, r: dict) -> str:
+    if _is_error(r):
+        return _fmt_tool_error("check_food_interaction", r)
     food = r.get("food", args.get("food", "that food"))
     if not r["interacts"]:
         return f"{food.capitalize()} is fine — no interaction with your medications or diet."
@@ -397,18 +449,85 @@ def _drain_stream(stream: Any, buf: list[str], echo: Any | None) -> None:
         stream.close()
 
 
+def prime_prompt_cache(
+    prefix: str, llama_bin: Path, model: Path,
+    n_threads: int, ctx_size: int, prompt_cache: Path,
+    verbose: bool = False,
+) -> float:
+    """Build a prefix-only KV cache file. Called once when the cache is
+    missing; subsequent `run_inference` calls open it read-only.
+
+    Why prefix-only: `--prompt-cache` without `--prompt-cache-ro` saves
+    the FULL post-decode state. When the next turn's prompt diverges at
+    the question slot, llama.cpp's truncation leaves the KV state in a
+    skewed position and the model samples gibberish ("ology", "menopause",
+    "women's health" — observed 2026-05-02 on b8925). Priming the cache
+    with ONLY the prefix bytes (no user question, no suffix, no decode)
+    means every turn diverges at exactly the same token offset — clean
+    truncation, stable output.
+    """
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".txt", delete=False,
+                                     dir="/tmp", encoding="utf-8") as tf:
+        tf.write(prefix)
+        tmp_path = tf.name
+    try:
+        argv = [
+            str(llama_bin),
+            "-m", str(model),
+            "-f", tmp_path,
+            "-t", str(n_threads),
+            "-c", str(ctx_size),
+            "-n", "1",  # decode 1 token so the cache file is definitely written
+            "--temp", "0.0",
+            "--top-k", "1",
+            "--prompt-cache", str(prompt_cache),
+            "-no-cnv", "--single-turn",
+        ]
+        t0 = time.perf_counter()
+        proc = subprocess.run(
+            argv, capture_output=True, encoding="utf-8", errors="replace",
+            check=False,
+        )
+        wall_s = time.perf_counter() - t0
+        if verbose:
+            sys.stderr.write(proc.stderr)
+        if proc.returncode != 0:
+            raise RuntimeError(
+                f"prime_prompt_cache: llama-completion exit {proc.returncode}: "
+                f"{proc.stderr[-300:]!r}"
+            )
+        if not prompt_cache.exists():
+            raise RuntimeError(
+                f"prime_prompt_cache: cache file not written at {prompt_cache}"
+            )
+        return wall_s
+    finally:
+        with contextlib.suppress(OSError):
+            os.unlink(tmp_path)
+
+
 def run_inference(
     question: str, prefix: str, suffix: str,
     llama_bin: Path, model: Path,
     n_threads: int, n_predict: int, ctx_size: int,
     temp: float, top_k: int, seed: int,
+    verbose: bool = False,
+    prompt_cache: Path | None = None,
 ) -> tuple[str, dict, float]:
     """Subprocess one llama-completion call. Returns (text, perf, wall_s).
 
-    Tees stderr to the user's terminal in real time so cold-call progress
-    (model load, KV alloc, prompt-eval messages) is visible. Stdout (the
-    model output) is captured silently — we re-print the parsed call
-    afterward.
+    By default both stdout and stderr are captured silently — the REPL only
+    prints the parsed call + the formatted answer + a one-line perf summary.
+    Pass ``verbose=True`` (chat_board.py: ``--verbose``) to live-tee the
+    llama-completion stderr (model loader dump, KV alloc, sampler config,
+    perf footer) for cold-call debugging.
+
+    ``prompt_cache``: path to a llama.cpp KV-cache file (`--prompt-cache`).
+    The cache is opened READ-ONLY here (`--prompt-cache-ro`) so it stays
+    at the prefix-only state primed by `prime_prompt_cache`; every turn
+    diverges at the same offset (end of prefix) so llama.cpp's truncation
+    is clean. Pass `None` to disable caching (every turn re-evaluates the
+    full ~1627-token system prefix → ~33 s/turn).
     """
     with tempfile.NamedTemporaryFile(mode="w", suffix=".txt", delete=False,
                                      dir="/tmp", encoding="utf-8") as tf:
@@ -427,8 +546,16 @@ def run_inference(
             "--temp", str(temp),
             "--top-k", str(top_k),
             "--seed", str(seed),
-            "-no-cnv", "--single-turn",
         ]
+        if prompt_cache is not None:
+            # `--prompt-cache-ro` is critical: without it, llama.cpp saves
+            # the full post-decode state to the cache file, which then
+            # corrupts turn 2's truncation when the question diverges
+            # (model emits gibberish like "ology", "menopause"). Read-only
+            # keeps the cache file at the prefix-only state primed before
+            # the first turn.
+            argv += ["--prompt-cache", str(prompt_cache), "--prompt-cache-ro"]
+        argv += ["-no-cnv", "--single-turn"]
         t0 = time.perf_counter()
         proc = subprocess.Popen(
             argv,
@@ -440,11 +567,12 @@ def run_inference(
         )
         stdout_buf: list[str] = []
         stderr_buf: list[str] = []
+        echo = sys.stderr if verbose else None
         t_out = threading.Thread(
             target=_drain_stream, args=(proc.stdout, stdout_buf, None),
         )
         t_err = threading.Thread(
-            target=_drain_stream, args=(proc.stderr, stderr_buf, sys.stderr),
+            target=_drain_stream, args=(proc.stderr, stderr_buf, echo),
         )
         t_out.start()
         t_err.start()
@@ -475,16 +603,17 @@ def _run_turn(
     user_text: str, prefix: str, suffix: str, table: dict,
     llama_bin: Path, model: Path, n_threads: int, n_predict: int,
     ctx_size: int, temp: float, top_k: int, seed: int, show_raw: bool,
+    verbose: bool = False, prompt_cache: Path | None = None,
 ) -> str:
     """One turn — run inference, parse, dispatch, format, print. Returns the
     raw model text (so the REPL can append it to history if it wants).
     """
-    print("[generating... (cold call: ~45-60s for prompt eval at ~38 tok/s)]",
-          file=sys.stderr, flush=True)
+    print("[thinking…]", file=sys.stderr, flush=True)
     try:
         text, perf, wall_s = run_inference(
             user_text, prefix, suffix, llama_bin, model,
             n_threads, n_predict, ctx_size, temp, top_k, seed,
+            verbose=verbose, prompt_cache=prompt_cache,
         )
     except Exception as e:
         print(f"\n[inference error] {e}", flush=True)
@@ -527,13 +656,53 @@ def _run_turn(
     return text
 
 
+def _resolve_prompt_cache(
+    args: argparse.Namespace, prefix: str, model_path: Path,
+) -> tuple[Path | None, str]:
+    """Decide the prompt-cache path + prime it if missing. Returns
+    (cache_path_or_None, label_for_status_line).
+
+    Encapsulated so the type narrowing on `Path | None` stays local — the
+    callers always get either a fully-resolved Path (cache file exists on
+    return) or None (caching disabled / priming failed).
+    """
+    if args.no_prompt_cache:
+        return None, "off"
+    pc: Path = args.prompt_cache or Path(f"/tmp/fg_pc_{args.model_name}.bin")
+    if pc.exists():
+        return pc, f"{pc} (existing, {pc.stat().st_size // 1024} KiB)"
+    print(
+        f"[chat] priming prompt cache (~28 s, one-time): {pc}",
+        file=sys.stderr, flush=True,
+    )
+    try:
+        wall = prime_prompt_cache(
+            prefix, args.llama, model_path, args.threads,
+            args.ctx_size, pc, verbose=args.verbose,
+        )
+    except Exception as exc:
+        print(
+            f"[chat] prompt-cache priming failed: {exc} — falling back to "
+            "uncached mode (every turn re-evaluates the full prefix)",
+            file=sys.stderr,
+        )
+        return None, "off (priming failed)"
+    return pc, f"{pc} (primed in {wall:.1f}s, {pc.stat().st_size // 1024} KiB)"
+
+
 def main(argv: list[str] | None = None) -> int:
     p = argparse.ArgumentParser(
         description="On-board interactive FunctionGemma chat (pure stdlib).",
     )
     p.add_argument("--model-dir", type=Path, default=DEFAULT_MODEL_DIR,
                    help=f"Dir holding prompt-prefix.txt, prompt-suffix.txt, "
-                        f"health_table.json, model.gguf (default: {DEFAULT_MODEL_DIR}).")
+                        f"health_table.json, and the GGUF (default: {DEFAULT_MODEL_DIR}).")
+    p.add_argument("--model-name", type=str,
+                   default="finetuned_functiongemma_q4_0.gguf",
+                   help="GGUF basename inside --model-dir. Default: "
+                        "finetuned_functiongemma_q4_0.gguf — the recommended on-board variant "
+                        "(see releases/.../gguf/RECOMMENDED.md). Pass the basename of any "
+                        "finetuned_functiongemma_*.gguf to chat against another quant.")
     p.add_argument("--llama", type=Path, default=DEFAULT_LLAMA,
                    help=f"llama-completion binary (default: {DEFAULT_LLAMA}).")
     p.add_argument("--threads", type=int, default=DEFAULT_THREADS,
@@ -551,12 +720,24 @@ def main(argv: list[str] | None = None) -> int:
                    help="Non-interactive: send one message, print the call, exit.")
     p.add_argument("--raw", action="store_true",
                    help="Show raw model output before parsing.")
+    p.add_argument("--verbose", "-v", action="store_true",
+                   help="Live-tee llama-completion stderr (model loader + KV alloc + "
+                        "sampler config + perf footer). Default: silent — the REPL "
+                        "only prints the parsed call + answer + a one-line perf summary.")
+    p.add_argument("--prompt-cache", type=Path, default=None,
+                   help="Path to a llama.cpp KV-cache file (`--prompt-cache`). "
+                        "Default: /tmp/fg_pc_<model>.bin (per-model). First turn "
+                        "writes it; subsequent turns load it, dropping per-turn wall "
+                        "from ~33 s to ~3-5 s by skipping prompt-eval of the 1627-token "
+                        "system prefix. Pass `--no-prompt-cache` to disable.")
+    p.add_argument("--no-prompt-cache", action="store_true",
+                   help="Disable the prompt KV cache (always re-evaluate the full prompt).")
     args = p.parse_args(argv)
 
     prefix_path = args.model_dir / "prompt-prefix.txt"
     suffix_path = args.model_dir / "prompt-suffix.txt"
     table_path = args.model_dir / "health_table.json"
-    model_path = args.model_dir / "model.gguf"
+    model_path = args.model_dir / args.model_name
 
     for f in (prefix_path, suffix_path, table_path, model_path, args.llama):
         if not f.exists():
@@ -578,6 +759,14 @@ def main(argv: list[str] | None = None) -> int:
     )
 
     show_raw = args.raw
+
+    # Resolve prompt-cache path. Default: /tmp/fg_pc_<model_basename>.bin so
+    # different quants don't share a cache (their KV state is incompatible).
+    prompt_cache, cache_label = _resolve_prompt_cache(
+        args, prefix, model_path,
+    )
+    print(f"[chat] prompt-cache: {cache_label}", file=sys.stderr)
+
     history: list[dict[str, str]] = []
 
     if args.probe is not None:
@@ -585,6 +774,7 @@ def main(argv: list[str] | None = None) -> int:
             args.probe, prefix, suffix, table,
             args.llama, model_path, args.threads, args.max_new_tokens,
             args.ctx_size, args.temperature, args.top_k, args.seed, show_raw,
+            verbose=args.verbose, prompt_cache=prompt_cache,
         )
         return 0 if text else 1
 
@@ -622,6 +812,7 @@ def main(argv: list[str] | None = None) -> int:
             user, prefix, suffix, table,
             args.llama, model_path, args.threads, args.max_new_tokens,
             args.ctx_size, args.temperature, args.top_k, args.seed, show_raw,
+            verbose=args.verbose, prompt_cache=prompt_cache,
         )
         history.append({"role": "assistant", "content": text})
 

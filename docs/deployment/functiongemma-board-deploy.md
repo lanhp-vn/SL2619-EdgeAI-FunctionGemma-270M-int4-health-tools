@@ -45,7 +45,8 @@ shipped to the board.
   - `/mnt/sdcard/llama-cpp/llama-completion` present (cross-compiled aarch64 build)
   - 2 × Cortex-A55, NEON+dotprod
 - Confirm host artifacts exist:
-  - `releases/functiongemma-270m/001-baseline/gguf/model.gguf` (~518 MiB)
+  - `releases/functiongemma-270m/001-baseline/gguf/finetuned_functiongemma_q4_0.gguf` (~224 MiB) — **the recommended on-board variant**, see `releases/.../gguf/RECOMMENDED.md`
+  - `releases/functiongemma-270m/001-baseline/gguf/finetuned_functiongemma_fp16.gguf` (~518 MiB) — FP16 baseline
   - `releases/functiongemma-270m/001-baseline/merged/` (HF tokenizer + chat template)
 
 R3 forbids the agent from writing to the board. All `scp`/`ssh` commands below
@@ -85,17 +86,23 @@ ls -lh /tmp/fg_deploy/
 ```bash
 ssh nouslogic-sl2619 'mkdir -p /mnt/sdcard/models/functiongemma-270m'
 
-scp releases/functiongemma-270m/001-baseline/gguf/model.gguf \
-    nouslogic-sl2619:/mnt/sdcard/models/functiongemma-270m/model.gguf
+scp releases/functiongemma-270m/001-baseline/gguf/finetuned_functiongemma_q4_0.gguf \
+    nouslogic-sl2619:/mnt/sdcard/models/functiongemma-270m/finetuned_functiongemma_q4_0.gguf
 
 scp /tmp/fg_deploy/{prompt-prefix.txt,prompt-suffix.txt,health_table.json,chat_board.py,run-prompt.sh} \
     nouslogic-sl2619:/mnt/sdcard/models/functiongemma-270m/
 
 ssh nouslogic-sl2619 'ls -lh /mnt/sdcard/models/functiongemma-270m/ \
-    && sha256sum /mnt/sdcard/models/functiongemma-270m/model.gguf'
+    && sha256sum /mnt/sdcard/models/functiongemma-270m/finetuned_functiongemma_q4_0.gguf'
+# expected sha256: a484ad50d4b66fdbd6ccb482389eec734b0de9fe988e8811b5e6683daf180e14
 ```
 
-Expected: 518 MiB transfer in ~15–20 s on 5 GHz Wi-Fi.
+Expected: 224 MiB transfer in ~10–15 s on 5 GHz Wi-Fi (or ~120 s on a
+saturated link). **Cleanup tip**: keep ONLY the recommended variant in
+`/mnt/sdcard/models/functiongemma-270m/`. Cohabiting Q4_K_M / Q5_K_M / Q8_0
+/ FP16 GGUFs evict each other from the board's page cache and inflate
+per-prompt wall ~4× (observed in the 2026-05-02 sweep — see
+`docs/bench-notes/functiongemma/2026-05-02_quantization-sweep.md`).
 
 ## Run
 
@@ -135,7 +142,7 @@ ssh nouslogic-sl2619 'python3 /mnt/sdcard/models/functiongemma-270m/chat_board.p
 uv run python scripts/functiongemma/bench.py --mode remote \
     --ssh-host nouslogic-sl2619 \
     --remote-binary /mnt/sdcard/llama-cpp/llama-completion \
-    --remote-model  /mnt/sdcard/models/functiongemma-270m/model.gguf \
+    --remote-model  /mnt/sdcard/models/functiongemma-270m/finetuned_functiongemma_q4_0.gguf \
     --threads 2 --warmup 1
 ```
 
@@ -153,15 +160,25 @@ Output lands in `bench/functiongemma/runs/functiongemma_remote_<timestamp>.jsonl
 | `Who is my emergency contact?` | `get_emergency_contact` |
 | `Do I take ibuprofen?` | `get_medication_by_name` |
 
-## Expected performance (FP16 baseline)
+## Expected performance
 
-| Target | Decode tok/s | Prompt eval tok/s | Per-prompt wall (cold) |
-|---|---|---|---|
-| Board (A55 × 2, CPU) | 5–7 | 30–60 | 25–60 s |
-| Host (WSL2, 10 threads) | ~50 | ~900 | 2–4 s |
+After the 2026-05-02 INT4 sweep, **Q4_0 is the recommended on-board
+variant** (see `releases/functiongemma-270m/001-baseline/gguf/RECOMMENDED.md`):
 
-Quantization to INT4/INT8 is the next iteration — see
-`docs/plans/functiongemma/quantization-plan.md`.
+| Target | Variant | Decode tok/s | Prompt eval tok/s | Per-prompt wall (cold) |
+|---|---|---|---|---|
+| Board (A55 × 2, CPU) | **Q4_0 (recommended)** | **10.27** | **60.1** | **~28 s** |
+| Board (A55 × 2, CPU) | FP16 baseline | 5–7 | 30–60 | 25–60 s |
+| Host (WSL2, 10 threads) | Q4_0 | ~30 | ~900 | 1–2 s |
+| Host (WSL2, 10 threads) | FP16 | ~50 | ~900 | 2–4 s |
+
+The Q4_0 board numbers above assume **single-resident** GGUF on
+`/mnt/sdcard/models/functiongemma-270m/`. With multiple variants resident
+the board's page cache thrashes and per-prompt wall inflates ~4× — clean
+the directory after the demo.
+
+Full sweep + per-row breakdown:
+[`docs/bench-notes/functiongemma/2026-05-02_quantization-sweep.md`](../bench-notes/functiongemma/2026-05-02_quantization-sweep.md).
 
 ## Cleanup (board storage hygiene)
 

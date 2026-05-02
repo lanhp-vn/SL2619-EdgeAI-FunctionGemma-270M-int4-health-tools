@@ -32,6 +32,7 @@ from __future__ import annotations
 
 import argparse
 import datetime
+import os
 import re
 import sys
 from collections import Counter
@@ -335,6 +336,87 @@ def _load_inference(checkpoint_path: Path) -> tuple[Any, Any]:
     return model, tokenizer
 
 
+# GGUF-side cache. Separate from `_INFERENCE_CACHE` so the two seams can
+# co-exist if a future caller wants to compare HF and GGUF outputs directly.
+# Keyed by (resolved_gguf_path, resolved_tokenizer_dir, n_ctx).
+_INFERENCE_CACHE_GGUF: dict[tuple[Path, Path, int], tuple[Any, Any]] = {}
+
+
+def _load_inference_gguf(
+    gguf_path: Path, tokenizer_dir: Path, n_ctx: int = 4096,
+) -> tuple[Any, Any]:
+    """Load a GGUF via `llama-cpp-python` plus the HF tokenizer for the chat
+    template. The GGUF embeds its own chat template metadata, but rendering
+    via HF `apply_chat_template(..., tools=...)` is what the deployed
+    `chat.py` / `bench.py` use — keep eval byte-equivalent to deploy.
+
+    Lazy imports so this seam is only paid for when `--gguf` is passed.
+    """
+    key = (gguf_path.resolve(), tokenizer_dir.resolve(), int(n_ctx))
+    if key in _INFERENCE_CACHE_GGUF:
+        return _INFERENCE_CACHE_GGUF[key]
+    from llama_cpp import Llama  # type: ignore[import-not-found]
+    from transformers import AutoTokenizer  # type: ignore[import-not-found]
+
+    tokenizer = AutoTokenizer.from_pretrained(str(tokenizer_dir))
+    llm = Llama(
+        model_path=str(gguf_path),
+        n_ctx=n_ctx,
+        n_threads=os.cpu_count() or 4,
+        verbose=False,
+    )
+    _INFERENCE_CACHE_GGUF[key] = (llm, tokenizer)
+    return llm, tokenizer
+
+
+def run_inference_gguf(
+    gguf_path: Path,
+    tokenizer_dir: Path,
+    messages: list[dict[str, Any]],
+    tools: list[dict[str, Any]] | None,
+    *,
+    n_ctx: int = 4096,
+    max_new_tokens: int = 256,
+) -> dict[str, Any]:
+    """Greedy decode against a GGUF; same return shape as `run_inference`.
+
+    Greedy via `temperature=0.0`, `top_p=1.0`. Stop set is the FG close tag
+    plus `<end_of_turn>` (chat-template close) so we don't decode past the
+    function call into the next turn. The HF tokenizer renders the
+    chat-template prompt; `<bos>` is stripped before feeding to llama-cpp
+    because `Llama.__call__` defaults to `add_bos=True` and would otherwise
+    duplicate it.
+    """
+    llm, tokenizer = _load_inference_gguf(gguf_path, tokenizer_dir, n_ctx=n_ctx)
+    prompt = tokenizer.apply_chat_template(
+        messages, tools=tools, tokenize=False, add_generation_prompt=True,
+    )
+    if not isinstance(prompt, str):
+        raise TypeError(f"apply_chat_template returned {type(prompt).__name__}")
+    prompt = prompt.removeprefix("<bos>")
+    # Reset the KV cache before each row so we don't carry state between
+    # holdout rows (the cache would otherwise re-use prefix tokens silently
+    # and bias both timing and output).
+    llm.reset()
+    out = llm(
+        prompt,
+        max_tokens=max_new_tokens,
+        temperature=0.0,
+        top_p=1.0,
+        echo=False,
+        stop=["<end_function_call>", "<end_of_turn>"],
+    )
+    text = out["choices"][0]["text"]  # type: ignore[index]
+    # `stop` strips the matched token; re-attach so the parser sees a
+    # complete `<start_function_call>...<end_function_call>` block.
+    if text and "<start_function_call>" in text and "<end_function_call>" not in text:
+        text = text + "<end_function_call>"
+    return {
+        "tool_calls": _parse_function_calls(text),
+        "assistant_text": _extract_assistant_text(text),
+    }
+
+
 def run_inference(
     checkpoint_path: Path,
     messages: list[dict[str, Any]],
@@ -512,7 +594,26 @@ def _build_arg_parser() -> argparse.ArgumentParser:
         "--checkpoint",
         type=Path,
         default=None,
-        help="Path to merged checkpoint (required for full eval; ignored by --list-categories / --dry-run).",
+        help="Path to merged HF checkpoint (transformers seam). Mutually exclusive with --gguf.",
+    )
+    p.add_argument(
+        "--gguf",
+        type=Path,
+        default=None,
+        help="Path to a GGUF file (llama-cpp-python seam). Mutually exclusive with --checkpoint.",
+    )
+    p.add_argument(
+        "--tokenizer-dir",
+        type=Path,
+        default=Path("releases/functiongemma-270m/001-baseline/merged"),
+        help="HF tokenizer dir for chat-template rendering (only used with --gguf). "
+             "Default: releases/functiongemma-270m/001-baseline/merged.",
+    )
+    p.add_argument(
+        "--n-ctx",
+        type=int,
+        default=4096,
+        help="llama-cpp-python n_ctx (only used with --gguf). Default: 4096.",
     )
     p.add_argument(
         "--holdout",
@@ -567,24 +668,43 @@ def main(argv: list[str] | None = None) -> int:
     if args.dry_run:
         return _dry_run(holdout)
 
-    # Full-eval branch — checkpoint required.
-    if args.checkpoint is None:
+    # Full-eval branch — checkpoint OR gguf required (mutually exclusive).
+    if args.checkpoint is not None and args.gguf is not None:
         print(
-            "ERROR --checkpoint is required for full eval (omit only with "
-            "--list-categories or --dry-run).",
+            "ERROR --checkpoint and --gguf are mutually exclusive.",
             file=sys.stderr,
         )
         return 2
-    if not args.checkpoint.exists():
+    if args.checkpoint is None and args.gguf is None:
         print(
-            f"ERROR checkpoint not found: {args.checkpoint}\n"
-            "M5 should produce this. The eval script is SPEC ONLY until then.",
+            "ERROR one of --checkpoint or --gguf is required for full eval "
+            "(omit only with --list-categories or --dry-run).",
             file=sys.stderr,
         )
         return 2
+    if args.gguf is not None:
+        if not args.gguf.exists():
+            print(f"ERROR gguf not found: {args.gguf}", file=sys.stderr)
+            return 2
+        if not args.tokenizer_dir.exists():
+            print(
+                f"ERROR --tokenizer-dir not found: {args.tokenizer_dir}",
+                file=sys.stderr,
+            )
+            return 2
+        seam_label = f"gguf={args.gguf.name}"
+    else:
+        if not args.checkpoint.exists():
+            print(
+                f"ERROR checkpoint not found: {args.checkpoint}\n"
+                "M5 should produce this. The eval script is SPEC ONLY until then.",
+                file=sys.stderr,
+            )
+            return 2
+        seam_label = f"hf={args.checkpoint.name}"
 
     output: Path = args.output or (
-        Path("docs/bench-notes/functiongemma") / f"{datetime.date.today().isoformat()}_functiongemma-eval.md"
+        Path("docs/bench-notes/functiongemma") / f"{datetime.date.today().isoformat()}_functiongemma-eval-{seam_label}.md"
     )
 
     # Inference loop. Pass the messages-prefix (everything before the first
@@ -592,7 +712,10 @@ def main(argv: list[str] | None = None) -> int:
     # chat-template render + BOS strip + greedy decode + FG parse.
     rows = list(load_jsonl(holdout))
     verdicts: list[tuple[str, Equivalence]] = []
-    print(f"=== running inference on {len(rows)} rows ===", file=sys.stderr)
+    print(
+        f"=== running inference on {len(rows)} rows ({seam_label}) ===",
+        file=sys.stderr,
+    )
     for i, raw in enumerate(rows):
         gold = extract_gold_trace(raw)
         msgs = raw.get("messages", [])
@@ -602,9 +725,16 @@ def main(argv: list[str] | None = None) -> int:
         )
         prompt_msgs = msgs[:first_assistant]
         tools = raw.get("tools")
-        predicted = run_inference(
-            args.checkpoint, prompt_msgs, tools, max_new_tokens=args.max_new_tokens
-        )
+        if args.gguf is not None:
+            predicted = run_inference_gguf(
+                args.gguf, args.tokenizer_dir, prompt_msgs, tools,
+                n_ctx=args.n_ctx, max_new_tokens=args.max_new_tokens,
+            )
+        else:
+            predicted = run_inference(
+                args.checkpoint, prompt_msgs, tools,
+                max_new_tokens=args.max_new_tokens,
+            )
         v = tool_call_equivalent(
             predicted.get("tool_calls", []),
             list(gold.tool_calls),

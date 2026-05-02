@@ -118,7 +118,7 @@ The end-to-end acceptance test for this workspace:
 uv run python scripts/functiongemma/chat.py
 ```
 
-Loads `releases/functiongemma-270m/001-baseline/gguf/model.gguf` and
+Loads `releases/functiongemma-270m/001-baseline/gguf/finetuned_functiongemma_fp16.gguf` and
 `releases/functiongemma-270m/001-baseline/merged/` as the tokenizer + chat
 template; serves an interactive REPL that routes user prompts through the
 7-tool patient-record registry against `data/health_table_v1.yaml`.
@@ -205,7 +205,7 @@ uv run python scripts/functiongemma/bench.py --mode local --warmup 1
 uv run python scripts/functiongemma/bench.py --mode remote \
     --ssh-host nouslogic-sl2619 \
     --remote-binary /mnt/sdcard/llama-cpp/llama-completion \
-    --remote-model  /mnt/sdcard/models/functiongemma-270m/model.gguf \
+    --remote-model  /mnt/sdcard/models/functiongemma-270m/finetuned_functiongemma_fp16.gguf \
     --threads 2 --warmup 1
 ```
 
@@ -234,7 +234,7 @@ uv run python scripts/functiongemma/data/gen_prompt_templates.py \
 
 # scp to board (user runs)
 ssh nouslogic-sl2619 'mkdir -p /mnt/sdcard/models/functiongemma-270m'
-scp releases/functiongemma-270m/001-baseline/gguf/model.gguf \
+scp releases/functiongemma-270m/001-baseline/gguf/finetuned_functiongemma_fp16.gguf \
     nouslogic-sl2619:/mnt/sdcard/models/functiongemma-270m/
 scp /tmp/fg_deploy/* scripts/functiongemma/deploy/* \
     nouslogic-sl2619:/mnt/sdcard/models/functiongemma-270m/
