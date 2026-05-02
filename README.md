@@ -1,296 +1,394 @@
 # gemma3-270M-finetune
 
-Fine-tuning, evaluation, and deployment workspace for **FunctionGemma 270M-IT**
-on the SL2619 Synaptics Astra Machina board, with the original Gemma 3 270M-IT
-health-QA SFT track preserved as a working reference.
+Fine-tune **FunctionGemma 270M-IT** for closed-world function-calling against
+a synthetic patient-record registry, quantize to Q4_0, and deploy to the
+**Synaptics SL2619** Astra Machina board (Cortex-A55 × 2, 1.87 GiB RAM, no
+NPU/Vulkan path).
 
-## What this repo does
-
-- Trains FunctionGemma 270M-IT for closed-world function calling against a
-  synthetic 7-tool patient-record registry (`data/health_table_v1.yaml`).
-- Ships a deployable bundle at
-  `releases/functiongemma-270m/001-baseline/` (HF merged weights, LoRA
-  adapter, FP16 GGUF, `Modelfile`, `model_client.py`).
-- Provides a local interactive REPL (`scripts/functiongemma/chat.py`) and a
-  two-mode bench harness (host + remote SL2619 board).
-- Documents the path to INT4/INT8 quantization for the SL2619 board
-  (`docs/plans/functiongemma/quantization-plan.md`, NOT YET EXECUTED).
-- Preserves a runnable Gemma 3 270M health-QA SFT track under
-  `src/gemma_tools/_legacy/` and `tests/_legacy/` for anyone returning to
-  that approach (CI keeps it green).
+The deliverable is a 224 MiB GGUF that answers natural-language health
+questions on-device at **~10 tok/s decode**, with tool dispatch + a
+human-readable formatter resolving the structured output back into one
+sentence per question.
 
 ## Status
 
 | Track | State |
 |---|---|
-| FunctionGemma iteration 001 (Distil Labs) | DONE — every metric at 0.9583 on the 24-row contaminated holdout (`distil/iterations/001-baseline/`) |
-| FunctionGemma INT4/INT8 board quantization sweep | PLANNED — see `docs/plans/functiongemma/quantization-plan.md` |
-| Gemma 3 270M-IT health-QA SFT (legacy) | DONE / archived — runnable reference under `src/gemma_tools/_legacy/` and `archive/gemma3-270m-health-qa/` |
+| FunctionGemma iteration 001 (Distil Labs) | **DONE** — 0.9583 on every metric on the 24-row contaminated holdout (`releases/functiongemma-270m/001-baseline/distil/`) |
+| INT4/INT8 board quantization sweep | **DONE 2026-05-02** — Q4_0 selected; full report in [`docs/bench-notes/functiongemma/2026-05-02_quantization-sweep.md`](docs/bench-notes/functiongemma/2026-05-02_quantization-sweep.md) |
+| On-board interactive REPL (`chat_board.py`) | **DONE** — prompt-cache primed; ~6 s/turn after the one-time prime |
+| Gemma 3 270M-IT health-QA SFT (legacy reference) | DONE / archived under `archive/gemma3-270m-health-qa/` |
+
+## Quick start
+
+```bash
+git clone <repo-url> gemma3-270M-finetune
+cd gemma3-270M-finetune
+uv venv .venv && source .venv/bin/activate
+uv pip install -e ".[dev,functiongemma]"
+
+# Build llama-quantize (host) — one-time
+cd docs/references/upstream/llama.cpp
+cmake -B build -DCMAKE_BUILD_TYPE=Release -DLLAMA_CURL=OFF -DLLAMA_BUILD_SERVER=ON
+cmake --build build --target llama-quantize -j$(nproc)
+cd ../../../..
+
+# Generate Q4_0 from the canonical FP16 (gitignored)
+scripts/functiongemma/quantize/build_variants.sh         # default: Q4_0 only
+
+# Host demo (runs in ~2 s after model load)
+uv run python scripts/functiongemma/chat.py --probe "What is my blood pressure?"
+
+# Board demo (assumes the board is up + reachable as `nouslogic-sl2619`,
+# llama-completion is at /mnt/sdcard/llama-cpp/, and Q4_0 + prompt files
+# are deployed — see "Deploy" below)
+ssh nouslogic-sl2619 'python3 /mnt/sdcard/models/functiongemma-270m/chat_board.py'
+```
+
+The host demo expects `releases/functiongemma-270m/001-baseline/`; the
+canonical FP16 sha is `1add620fbd45…` (518 MiB) and Q4_0 is `a484ad50d4b6…`
+(231 MiB). Both are gitignored — `CHECKSUMS.txt` is the authoritative
+record.
+
+## Architecture overview
+
+```mermaid
+flowchart TB
+    subgraph H[Host - WSL2 / x86_64 / 20 cores]
+        direction TB
+        DATA[data/health_table_v1.yaml<br/>+ seed_conversations.jsonl]
+        DISTIL[Distil Labs platform<br/>cloud SFT, ~4h28m]
+        FP16[finetuned_functiongemma_fp16.gguf<br/>518 MiB BF16 GGUF]
+        QUANT[llama-quantize Q4_0]
+        Q40[finetuned_functiongemma_q4_0.gguf<br/>224 MiB Q4_0]
+        DATA --> DISTIL --> FP16 --> QUANT --> Q40
+    end
+    Q40 -- scp --> BOARD
+    subgraph BOARD[SL2619 Board - 2 x A55 - 1.87 GiB RAM]
+        direction TB
+        LLM[llama-completion<br/>cross-compiled aarch64]
+        CHAT[chat_board.py<br/>pure stdlib REPL]
+        TOOL[7-tool registry<br/>over health_table_v1.yaml]
+        FMT[NL formatter<br/>format_response]
+        CHAT -- subprocess --> LLM
+        CHAT -- dispatch --> TOOL
+        TOOL --> FMT
+    end
+    USER[User question] --> CHAT
+    FMT --> ANS[Human-readable answer]
+```
 
 ## Hardware
 
-- **Host (this WSL machine).** Ubuntu 24.04 under WSL2; Python 3.12; CPU-only;
-  used for dataset prep, host smoke, eval, and host-side bench.
-- **Fine-tune server (`nouslogic-server`).** Ubuntu, RTX 5080 (16 GiB,
-  cu128), 47 GiB RAM. Reachable over Tailscale/SSH. Used for the local
-  Unsloth fallback finetune; provisioned by `scripts/setup/server-bootstrap.sh`.
-- **SL2619 board (`nouslogic-sl2619`).** Synaptics SL2610 / Cortex-A55 × 2,
-  Yocto Linux + BusyBox; ~1.7 GiB MemAvailable; cross-compiled
-  `llama.cpp` aarch64 binaries staged at `/mnt/sdcard/llama-cpp/`.
-  Read-only SSH access from the agent; user runs all writes.
+- **Host (this WSL machine).** Ubuntu 24.04 / WSL2 / Python 3.12, x86_64
+  20-core. Used for dataset prep, host smoke, holdout eval, and the
+  llama-quantize sweep.
+- **Fine-tune server** (only when the local Unsloth fallback path is used).
+  RTX 5080 16 GiB VRAM, cu128, 47 GiB RAM, Tailscale-reachable. Bootstrapped
+  via [`scripts/setup/server-bootstrap.sh`](scripts/setup/server-bootstrap.sh).
+- **SL2619 board.** Synaptics SL2619 RDK / 2 × Cortex-A55 / 1.87 GiB RAM,
+  ARMv8.2-A NEON+DOTPROD (no SVE). Yocto Linux + BusyBox. ~1.7 GiB
+  MemAvailable. Cross-compiled `llama.cpp b8925`/`0adede8` aarch64 binaries
+  staged at `/mnt/sdcard/llama-cpp/`.
 
-## Install
+## Finetune workflow
 
-```bash
-cd /home/lanhp-wsl/nouslogic/gemma3-270M-finetune
-uv venv .venv
-source .venv/bin/activate
-uv pip install -e ".[dev,functiongemma]"
+```mermaid
+flowchart TB
+    SEEDS[data/functiongemma/seed_conversations.jsonl<br/>50 hand-authored multi-turn rows]
+    SCAN[scripts/pre_commit_phi_scanner.py<br/>PHI gate]
+    SPLITS[scripts/functiongemma/data/build_splits.py]
+    DV1[data/functiongemma/dataset_v1/<br/>train/val/test.jsonl]
+    DISTIL[Distil Labs SFT<br/>+ teacher synthesis<br/>+ LoRA r=64 alpha=64]
+    REL[releases/functiongemma-270m/001-baseline/<br/>merged/, adapter/, gguf/, distil/]
+    HOST[Host eval<br/>scripts/functiongemma/eval/eval_holdout.py<br/>--gguf finetuned_functiongemma_q4_0.gguf]
+    LOCAL[Optional fallback:<br/>scripts/functiongemma/train/finetune_local.py<br/>Unsloth on RTX 5080]
+
+    SEEDS --> SCAN --> SPLITS --> DV1
+    DV1 --> DISTIL --> REL
+    DV1 -.optional.-> LOCAL -.-> REL
+    REL --> HOST
 ```
 
-The `functiongemma` extra pulls `transformers`, `accelerate`, `torch` (CPU
-wheel for host smoke), `huggingface-hub`, `pydantic`, `jsonschema`,
-`sentencepiece`, `gguf`, and `llama-cpp-python`. Combined size ~1.5 GiB.
+The Distil-platform path is current production. Teacher synthesis blew the
+50-row seed corpus up to 5 054 training rows (5 000 synthesized + 50 seeds
++ deduped), expanded internally by Distil to 7 481 multi-turn samples. See
+[`releases/functiongemma-270m/001-baseline/distil/README.md`](releases/functiongemma-270m/001-baseline/distil/README.md)
+for the upload/re-upload/teacher-eval timeline (3 prompt-engineering
+iterations lifted judge from 0.7917 → 0.8750 → 0.9583).
+
+The local fallback path uses the same dataset shape against
+`google/functiongemma-270m-it` via Unsloth + LoRA — useful when the Distil
+platform is unavailable, or when the iteration adds refusal classes /
+parallel-call workflows (which Distil's `multi-turn-tool-calling-closed-book`
+task type doesn't fit).
+
+## Deploy workflow (host → board)
+
+```mermaid
+flowchart TB
+    H1["Render prompt templates<br/>scripts/functiongemma/data/gen_prompt_templates.py"]
+    H2["Convert YAML to JSON<br/>health_table_v1.yaml → health_table.json"]
+    H3["Stage at /tmp/fg_deploy/"]
+    SCP["scp — one-time bundle"]
+    B0["Board /mnt/sdcard/models/functiongemma-270m/<br/>+ /mnt/sdcard/llama-cpp/llama-completion"]
+    B1["chat_board.py — pure stdlib REPL"]
+    B2["llama-completion --prompt-cache"]
+    B3["7-tool dispatch over health_table.json"]
+    B4["NL formatter — format_response"]
+
+    H1 --> H3
+    H2 --> H3
+    H3 --> SCP --> B0
+    B0 --> B1
+    B1 --> B2
+    B1 --> B3
+    B3 --> B4
+```
+
+The split exists because the board has neither HF tokenizer nor
+`transformers`, so prompt rendering is host-side and pre-rendered
+prefixes/suffixes ship to the board. Full board recipe:
+[`docs/deployment/functiongemma-board-deploy.md`](docs/deployment/functiongemma-board-deploy.md).
+
+```bash
+# 1. Generate prompt templates + health-table JSON (host)
+mkdir -p /tmp/fg_deploy
+uv run python scripts/functiongemma/data/gen_prompt_templates.py \
+    --tokenizer releases/functiongemma-270m/001-baseline/merged/ \
+    --output-dir /tmp/fg_deploy/
+uv run python -c "
+import json, yaml
+with open('data/health_table_v1.yaml') as f: data = yaml.safe_load(f)
+with open('/tmp/fg_deploy/health_table.json', 'w') as f:
+    json.dump(data, f, indent=2, ensure_ascii=False)
+"
+cp scripts/functiongemma/deploy/chat_board.py /tmp/fg_deploy/
+cp scripts/functiongemma/deploy/run_prompt.sh /tmp/fg_deploy/run-prompt.sh
+chmod +x /tmp/fg_deploy/run-prompt.sh
+
+# 2. Stage on board
+ssh nouslogic-sl2619 'mkdir -p /mnt/sdcard/models/functiongemma-270m'
+scp releases/functiongemma-270m/001-baseline/gguf/finetuned_functiongemma_q4_0.gguf \
+    nouslogic-sl2619:/mnt/sdcard/models/functiongemma-270m/
+scp /tmp/fg_deploy/* nouslogic-sl2619:/mnt/sdcard/models/functiongemma-270m/
+ssh nouslogic-sl2619 'sha256sum /mnt/sdcard/models/functiongemma-270m/finetuned_functiongemma_q4_0.gguf'
+# expected: a484ad50d4b66fdbd6ccb482389eec734b0de9fe988e8811b5e6683daf180e14
+
+# 3. Run interactive REPL on board
+ssh nouslogic-sl2619 'python3 /mnt/sdcard/models/functiongemma-270m/chat_board.py'
+# First turn primes the prompt cache (~32 s, one-time).
+# Subsequent turns: ~6 s wall, 10.3 tok/s decode.
+```
+
+## Tool registry
+
+Seven read-only tools defined in
+[`src/gemma_tools/functiongemma/tools.py`](src/gemma_tools/functiongemma/tools.py),
+schema-mirrored to
+[`data/functiongemma/tools_v1.yaml`](data/functiongemma/tools_v1.yaml).
+The patient record they read from is the synthetic
+[`data/health_table_v1.yaml`](data/health_table_v1.yaml) (no real PHI).
+
+```mermaid
+flowchart TB
+    Y[health_table_v1.yaml]
+    R[Pydantic registry<br/>execute_tool name, args, table]
+    Y --> R
+    R --> T1[get_vitals]
+    R --> T2[get_medications_at_time]
+    R --> T3[get_medication_by_name]
+    R --> T4[list_allergies]
+    R --> T5[check_food_interaction]
+    R --> T6[get_next_appointment]
+    R --> T7[get_emergency_contact]
+```
+
+| Tool | Purpose | Required args |
+|---|---|---|
+| `get_vitals` | Most-recent vitals snapshot | — |
+| `get_medications_at_time` | Meds at HH:MM, or all meds if omitted | optional `time_24h` |
+| `get_medication_by_name` | Single medication record (case-insensitive prefix match) | `name` |
+| `list_allergies` | All known allergies | — |
+| `check_food_interaction` | Food vs medication / dietary restriction | `food` |
+| `get_next_appointment` | Earliest upcoming appointment | — |
+| `get_emergency_contact` | First listed contact | — |
+
+The model emits `<start_function_call>call:<NAME>{<args>}<end_function_call>`
+in the FunctionGemma wire format; the runtime regex-extracts, dispatches,
+then the formatter (`scripts/functiongemma/chat.py:format_response`)
+turns the JSON tool result into a single English sentence keyed off the
+question.
+
+## Quantization sweep results (2026-05-02)
+
+Source FP16: `finetuned_functiongemma_fp16.gguf` (sha256 `1add620fbd45…`).
+Sanity = 7 in-distribution prompts on board (`scripts/functiongemma/bench.py`).
+Holdout = 45-row all-novel-phrasing `eval_holdout_v2_clean.jsonl` (host eval
+via `llama-cpp-python`).
+
+| Variant | Size MiB | Holdout match | Board sanity | Decode tok/s (single-resident) | Verdict |
+|---|---|---|---|---|---|
+| FP16 baseline | 518 | 11/45 (24.4 %) | (skipped) | ~5–7 (per docs) | reference |
+| **Q4_0 ★** | **224** | **13/45 (28.9 %)** | **7/7** | **10.27** | **DEPLOY** |
+| Q4_K_M | 242 | 10/45 (22.2 %) | 1/7 | 7.0 | DISQUALIFIED — drops `<start_function_call>` open token on board |
+| Q5_K_M | 248 | 13/45 (28.9 %) | 1/7 | 8.4 | DISQUALIFIED — same drop pattern |
+| Q8_0 | 271 | 11/45 (24.4 %) | 3/7 | 9.1 | DISQUALIFIED — partial drop pattern |
+| IQ4_XS | 224 | 7/45 (15.6 %) | 1/7 | 9.9 | DISQUALIFIED — host accuracy + tokenizer drift |
+
+Failure mode for everything except Q4_0: the older on-board `llama-completion`
+(b8925, Apr 24) mis-handles K-quant scale-factor encoding from the newer
+host `llama-quantize` (b8981, Apr 29). On a 270M model with a 262 144-token
+embedding table, the post-`<start_of_turn>model` distribution shifts off
+the `<start_function_call>` mode → malformed wire format → parser rejects.
+Q4_0 uses the simpler symmetric INT4 representation and survives the skew.
+
+Refresh the on-board binary against `b8981`+ on the fine-tune server and
+re-cross-compile to potentially recover the higher-bit variants — captured
+as deferred follow-up.
+
+The clean holdout is *out-of-distribution* for iter-001's training corpus;
+even FP16 only hits 24.4 %. The realistic gate is therefore "no measurable
+degradation vs FP16 (≥ 19.4 %)", set per advisor review.
+
+Full per-row breakdown:
+[`docs/bench-notes/functiongemma/2026-05-02_quantization-sweep.md`](docs/bench-notes/functiongemma/2026-05-02_quantization-sweep.md).
 
 ## Repo layout
 
 ```
 gemma3-270M-finetune/
-|- CLAUDE.md                       Agent self-reference
-|- README.md                       This file
-|- pyproject.toml, uv.lock         Build + dependency manifests
+|- CLAUDE.md                          Agent self-reference (paths + workflows)
+|- README.md                          This file (human-facing entry point)
+|- pyproject.toml, uv.lock            Build + dependency manifests
 |- src/gemma_tools/
-|  |- __init__.py                  Package shim (version only)
-|  |- health_table.py              Patient-record schema (dual-use: legacy + FG)
-|  |- functiongemma/               Active sub-package: dataset, tools
-|  |- _legacy/                     Frozen gemma3-270m health-QA modules
+|  |- __init__.py                     Package shim (version only)
+|  |- health_table.py                 Pydantic loader for the patient YAML
+|  |- functiongemma/                  Active sub-package: dataset, tools
+|  |- _legacy/                        Frozen gemma3-270m health-QA modules
+|- scripts/functiongemma/
+|  |- chat.py                         Host interactive REPL (the local demo)
+|  |- bench.py                        Two-mode bench harness (local + remote SL2619)
+|  |- smoke.py                        Smoke runner
+|  |- data/                           build_seeds, build_splits, ingest, gen_prompt_templates
+|  |- train/finetune_local.py         Unsloth fallback SFT (server-side)
+|  |- eval/eval_holdout.py            Host holdout evaluation (HF + GGUF seams)
+|  |- quantize/build_variants.sh      Idempotent llama-quantize driver
+|  |- bench/aggregate_quant.py        Sweep JSONL -> Markdown aggregator
+|  |- deploy/                         chat_board.py, run_prompt.sh, ask_board.sh
 |- scripts/
-|  |- functiongemma/
-|  |  |- chat.py                   Interactive REPL (the local demo)
-|  |  |- bench.py                  Two-mode bench harness
-|  |  |- smoke.py                  Smoke runner
-|  |  |- data/                     build_seeds, build_splits, ingest, quality_audit, gen_prompt_templates
-|  |  |- train/finetune_local.py   Unsloth fallback SFT (server-side)
-|  |  |- eval/eval_holdout.py      Holdout evaluation
-|  |  |- deploy/                   chat_board.py, ask_board.sh, run_prompt.sh
-|  |- setup/                       server-bootstrap.sh, add_synaptics_submodules.sh
-|  |- pre_commit_phi_scanner.py    PHI gate for data ingest
+|  |- setup/server-bootstrap.sh       Idempotent Ubuntu-server SFT-stack bootstrap (RTX 5080)
+|  |- pre_commit_phi_scanner.py       PHI scanner for FunctionGemma data ingest
 |- tests/
-|  |- functiongemma/               Active tests
-|  |- _legacy/                     gemma3-270m health-QA tests (still in CI)
-|  |- test_health_table.py         Shared schema test
+|  |- functiongemma/                  Active tests (197 passed)
+|  |- _legacy/                        gemma3-270m health-QA tests (still in CI)
 |- data/
-|  |- health_table_v1.yaml         Synthetic patient record (no real PHI)
-|  |- functiongemma/               dataset_v1/, seed_conversations.jsonl, tools_v1.yaml, eval_holdouts
-|  |- _legacy/                     Frozen gemma3-270m SFT corpora + prompts.yaml
+|  |- health_table_v1.yaml            Synthetic patient record (no real PHI)
+|  |- functiongemma/                  dataset_v1, seed_conversations, eval_holdouts, tools_v1.yaml
+|  |- _legacy/                        Frozen gemma3-270m SFT corpora + prompts.yaml
 |- releases/functiongemma-270m/001-baseline/
-|  |- merged/                      HF merged weights
-|  |- adapter/                     LoRA adapter (r=64, alpha=64)
-|  |- gguf/                        FP16 GGUF + Modelfile
-|  |- model_client.py              Distil deploy client
-|- distil/iterations/001-baseline/
-|  |- README.md                    Iteration journey, metrics, repair history
-|  |- config.yaml                  Distil hyperparameters
-|  |- job_description.json         Routing rules, task description, judge instructions
-|  |- training-analysis.md         Aggregate + per-row metrics
-|  |- teacher-eval-analysis.md     Teacher prediction analysis (v1, v2, v3)
-|  |- data/{train,test}.jsonl      Dataset uploaded to platform
-|  |- predictions/                 student.jsonl + teacher-v{1,2,3}.jsonl
-|- bench/functiongemma/runs/       Active FunctionGemma bench JSONL outputs
+|  |- RECIPE.md                       How iter-001 was produced + reproduce steps
+|  |- merged/                         HF merged BF16 weights + tokenizer + chat template
+|  |- adapter/                        LoRA adapter (r=64, alpha=64)
+|  |- gguf/                           CHECKSUMS.txt, RECOMMENDED.md, Modelfile,
+|  |  |                               finetuned_functiongemma_{fp16,q4_0}.gguf (gitignored)
+|  |- distil/                         Distil platform deliverables (from running cloud SFT)
+|  |  |- README.md                    Iteration timeline (3 versions)
+|  |  |- config.yaml                  Distil hyperparameters
+|  |  |- job_description.json         Routing rules + judge instructions
+|  |  |- training-analysis.md         Aggregate + per-row metrics (final 0.9583)
+|  |  |- teacher-eval-analysis.md     Teacher prediction analysis (v1, v2, v3)
+|  |  |- data/{train,test}.jsonl      Dataset uploaded to platform
+|  |  |- predictions/                 student.jsonl + teacher-v{1,2,3}.jsonl
+|  |- model_client.py                 Distil deploy client (Ollama / vLLM HTTP wrapper)
+|- bench/functiongemma/runs/2026-05-02-quant/   Per-variant board sweep JSONL
 |- docs/
-|  |- conventions/                 Normative coding/repo/workflow rules (Python, shell, testing, git, doc-update, module-layering)
-|  |- references/                  Upstream sources + opt-in submodules
-|  |- plans/functiongemma/         Active plans (recipe, decisions-log, quantization-plan, seed-authoring, llm-augmentation, upstream-issue-drafts)
-|  |- bench-notes/functiongemma/   Active bench analyses
-|  |- guides/                      finetune-best-practices, distil-iteration-recipe-and-lessons
-|  |- deployment/                  sl2619-board.md (cross-compile), functiongemma-board-deploy.md
+|  |- conventions/                    Normative coding rules (Python, shell, testing, doc-update)
+|  |- references/upstream/            Opt-in submodules (gemma, llama.cpp, unsloth-notebooks)
+|  |- plans/functiongemma/            recipe, decisions-log, quantization-plan, seed-authoring, llm-augmentation
+|  |- bench-notes/functiongemma/      2026-05-02_quantization-sweep.md (the sweep report)
+|  |- deployment/                     sl2619-board.md (cross-compile), functiongemma-board-deploy.md
+|  |- guides/                         finetune-best-practices, distil-iteration-recipe-and-lessons
 |- archive/
-|  |- README.md                    Archive index
-|  |- gemma3-270m-health-qa/       Frozen gemma3-270m track (plans, bench, scripts, model-card, guides)
-|  |- functiongemma-pre-distil/    Frozen pre-distil FunctionGemma path (plans, scripts, bench, data)
+|  |- README.md                       Archive index
+|  |- gemma3-270m-health-qa/          Frozen gemma3-270m track
+|  |- functiongemma-pre-distil/       Frozen pre-distil FunctionGemma path
 ```
 
-## Run the demo
+## Reproduce iteration 001
 
-The end-to-end acceptance test for this workspace:
+The full recipe lives at
+[`releases/functiongemma-270m/001-baseline/RECIPE.md`](releases/functiongemma-270m/001-baseline/RECIPE.md).
+The Distil platform path produces this exact iteration in ~4h 28m;
+artifacts (`merged/`, `adapter/`, `gguf/finetuned_functiongemma_fp16.gguf`,
+`Modelfile`, `model_client.py`, `distil/training-analysis.md`,
+`distil/teacher-eval-analysis.md`, `distil/predictions/`,
+`distil/data/{train,test}.jsonl`) are what the team should expect to land
+under `releases/functiongemma-270m/<iter>/` after running cloud SFT.
 
 ```bash
-uv run python scripts/functiongemma/chat.py
-```
+# Production path (Distil Labs)
+distil model create fg-iter-002
+distil model upload-data fg-iter-002 --train-data train.jsonl \
+    --test-data test.jsonl --dry-run
+distil model upload-data fg-iter-002 --train-data train.jsonl --test-data test.jsonl
+distil model run-teacher-evaluation fg-iter-002       # judge ≥ 0.80 = proceed bar
+distil model run-finetune fg-iter-002
+distil model download-artifact fg-iter-002 \
+    --output releases/functiongemma-270m/iter-002/
 
-Loads `releases/functiongemma-270m/001-baseline/gguf/finetuned_functiongemma_fp16.gguf` and
-`releases/functiongemma-270m/001-baseline/merged/` as the tokenizer + chat
-template; serves an interactive REPL that routes user prompts through the
-7-tool patient-record registry against `data/health_table_v1.yaml`.
-
-Single-prompt probe (non-interactive):
-
-```bash
-uv run python scripts/functiongemma/chat.py --probe "What is my blood pressure?"
-```
-
-## Train
-
-### Current production path: Distil Labs platform
-
-Iteration 001 was produced by uploading the seed dataset to Distil's
-multi-turn-tool-calling platform. The hyperparameters, judge instructions,
-and result analysis live alongside the artifacts:
-
-```
-distil/iterations/001-baseline/
-|- README.md                       Upload/run/eval timeline (3 versions)
-|- config.yaml                     LoRA r=64 alpha=64; teacher gpt-oss-120b; gen_target 5000
-|- job_description.json            7 routing rules + 4 special-case judge rules
-|- training-analysis.md            Final 0.9583 metrics, training duration ~4h28m
-|- teacher-eval-analysis.md        Per-version teacher prediction analysis
-```
-
-Distil CLI invocations are documented in `.claude/skills/distil-cli/distil-cli/SKILL.md`.
-
-### Local fallback path: Unsloth + LoRA on `nouslogic-server`
-
-When the Distil platform is unavailable or full hyperparameter control is
-needed, run the local SFT script on the GPU server:
-
-```bash
-# 1. One-time bootstrap (first run only)
-scp scripts/setup/server-bootstrap.sh nouslogic-server:~/
+# Local fallback (Unsloth on nouslogic-server, RTX 5080) — ~60 min
 ssh -t nouslogic-server 'bash ~/server-bootstrap.sh --with-system-deps'
-
-# 2. Upload dataset
-scp data/functiongemma/dataset_v1/{train,val,test}.jsonl \
-    nouslogic-server:~/functiongemma-finetune/data/
-
-# 3. Upload script + supporting modules
-scp scripts/functiongemma/train/finetune_local.py nouslogic-server:~/functiongemma-finetune/
-scp -r src/gemma_tools/functiongemma/ src/gemma_tools/health_table.py \
-    nouslogic-server:~/functiongemma-finetune/gemma_tools/
-
-# 4. Run SFT (server-side; takes ~60 min on RTX 5080)
-#    Flags match `finetune_local.py --help` (vendor-faithful recipes).
 ssh nouslogic-server 'cd ~/functiongemma-finetune && source .venv/bin/activate && \
     python finetune_local.py --recipe mobile_actions_hf \
         --train-file data/train.jsonl --val-file data/val.jsonl \
         --output-dir outputs/iter-002 --epochs 4'
-
-# 5. Pull merged weights back to host
-scp -r nouslogic-server:~/functiongemma-finetune/outputs/iter-002/ \
-    releases/functiongemma-270m/iter-002/
 ```
 
-The script mirrors the iteration 001 hyperparameter shape (LoRA r=64, alpha=64,
-target `q_proj,v_proj`, 4 epochs). See
-`docs/plans/functiongemma/recipe.md` for the full recipe.
-
-## Evaluate
-
-### Holdout eval
+## Test / lint / typecheck
 
 ```bash
-uv run python scripts/functiongemma/eval/eval_holdout.py \
-    --model releases/functiongemma-270m/001-baseline/merged \
-    --holdout data/functiongemma/eval_holdout_v2_clean.jsonl
-```
-
-Per-row JSONL output + summary Markdown table; default Markdown destination
-is `docs/bench-notes/functiongemma/<today>_functiongemma-eval.md`. Same
-metric set as `distil/iterations/001-baseline/teacher-eval-analysis.md`
-(judge, ROUGE, tool-call equivalence, binary, staged).
-
-### Bench (host + board)
-
-```bash
-uv run python scripts/functiongemma/bench.py --mode local --warmup 1
-uv run python scripts/functiongemma/bench.py --mode remote \
-    --ssh-host nouslogic-sl2619 \
-    --remote-binary /mnt/sdcard/llama-cpp/llama-completion \
-    --remote-model  /mnt/sdcard/models/functiongemma-270m/finetuned_functiongemma_fp16.gguf \
-    --threads 2 --warmup 1
-```
-
-Both modes write per-prompt JSONL into `bench/functiongemma/runs/`. Compare
-modes:
-
-```bash
-diff <(jq -c '{id:.prompt_id,call:.parsed_call}' bench/functiongemma/runs/*local*.jsonl | sort) \
-     <(jq -c '{id:.prompt_id,call:.parsed_call}' bench/functiongemma/runs/*remote*.jsonl | sort)
-```
-
-Expected: parsed-call rows identical (same model, deterministic greedy decoding);
-throughput differs by ~10–20×.
-
-## Deploy to SL2619 board
-
-See `docs/deployment/functiongemma-board-deploy.md` for the full recipe
-(host-side prompt template generation, scp to `/mnt/sdcard/`, and the
-on-board run / REPL paths). High-level:
-
-```bash
-# Generate prompt templates
-uv run python scripts/functiongemma/data/gen_prompt_templates.py \
-    --tokenizer releases/functiongemma-270m/001-baseline/merged/ \
-    --output-dir /tmp/fg_deploy/
-
-# scp to board (user runs)
-ssh nouslogic-sl2619 'mkdir -p /mnt/sdcard/models/functiongemma-270m'
-scp releases/functiongemma-270m/001-baseline/gguf/finetuned_functiongemma_fp16.gguf \
-    nouslogic-sl2619:/mnt/sdcard/models/functiongemma-270m/
-scp /tmp/fg_deploy/* scripts/functiongemma/deploy/* \
-    nouslogic-sl2619:/mnt/sdcard/models/functiongemma-270m/
-
-# Run on board
-ssh nouslogic-sl2619 'bash /mnt/sdcard/models/functiongemma-270m/run-prompt.sh \
-    "What is my blood pressure?"'
-```
-
-## Test
-
-```bash
-uv run pytest                            # full suite (537 tests)
-uv run pytest tests/functiongemma/       # active FunctionGemma tests only
-uv run pytest tests/_legacy/             # gemma3-270m health-QA tests
+uv run pytest                    # 545 passed
 uv run ruff check src tests
 uv run mypy src
 ```
 
-The pre-distil archived weighting test under
-`archive/functiongemma-pre-distil/tests/` is NOT collected by default; run
-manually with `pytest archive/functiongemma-pre-distil/tests/` if you need
-to verify it.
+The legacy `_legacy/` track is preserved as a runnable reference (its tests
+still pass in CI). Active development goes into the FunctionGemma tracks
+under `src/gemma_tools/functiongemma/`, `scripts/functiongemma/`,
+`data/functiongemma/`.
 
-## Data layout
+## URL references
 
-| Path | Content |
+| Resource | URL |
 |---|---|
-| `data/health_table_v1.yaml` | Synthetic patient record (vitals, conditions, medications, allergies, appointments, contacts) |
-| `data/functiongemma/seed_conversations.jsonl` | 50 hand-authored multi-turn conversation seeds |
-| `data/functiongemma/llm_expanded_v1.jsonl` | LLM-augmented expansion (~545 rows after PHI scan + ingest) |
-| `data/functiongemma/dataset_v1/{train,val,test}.jsonl` | Distil-uploaded training splits |
-| `data/functiongemma/eval_holdout_v1.jsonl` | Original 24-row holdout (mixed novel + train-overlap rows) |
-| `data/functiongemma/eval_holdout_v2_clean.jsonl` | All-novel-phrasing holdout (45 rows) |
-| `data/functiongemma/eval_holdout_v2_contaminated.jsonl` | 11 train-overlap items + clean (56 rows) |
-| `data/functiongemma/quarantine.jsonl` | Per-row failures from past ingest runs (appended-to) |
-| `data/functiongemma/tools_v1.yaml` | JSON-Schema mirror of the Python tool registry |
-| `data/_legacy/` | gemma3-270m corpora: sft_v1.{train,val,test}.jsonl, sft_v1.audit.jsonl, prompts.yaml, clean_sft_dataset.json |
+| FunctionGemma 270M-IT model card | <https://huggingface.co/google/functiongemma-270m-it> |
+| Gemma 3 270M-IT (parent backbone) | <https://huggingface.co/google/gemma-3-270m-it> |
+| FunctionGemma cookbook (vendor) | <https://github.com/google-deepmind/gemma/tree/main/cookbook/docs/functiongemma> |
+| llama.cpp (cross-compile + quantize) | <https://github.com/ggml-org/llama.cpp> |
+| llama-cpp-python (host inference) | <https://github.com/abetlen/llama-cpp-python> |
+| Distil Labs platform (cloud SFT) | <https://app.distillabs.ai/> |
+| Distil Labs blog "Making FunctionGemma Work" | <https://distillabs.ai/blog/making-functiongemma-work> |
+| Unsloth (local LoRA SFT) | <https://github.com/unslothai/unsloth> |
+| HuggingFace `transformers` chat templates | <https://huggingface.co/docs/transformers/chat_templating> |
+| HuggingFace `peft` (LoRA adapter format) | <https://github.com/huggingface/peft> |
+| Synaptics SL2610 / SL2619 RDK get-started | <https://developer.synaptics.com/sl2610> |
+| Yocto scarthgap (board image) | <https://www.yoctoproject.org/software-overview/releases/scarthgap/> |
+| Cortex-A55 ARM ref | <https://developer.arm.com/Processors/Cortex-A55> |
+| GGUF format spec | <https://github.com/ggml-org/ggml/blob/master/docs/gguf.md> |
+| llama.cpp prompt-cache flag (used in `chat_board.py`) | <https://github.com/ggml-org/llama.cpp/blob/master/common/arg.cpp> |
 
-## Submodules
+## Environment / discipline
 
-`docs/references/upstream/{gemma,llama.cpp}` are shallow git submodules with
-`update = none`. They are NOT pulled on a fresh clone. Initialize on demand:
-
-```bash
-git submodule update --init docs/references/upstream/llama.cpp
-git submodule update --init docs/references/upstream/gemma
-```
-
-`docs/references/upstream/unsloth-notebooks/` is a standalone shallow clone
-(NOT a registered submodule) with sparse-checkout limited to
-`nb/FunctionGemma_(270M).ipynb`. See `scripts/setup/add_synaptics_submodules.sh`.
+- **No model weights in git** — `*.gguf`, `*.bin`, `*.safetensors`, `*.pt` are gitignored. `releases/.../gguf/CHECKSUMS.txt` is the authoritative SHA record.
+- **Synthetic PHI only** — `data/health_table_v1.yaml` is hand-authored fake data. Any move to real patient data goes through OQ-5 review.
+- **PHI scanner gates ingest** — `scripts/pre_commit_phi_scanner.py` runs on every staged JSONL before merge.
+- **SSH to the board is read-only from agents** (R3) — deploy `scp`/`ssh` commands are emitted; the human runs them. `docs/tmp/` snapshots from `/board_probe` are gitignored.
+- **No private keys / passphrases / Tailscale IPs in tracked files.** SSH credentials live in `.claude/CLAUDE.local.md` (gitignored). `.gitignore` covers `.claude/`, model weights, and `docs/tmp/`.
 
 ## License
 
-Model weights inherit the `gemma` license (open weights, license-gated download).
-Inference and finetune scripts are first-party to this repository. See
-`releases/functiongemma-270m/001-baseline/merged/{LICENSE,STUDENT_LICENSE,TEACHER_LICENSE}`
-for the full terms applying to the iteration-001 deliverable.
+Model weights inherit the `gemma` license (open weights, license-gated
+download). Inference and finetune scripts in this repo are first-party.
+See
+[`releases/functiongemma-270m/001-baseline/merged/{LICENSE,STUDENT_LICENSE,TEACHER_LICENSE}`](releases/functiongemma-270m/001-baseline/merged/).

@@ -1,20 +1,27 @@
 #!/bin/bash
-# Generate every quantized variant of the canonical FunctionGemma 270M FP16
-# GGUF and append the new sha256 hashes to CHECKSUMS.txt.
+# Generate the recommended Q4_0 (default) — or every variant from the
+# 2026-05-02 quant sweep (`--all`) — from the canonical FunctionGemma 270M
+# FP16 GGUF.
 #
-# Idempotent: if a variant file already exists with a matching sha256, the
-# llama-quantize call is skipped. Pass --force to rebuild from scratch.
+# Idempotent: if the target file already exists with a sha256 matching the
+# committed CHECKSUMS.txt, the llama-quantize call is skipped. Pass
+# `--force` to rebuild from scratch.
 #
 # Usage:
-#   scripts/functiongemma/quantize/build_variants.sh
-#   scripts/functiongemma/quantize/build_variants.sh --force
+#   scripts/functiongemma/quantize/build_variants.sh                # Q4_0 only (recommended on-board variant)
+#   scripts/functiongemma/quantize/build_variants.sh --all          # Q4_0 + Q4_K_M + Q5_K_M + Q8_0 + IQ4_XS (sweep reproduction)
+#   scripts/functiongemma/quantize/build_variants.sh --force        # rebuild Q4_0 from scratch
+#   scripts/functiongemma/quantize/build_variants.sh --all --force  # rebuild every variant
 #
-# Reproduces the on-board sweep at
+# Reproduces the sweep at
 # docs/bench-notes/functiongemma/2026-05-02_quantization-sweep.md.
+# That sweep DISQUALIFIED Q4_K_M / Q5_K_M / Q8_0 / IQ4_XS on the SL2619
+# board (K-quant scale-factor encoding skew vs the on-board llama-completion
+# build) — only Q4_0 ships in production.
 #
 # Relies on:
-#   docs/references/upstream/llama.cpp/build/bin/llama-quantize  (host build)
-#   releases/functiongemma-270m/001-baseline/gguf/model.gguf      (FP16 source)
+#   docs/references/upstream/llama.cpp/build/bin/llama-quantize          (host build)
+#   releases/functiongemma-270m/001-baseline/gguf/finetuned_functiongemma_fp16.gguf  (FP16 source)
 
 set -euo pipefail
 
@@ -26,8 +33,6 @@ QUANTIZE="$LLAMA_BIN_DIR/llama-quantize"
 GGUF_DIR="releases/functiongemma-270m/001-baseline/gguf"
 SOURCE="$GGUF_DIR/finetuned_functiongemma_fp16.gguf"
 CHECKSUMS="$GGUF_DIR/CHECKSUMS.txt"
-
-VARIANTS=( q4_0 q4_k_m q5_k_m q8_0 iq4_xs )
 
 # Map of variant -> llama-quantize ftype enum name
 declare -A FTYPE=(
@@ -42,10 +47,24 @@ declare -A FTYPE=(
 # Distil iteration-001 FP16 deployable is unambiguous.
 PREFIX="finetuned_functiongemma_"
 
+# Default to the recommended on-board variant; --all expands to the full
+# sweep set.
+VARIANTS=( q4_0 )
 FORCE=0
-if [[ "${1:-}" == "--force" ]]; then
-    FORCE=1
-fi
+for arg in "$@"; do
+    case "$arg" in
+        --all)   VARIANTS=( q4_0 q4_k_m q5_k_m q8_0 iq4_xs ) ;;
+        --force) FORCE=1 ;;
+        -h|--help)
+            sed -n '2,20p' "$0" | sed 's/^# \{0,1\}//'
+            exit 0
+            ;;
+        *)
+            echo "unknown arg: $arg" >&2
+            exit 2
+            ;;
+    esac
+done
 
 if [[ ! -x "$QUANTIZE" ]]; then
     echo "ERROR llama-quantize not found at $QUANTIZE." >&2
@@ -64,7 +83,6 @@ fi
 declare -A EXPECTED_SHA=()
 if [[ -f "$CHECKSUMS" ]]; then
     while read -r line; do
-        # lines look like "<sha>  <filename>"; ignore comment / blank lines
         [[ "$line" =~ ^[[:space:]]*# ]] && continue
         [[ -z "$line" ]] && continue
         sha="$(awk '{print $1}' <<<"$line")"
@@ -100,29 +118,6 @@ for v in "${VARIANTS[@]}"; do
 done
 
 echo ""
-echo "[sha256] regenerating $CHECKSUMS"
-{
-    cat <<'EOF'
-# FunctionGemma 270M iter-001 — GGUF checksums
-#
-# Source FP16 (`finetuned_functiongemma_fp16.gguf`) is the deployable from
-# Distil iteration 001. Originally named `model.gguf`; renamed for
-# unambiguous lineage 2026-05-02.
-#
-# All quantized variants below were produced on host via:
-#   docs/references/upstream/llama.cpp/build/bin/llama-quantize \
-#       releases/functiongemma-270m/001-baseline/gguf/finetuned_functiongemma_fp16.gguf \
-#       releases/.../gguf/finetuned_functiongemma_<quant>.gguf <QUANT>
-# (llama.cpp tag b8981, 2026-04-29 host checkout).
-#
-# .gguf files themselves are gitignored — this txt is the only authoritative
-# record committed to git. Regenerate via:
-#   scripts/functiongemma/quantize/build_variants.sh
-
-EOF
-    (cd "$GGUF_DIR" && sha256sum \
-        "${PREFIX}fp16.gguf" \
-        "${VARIANTS[@]/#/${PREFIX}}".gguf 2>/dev/null)
-} > "$CHECKSUMS.tmp"
-mv "$CHECKSUMS.tmp" "$CHECKSUMS"
-cat "$CHECKSUMS"
+echo "[sha256 verification — only entries on disk]"
+(cd "$GGUF_DIR" && sha256sum "${PREFIX}fp16.gguf" \
+    $(for v in "${VARIANTS[@]}"; do printf '%s ' "${PREFIX}${v}.gguf"; done) 2>/dev/null)

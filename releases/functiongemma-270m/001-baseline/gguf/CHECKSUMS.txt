@@ -3,8 +3,8 @@
 # Source FP16 (`finetuned_functiongemma_fp16.gguf`) is the deployable from
 # Distil iteration 001 (model id 231feebb-8cc0-4d5f-9e4b-4d2f00e362b2,
 # training id c9d34596-ee7a-4e56-be2b-254159fe7796 — see
-# distil/iterations/001-baseline/training-analysis.md). Originally named
-# `model.gguf`; renamed for unambiguous lineage 2026-05-02.
+# `releases/functiongemma-270m/001-baseline/distil/training-analysis.md`).
+# Originally named `model.gguf`; renamed for unambiguous lineage 2026-05-02.
 #
 # All quantized variants below were produced on host via:
 #   docs/references/upstream/llama.cpp/build/bin/llama-quantize \
@@ -13,11 +13,19 @@
 # (llama.cpp tag b8981, 2026-04-29 host checkout, gcc 13.3 x86_64).
 #
 # .gguf files themselves are gitignored — this txt is the only authoritative
-# record committed to git. Regenerate via:
-#   scripts/functiongemma/quantize/build_variants.sh
+# record committed to git.
+#
+# Repository ships only finetuned_functiongemma_fp16.gguf + finetuned_functiongemma_q4_0.gguf
+# on disk by default. The 2026-05-02 sweep disqualified Q4_K_M / Q5_K_M /
+# Q8_0 / IQ4_XS on board (K-quant scale-factor encoding skew vs the older
+# on-board llama-completion). The disqualified SHAs below are kept as a
+# reproducibility reference: regenerate them with
+#   scripts/functiongemma/quantize/build_variants.sh --all
+# Full report: `docs/bench-notes/functiongemma/2026-05-02_quantization-sweep.md`.
 
 1add620fbd45aaed3a5032c10e8d7190c670a93e67e4792fab0529377905f366  finetuned_functiongemma_fp16.gguf
 a484ad50d4b66fdbd6ccb482389eec734b0de9fe988e8811b5e6683daf180e14  finetuned_functiongemma_q4_0.gguf
+# --- below: disqualified variants (sha references for `build_variants.sh --all`) ---
 3796a34050ee8bce6c0629c1c7a84b7c57ac33cd59ab1f5ed2df8ff41c991729  finetuned_functiongemma_q4_k_m.gguf
 ff9fe3725c77ec8d3780b59c6964c39463b793f24dc4d427745d8ec71d446eed  finetuned_functiongemma_q5_k_m.gguf
 c95e62a7e22433e7d9badfc6d2ab781dc5361f5cca609356b6a0ac0518d4bb98  finetuned_functiongemma_q8_0.gguf

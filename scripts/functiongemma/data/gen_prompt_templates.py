@@ -107,7 +107,7 @@ def main(argv=None):
 
     idx = full_prompt.find(dummy_user)
     if idx < 0:
-        print(f"ERROR: placeholder not found in rendered prompt", file=sys.stderr)
+        print("ERROR: placeholder not found in rendered prompt", file=sys.stderr)
         print(f"Full prompt:\n{full_prompt}", file=sys.stderr)
         return 2
 
@@ -122,7 +122,7 @@ def main(argv=None):
 
     print(f"[gen] prefix: {len(prefix)} bytes → {prefix_path}", file=sys.stderr)
     print(f"[gen] suffix: {len(suffix)} bytes → {suffix_path}", file=sys.stderr)
-    print(f"[gen] done", file=sys.stderr)
+    print("[gen] done", file=sys.stderr)
     return 0
 
 

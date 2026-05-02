@@ -8,22 +8,33 @@ edited.
 
 ```
 docs/bench-notes/
-├── README.md                          # this file
-└── functiongemma/                     # FunctionGemma current-state notes
+├── README.md                                  # this file
+└── functiongemma/
+    └── 2026-05-02_quantization-sweep.md       # canonical INT4/INT8 sweep report
 ```
+
+The 2026-05-02 quantization sweep selected Q4_0 as the on-board variant.
+Per-variant raw data lives at `bench/functiongemma/runs/2026-05-02-quant/`
+(JSONL outputs from `scripts/functiongemma/bench.py --mode remote`,
+gitignored under `bench/`).
 
 ## Naming
 
-- `YYYY-MM-DD_<run-tag>.md` — human-readable summary.
-- `YYYY-MM-DD_<run-tag>.jsonl` — machine-readable per-prompt records.
+- `YYYY-MM-DD_<run-tag>.md` — human-readable summary committed to git.
+- `bench/functiongemma/runs/<dir>/<variant>.jsonl` — machine-readable
+  per-prompt records (gitignored).
 
 ## Default output paths
 
 - `scripts/functiongemma/eval/eval_holdout.py` writes its summary to
-  `docs/bench-notes/functiongemma/<today>_functiongemma-eval.md`.
+  `docs/bench-notes/functiongemma/<today>_functiongemma-eval-<seam>.md`
+  (default; pass `--output` to override).
 - `scripts/functiongemma/bench.py` writes per-run JSONL to
   `bench/functiongemma/runs/functiongemma_{local,remote}_<timestamp>.jsonl`
-  (see top-level `bench/` tree, not here).
+  by default; pass `--out` to override.
+- `scripts/functiongemma/bench/aggregate_quant.py` consumes the per-variant
+  JSONL files and emits a Markdown table — see
+  `2026-05-02_quantization-sweep.md` for the canonical example.
 
 ## Archived bench records
 
