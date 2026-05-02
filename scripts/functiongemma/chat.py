@@ -104,8 +104,9 @@ TOOLS: list[dict[str, Any]] = [
 sys.path.insert(0, str(REPO_ROOT / "scripts" / "functiongemma"))
 from smoke import parse_function_calls  # noqa: E402
 
-DEFAULT_MODEL_PATH = REPO_ROOT / "model.gguf"
-DEFAULT_TOKENIZER_DIR = REPO_ROOT / "model"
+DEFAULT_RELEASE_DIR = REPO_ROOT / "releases" / "functiongemma-270m" / "001-baseline"
+DEFAULT_MODEL_PATH = DEFAULT_RELEASE_DIR / "gguf" / "model.gguf"
+DEFAULT_TOKENIZER_DIR = DEFAULT_RELEASE_DIR / "merged"
 # health_table_v1.yaml is the in-repo patient-record fixture that
 # gemma_tools.functiongemma.tools is built against. Schema/loader:
 # src/gemma_tools/health_table.py.

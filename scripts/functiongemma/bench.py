@@ -69,9 +69,10 @@ from smoke import parse_function_calls  # noqa: E402
 sys.path.insert(0, str(REPO_ROOT / "src"))
 from gemma_tools._legacy.bench_prompt import parse_llama_perf  # noqa: E402
 
-DEFAULT_MODEL_PATH = REPO_ROOT / "model.gguf"
-DEFAULT_TOKENIZER_DIR = REPO_ROOT / "model"
-DEFAULT_BENCH_DIR = REPO_ROOT / "bench_results"
+DEFAULT_RELEASE_DIR = REPO_ROOT / "releases" / "functiongemma-270m" / "001-baseline"
+DEFAULT_MODEL_PATH = DEFAULT_RELEASE_DIR / "gguf" / "model.gguf"
+DEFAULT_TOKENIZER_DIR = DEFAULT_RELEASE_DIR / "merged"
+DEFAULT_BENCH_DIR = REPO_ROOT / "bench" / "functiongemma" / "runs"
 DEFAULT_CTX_SIZE = 4096
 DEFAULT_MAX_NEW_TOKENS = 64
 # Wider than n_predict because cold mmap of the GGUF over the SD card can
