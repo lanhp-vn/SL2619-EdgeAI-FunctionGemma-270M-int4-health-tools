@@ -373,6 +373,45 @@ uv run mypy src
 
 The legacy `_legacy/` track is preserved as a runnable reference (its tests still pass in CI). Active development goes into the FunctionGemma tracks under `src/gemma_tools/functiongemma/`, `scripts/functiongemma/`, `data/functiongemma/`.
 
+## Test USB audio peripheral (SL2619 board)
+
+Smoke-test a USB speakerphone (e.g. ROFALL P1U-4 / "USB Audio 4.0", which enumerates as `MV-SILICON P10S`) plugged into the board. The board image is ALSA-only — no PulseAudio/PipeWire, no `sox`/`ffmpeg`, no `opkg`. Substitute `<N>` with the card number from step 1. Full recipe with gotchas, signal-level interpretation, and triage matrix in [`docs/guides/usb-audio-testing-sl2619.md`](docs/guides/usb-audio-testing-sl2619.md).
+
+```bash
+# 1. Detect the USB audio device and its native PCM formats
+ssh nouslogic-sl2619 'lsusb; cat /proc/asound/cards; cat /proc/asound/card<N>/stream0'
+
+# 2. Inspect mixer; raise PCM if it's at 0% (common default after plug-in — otherwise tests "succeed" silently)
+ssh nouslogic-sl2619 'amixer -c <N>'
+ssh nouslogic-sl2619 "amixer -c <N> sset 'PCM' 50%"
+
+# 3. Speaker test — 440 Hz sine on both channels, at the device's native rate (see step 1)
+ssh nouslogic-sl2619 'speaker-test -D plughw:<N>,0 -c 2 -r 48000 -t sine -f 440 -l 1'
+
+# 4. Mic capture — 5 s at native format (P10S is 48 kHz capture only)
+ssh nouslogic-sl2619 'arecord -D plughw:<N>,0 -f S16_LE -r 48000 -c 2 -d 5 /tmp/usb_mic_test.wav'
+
+# 5. Signal analysis — Python stdlib, no sox/ffmpeg needed
+ssh nouslogic-sl2619 "python3 -W ignore::DeprecationWarning - <<'PY'
+import wave, audioop, math
+with wave.open('/tmp/usb_mic_test.wav','rb') as w:
+    nch, sw, sr, nf = w.getnchannels(), w.getsampwidth(), w.getframerate(), w.getnframes()
+    frames = w.readframes(nf)
+print(f'channels={nch} rate={sr} frames={nf} duration={nf/sr:.2f}s')
+db = lambda v: float('-inf') if v == 0 else 20*math.log10(v/32768)
+for name, ch in (('L', audioop.tomono(frames, sw, 1.0, 0.0)),
+                 ('R', audioop.tomono(frames, sw, 0.0, 1.0))):
+    p, r = audioop.max(ch, sw), audioop.rms(ch, sw)
+    print(f'{name}: peak={p:5d} ({db(p):+6.1f} dBFS)   rms={r:5d} ({db(r):+6.1f} dBFS)')
+PY
+"
+
+# 6. End-to-end loopback — play the recording back through the same device
+ssh nouslogic-sl2619 'aplay -D plughw:<N>,0 /tmp/usb_mic_test.wav'
+```
+
+Healthy voice peaks at −20 to −6 dBFS; below −50 dBFS means no signal reached the mic. On single-mic speakerphones L and R should be within ~1 dB (single capsule duplicated to stereo).
+
 ## URL references
 
 | Resource | URL |

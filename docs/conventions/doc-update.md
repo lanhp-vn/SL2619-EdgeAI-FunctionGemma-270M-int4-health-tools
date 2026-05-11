@@ -158,6 +158,12 @@ Every normative fact, procedure, spec, or reusable table lives in **one** Markdo
 | Frozen bench run logs | `docs/bench/` (one file per run; never rewrite) |
 | Prompt variants used during bench | `docs/plans/models-testing-plan.md` §3 (frozen narrative) |
 
+#### Board peripheral testing
+
+| Topic | Canonical |
+|---|---|
+| USB audio (speaker + mic) verification recipe on SL2619 | `docs/guides/usb-audio-testing-sl2619.md` |
+
 #### Code style, testing, git, docs
 
 | Topic | Canonical |
