@@ -27,6 +27,8 @@ MODEL_PATH=""
 WAV_PATH=""
 BACKEND="moonshine-streaming"
 THREADS="2"   # matches the SL2619's two A55 cores; CrispASR's default would resolve to this anyway
+LANGUAGE="en" # skips CrispASR's auto-LID (which fetches ggml-tiny.bin ~77 MB on first run and adds ~70 MB RSS every run — fatal on the 600 MB board budget)
+PUNCTUATION="off" # 'off' passes --no-punctuation, suppressing CrispASR's auto-download of fireredpunc-q4_k.gguf for moonshine-streaming (another runtime network trap). 'on' restores upstream default.
 LATENCY_BUDGET_S="2.0"
 RSS_BUDGET_MB="250"
 MEM_FLOOR_MB="350"   # MemAvailable must be >= RSS_BUDGET_MB + headroom before we attempt
@@ -47,6 +49,8 @@ Optional:
   --ssh-host HOST          SSH alias (default: ${SSH_HOST})
   --backend NAME           CrispASR backend (default: ${BACKEND})
   --threads N              '-t N' for crispasr (default: ${THREADS} for the 2-core A55)
+  --language LANG          '-l LANG' for crispasr (default: ${LANGUAGE}; pass 'auto' to re-enable auto-LID — but the board is offline so 'auto' will fail unless ggml-tiny.bin is pre-staged)
+  --punctuation off|on     'off' adds --no-punctuation (suppresses auto-fetch of fireredpunc on moonshine-streaming); 'on' restores upstream default (default: ${PUNCTUATION})
   --latency-budget-s SEC   plan §9 gate (default: ${LATENCY_BUDGET_S})
   --rss-budget-mb MB       plan §9 gate (default: ${RSS_BUDGET_MB})
   --mem-floor-mb MB        abort if MemAvailable < this (default: ${MEM_FLOOR_MB})
@@ -77,6 +81,8 @@ while [[ $# -gt 0 ]]; do
         --wav)               WAV_PATH="$2"; shift 2 ;;
         --backend)           BACKEND="$2"; shift 2 ;;
         --threads)           THREADS="$2"; shift 2 ;;
+        --language)          LANGUAGE="$2"; shift 2 ;;
+        --punctuation)       PUNCTUATION="$2"; shift 2 ;;
         --latency-budget-s)  LATENCY_BUDGET_S="$2"; shift 2 ;;
         --rss-budget-mb)     RSS_BUDGET_MB="$2"; shift 2 ;;
         --mem-floor-mb)      MEM_FLOOR_MB="$2"; shift 2 ;;
@@ -172,10 +178,18 @@ echo
 #
 # Note: agent must NOT execute this block. The user runs this script.
 echo "--- decode (live on board) ---"
+# BusyBox `date` doesn't support `+%s%N` (nanoseconds get echoed literally as
+# the string "...%N"). The Yocto ASTRA image on the SL2619 uses BusyBox utils
+# for /usr/bin/date, so we read /proc/uptime instead — it's a kernel-provided
+# float-seconds counter with 0.01s resolution, stable across busybox/coreutils.
+PUNC_FLAG=""
+if [[ "${PUNCTUATION}" == "off" ]]; then
+    PUNC_FLAG="--no-punctuation"
+fi
 REMOTE_CMD="$(cat <<REMOTE
 set -eo pipefail
-START_NS=\$(date +%s%N)
-'${BIN_PATH}' --backend '${BACKEND}' -t '${THREADS}' -m '${MODEL_PATH}' -f '${WAV_PATH}' > /tmp/crispasr_smoke_out.\$\$ 2>&1 &
+START_S=\$(awk '{print \$1; exit}' /proc/uptime)
+'${BIN_PATH}' --backend '${BACKEND}' -l '${LANGUAGE}' ${PUNC_FLAG} -t '${THREADS}' -m '${MODEL_PATH}' -f '${WAV_PATH}' > /tmp/crispasr_smoke_out.\$\$ 2>&1 &
 PID=\$!
 MAX_KB=0
 while kill -0 \$PID 2>/dev/null; do
@@ -189,8 +203,14 @@ while kill -0 \$PID 2>/dev/null; do
 done
 wait \$PID
 RC=\$?
-END_NS=\$(date +%s%N)
-ELAPSED_MS=\$(( (END_NS - START_NS) / 1000000 ))
+END_S=\$(awk '{print \$1; exit}' /proc/uptime)
+# /proc/uptime is float (e.g. "12345.67"). awk arithmetic gives ms.
+ELAPSED_MS=\$(awk -v s="\$START_S" -v e="\$END_S" 'BEGIN {printf "%d", (e - s) * 1000}')
+# Fallback: if the wall-clock parse fails or the timer didn't tick (very fast
+# decode), scrape "transcribed X.Xs audio in Y.Ys" from the backend's own log.
+if [ -z "\$ELAPSED_MS" ] || [ "\$ELAPSED_MS" = "0" ]; then
+    ELAPSED_MS=\$(awk '/transcribed.*audio in/ {for(i=1;i<=NF;i++) if(\$i ~ /^[0-9.]+s\$/) {gsub("s",""); printf "%d", \$i*1000; exit}}' /tmp/crispasr_smoke_out.\$\$ 2>/dev/null || true)
+fi
 echo "=== RESULT ==="
 echo "exit_code=\$RC"
 echo "elapsed_ms=\$ELAPSED_MS"

@@ -55,10 +55,21 @@ and was empirically validated 2026-04-23 (Phase A closure).
 | Encoder architecture | Sliding-window transformer (80 ms lookahead), streaming | upstream README |
 | Audio frontend | Raw waveform → 80-sample frames → CMVN → asinh → linear+SiLU → 2× causal Conv1d. No mel spectrogram. | `src/moonshine_streaming.cpp:387` (comment block) |
 | GGML ops used | Uses `ggml_flash_attn_ext` ×3; capabilities flagged `CAP_FLASH_ATTN \| CAP_TIMESTAMPS_CTC \| CAP_AUTO_DOWNLOAD \| CAP_DIARIZE` | `crispasr_backend_moonshine_streaming.cpp:22-23` |
+| CMake target for the CLI | **`crispasr-cli`** (`OUTPUT_NAME crispasr`). The `crispasr` target name produces only `libcrispasr.so` — passing `--target crispasr` will NOT yield a usable binary. | `examples/cli/CMakeLists.txt:12, set_target_properties(... OUTPUT_NAME crispasr)` |
+| Auto-LID side effect | When `--language` is omitted or set to `auto`, CrispASR runs a whisper-tiny LID pass before the requested backend. **First run downloads `ggml-tiny.bin` (~77 MB) into `~/.cache/crispasr/`** (network required), and every run pays ~70 MB extra RSS for it. Disable with `-l en` (or any explicit language code). | empirical: see §6 host result; `cli.cpp` auto-detect path |
+| Auto-punctuation side effect | For backends that emit unpunctuated text (moonshine-streaming, omniasr, kyutai-stt, etc.), CrispASR auto-enables a FireRedPunc post-pass. **First run downloads `fireredpunc-q4_k.gguf` (~80 MB) into `~/.cache/crispasr/`** (network required), and every run adds a second model load + decode pass (~3-4 s + ~60 MB RSS on Cortex-A55). Disable with `--no-punctuation`. The backend prints a cosmetic warning that the moonshine-streaming backend doesn't support a *native* `--no-punctuation` toggle, but the dispatch-layer auto-enable IS suppressed via `params.punctuation`. | `crispasr_punctuation_policy.h:11`, `crispasr_run.cpp:991`; empirical §6 board result |
 
 > **Reminder:** the upstream README is the only authoritative source here.
 > If the README is later moved or the binary CLI changes, refresh this section
 > before the next spike run.
+>
+> **Critical for the board:** the SL2619 is offline by design. Always invoke
+> crispasr with both `-l <code>` (e.g. `-l en`) AND `--no-punctuation` —
+> neither auto-LID nor auto-punctuation should ever run on the board, both
+> because the model downloads will fail without network and because together
+> they consume ~150 MB / ~5 s of an envelope we cannot afford. The smoke
+> scripts default both off; the production launcher (Phase 3.5) MUST do the
+> same.
 
 ---
 
@@ -73,38 +84,52 @@ CrispASR is also vendored at `docs/references/upstream/CrispASR/` in this repo
 # Option A — build the vendored submodule in-place (no extra clone):
 cmake -S docs/references/upstream/CrispASR -B /tmp/crispasr-build \
     -DCMAKE_BUILD_TYPE=Release
-cmake --build /tmp/crispasr-build -j"$(nproc)" --target crispasr
+cmake --build /tmp/crispasr-build -j"$(nproc)" --target crispasr-cli
 # Resulting binary: /tmp/crispasr-build/bin/crispasr
 
 # Option B — fresh clone (matches upstream docs/install.md):
 git clone https://github.com/CrispStrobe/CrispASR /tmp/crispasr-src
 cd /tmp/crispasr-src
 cmake -B build -DCMAKE_BUILD_TYPE=Release
-cmake --build build -j"$(nproc)" --target crispasr
+cmake --build build -j"$(nproc)" --target crispasr-cli
 # Resulting binary: /tmp/crispasr-src/build/bin/crispasr
 ```
 
-`--target crispasr` builds only the main CLI binary (skips
-`crispasr-quantize` and `crispasr-diff`), per `docs/install.md`. Faster
-build, no behavioral difference for the spike.
+**Target name gotcha:** the user-facing binary is `crispasr` but the CMake
+target is **`crispasr-cli`** (`OUTPUT_NAME crispasr` is set on it; see
+`examples/cli/CMakeLists.txt:12`). The bare `crispasr` target builds only
+`libcrispasr.so` — useful for downstream linkers, not for the spike. Phase 0
+needs `--target crispasr-cli`.
 
 If GPU acceleration on the host is desired (not needed for the gate):
 `-DGGML_CUDA=ON` / `-DGGML_METAL=ON` / `-DGGML_VULKAN=ON`. The Phase 0 gate
 is CPU only on host to mirror board conditions.
 
-### 3.2 Download the model + tokenizer
+### 3.2 Download the model + tokenizer (human-executed)
+
+> **Hand-off note:** the HF download is operator-driven, **not** agent-driven.
+> The agent never runs `huggingface-cli` or network fetches as part of the
+> spike; the operator stages the artifacts and hands back the local path.
 
 ```bash
+# Operator runs (uses the new `hf` CLI; `huggingface-cli` is deprecated as of
+# huggingface_hub >= 1.0):
 mkdir -p /tmp/moonshine-stream-tiny
-huggingface-cli download cstr/moonshine-streaming-tiny-GGUF \
-    --local-dir /tmp/moonshine-stream-tiny
+source .venv/bin/activate    # `hf` ships with huggingface_hub already in [dev]
+hf download cstr/moonshine-streaming-tiny-GGUF --local-dir /tmp/moonshine-stream-tiny
+# Then report back: the path to the chosen .gguf and confirm tokenizer.bin is co-located.
 ```
+
+The repo contains multiple quant variants (q4_k, q5_k, q8_0, …) plus
+`tokenizer.bin`. For the Phase 0 gate use `moonshine-streaming-tiny-q4_k.gguf`
+— it is the documented default in `crispasr_model_registry.cpp:103-105`.
 
 The HF repo bundles both the model GGUF (e.g.
 `moonshine-streaming-tiny-q4_k.gguf`) and the matching tokenizer artifact in a
-co-located layout — CrispASR auto-discovers the tokenizer when both sit in the
-same directory. If the download yields multiple quant variants, default to
-`q4_k` (smallest viable; matches the board RAM budget).
+co-located layout — CrispASR auto-discovers the tokenizer (`dir_of(path_model)
++ "/tokenizer.bin"`, `moonshine_streaming.cpp:374`) when both sit in the same
+directory. If the download yields multiple quant variants, default to `q4_k`
+(smallest viable; matches the board RAM budget).
 
 ### 3.3 Stage a test WAV
 
@@ -218,6 +243,31 @@ log is append-only so we can compare across attempts.
 - Peak child RSS: `<kb>`
 - Verdict: PASS / FAIL — `<reason>`
 
+### Result — 2026-05-11 (host, step 0.1)
+
+- Operator: Lan + agent (R3 override scoped to Phase 0)
+- CrispASR commit: `docs/references/upstream/CrispASR/` submodule HEAD on 2026-05-11
+  (libcrispasr.so.0.6.3 at link time)
+- Build host: WSL2 Ubuntu, x86_64, GCC 11, `cmake --target crispasr-cli` Release
+- Build dir: `/tmp/crispasr-build/`; binary: `/tmp/crispasr-build/bin/crispasr` (2.3 MB ELF)
+- Model: `/tmp/moonshine-stream-tiny/moonshine-streaming-tiny-q4_k.gguf` (31 MB),
+  `tokenizer.bin` (246 KB) co-located, auto-discovered
+- WAV: `docs/references/upstream/CrispASR/samples/jfk.wav` (11.0 s, 16-bit PCM mono 16 kHz)
+- Invocation (warm cache, `-l en`):
+  `crispasr --backend moonshine-streaming -l en -m … -f …`
+- Decoded transcript: `"ANd so, my fellow Americans, ask not what your country can do for you, ask what you can do for your country.."`
+- Wall time: **1.100 s** (11.0 s audio → **10.0× realtime**; backend self-reports 1.00 s decode)
+- Peak child RSS: **158628 KB ≈ 155 MB**
+- Verdict: **PASS** — backend exits 0; expected substring `"ask not"` matches; far
+  under the documented 1 s/3 s gate proportionally (1.10 s for 11 s = 0.30 RT-factor,
+  i.e. for a 3 s clip ≈ 0.30 s wall, well under the 1 s gate).
+- **Finding worth flagging (now codified in §2 and the smoke scripts):** the
+  first invocation without `-l <code>` triggered CrispASR's auto-LID, which
+  downloaded `ggml-tiny.bin` (~77 MB) into `~/.cache/crispasr/` and added
+  ~70 MB to peak RSS (244 MB with auto-LID vs 155 MB with `-l en`). The host
+  smoke script and the board dispatcher now default `--language en`. For the
+  board this is non-negotiable: no network + 600 MB MemoryMax budget.
+
 ### Result — YYYY-MM-DD (board, step 0.2)
 
 - Operator:
@@ -229,19 +279,76 @@ log is append-only so we can compare across attempts.
 - Peak RSS (VmRSS sampled): `<MB>`
 - Verdict: PASS / FAIL — `<reason>`
 
+### Result — 2026-05-11 (board, step 0.2)
+
+- Operator: Lan + agent (R3 scoped override for Phase 0)
+- `/board_probe` snapshot: `docs/tmp/sl2619-status.md`, refreshed 2026-05-11
+  (board libc 2.39, libstdc++ 6.0.32, Cortex-A55 ARMv8.2-A no I8MM/SVE, no
+  on-board `libgomp`, 1.66 GiB MemAvailable, 109 GiB free on `/mnt/sdcard`)
+- MemAvailable at start: 1705 MB
+- /tmp tmpfs pre-state: clean after operator cleared 5 MB of P10S AEC probe WAVs
+  pre-spike (`rm -f /tmp/*.wav`); only zero-byte systemd directories remained
+- Cross-toolchain: Ubuntu 24.04 `gcc-aarch64-linux-gnu` 13.3.0,
+  `libc6-dev-arm64-cross` 2.39 — exact glibc match with board
+- Build flags (Release, static, no OpenMP):
+  `-DCMAKE_TOOLCHAIN_FILE=… -DGGML_OPENMP=OFF -DCMAKE_DISABLE_FIND_PACKAGE_OpenMP=TRUE -DBUILD_SHARED_LIBS=OFF -DGGML_BUILD_TESTS=OFF -DGGML_BUILD_EXAMPLES=OFF`
+  + toolchain file pinning `-mcpu=cortex-a55 -O3` and a flat `aarch64-linux-gnu` sysroot
+- crispasr aarch64 sha256: `5bfedc148a665c56fe7a18fff857dfb4d9c8640695effaa30304e16bbb3304f8`
+  (7.9 MB stripped, NEEDED = `libstdc++ libm libgcc_s libc ld-linux-aarch64`
+  only; no `libgomp`, no RUNPATH, GLIBC ≤ 2.38, GLIBCXX ≤ 3.4.32)
+- Model sha256: `46bf62ab1323da8ff3cf3936b62c08980590396a324bb822c91e38e821d972cc`;
+  tokenizer sha256: `0e90e02b765a10f0fa35b7d67877df29dd22a1fd4890899c9b1b203a19bc8999`
+- Invocation (warm cache, `-l en --no-punctuation`, 2 threads):
+  `/mnt/sdcard/bin/crispasr --backend moonshine-streaming -l en --no-punctuation -t 2 -m … -f /mnt/sdcard/fixtures/jfk.wav`
+- Decoded transcript: `"And so my fellow Americans ask not what your country can do for you ask what you can do for your country"`
+- Wall time: **7.48 s** (11.0 s audio → **1.5× realtime**; backend self-reports 7.31 s decode)
+- Peak RSS (VmRSS, 50 ms polling): **71132 KB ≈ 69.5 MB** — well under 250 MB
+- Verdict: **PASS** — extrapolated to a 3 s utterance the gate (≤ 2.0 s wall,
+  ≤ 250 MB RSS) is met: 1.5× RT × 3 s ≈ 2.0 s wall, ~70 MB RSS.
+- **Findings worth flagging** (now codified in §2 and the smoke scripts):
+  1. Bare `--target crispasr` builds only `libcrispasr.so`; the CLI target is
+     **`crispasr-cli`** (`OUTPUT_NAME crispasr`).
+  2. Auto-LID downloads `ggml-tiny.bin` (~77 MB) → suppress with `-l en`.
+  3. **Auto-punctuation** downloads `fireredpunc-q4_k.gguf` (~80 MB) and adds
+     a second decode pass → suppress with `--no-punctuation`. Without it, the
+     first board run wall-clock was 11.20 s and RSS 132 MB (logged before
+     re-spike with the flag) — punctuation is responsible for ~3.7 s and
+     ~60 MB on this hardware.
+  4. **BusyBox `date +%s%N`** prints the literal token `%N` instead of
+     nanoseconds; the dispatcher now reads `/proc/uptime` (float seconds,
+     0.01 s resolution, kernel-stable since 2.0). First run lost the wall
+     measurement to this bug — substantive decode still completed.
+  5. The board ran with `--no-punctuation`; backend emitted the cosmetic
+     warning `"warning: backend 'moonshine-streaming' does not support
+     --no-punctuation — ignoring"`. The flag IS effective at the dispatch
+     layer (auto-enable check on `params.punctuation`); the warning refers to
+     a backend-native toggle that doesn't exist. Behavior is correct.
+  6. Build artifact ABI: GLIBC ≤ 2.38 (board 2.39), GLIBCXX ≤ 3.4.32 (board
+     libstdc++ 6.0.32 = GCC 14-era). Forward-compatible with the board.
+
 ---
 
 ## 7. Decision (step 0.3)
 
-To be filled in after both 0.1 and 0.2 complete (or after one fails per the
-fallback rule). Required fields:
-
-- **Outcome:** KEEP CrispASR | FALLBACK to Moonshine ONNX | RE-SPIKE
-- **Why:** one or two sentences pointing at the result rows above.
-- **Phase 3 STT runtime:** `cstr/moonshine-streaming-tiny-GGUF via CrispASR`
-  or `UsefulSensors/moonshine tiny float ONNX via onnxruntime`.
-- **Mirror in `docs/plans/dispenser-demo/decisions-log.md`** under the
-  Phase 0 entry once that file exists.
+- **Outcome:** **KEEP CrispASR** (resolved 2026-05-11).
+- **Why:** both gates met — host §6 row 1 (1.10 s wall, 155 MB RSS, exact
+  transcript) and board §6 row 2 (7.48 s wall for 11 s audio = 1.5× RT,
+  69.5 MB RSS, exact transcript). Extrapolated to the plan's reference
+  3 s utterance the board hits ~2.0 s wall and ~70 MB RSS — at the latency
+  gate but well under the RAM gate. Two runtime traps (`auto-LID`,
+  `auto-punctuation`) discovered and pinned off in both smoke scripts and
+  the spike-notes recipe; production launcher (Phase 3.5) must do the same.
+- **Phase 3 STT runtime:** `cstr/moonshine-streaming-tiny-GGUF` via
+  CrispASR (static aarch64 build, `-DGGML_OPENMP=OFF
+  -DCMAKE_DISABLE_FIND_PACKAGE_OpenMP=TRUE -DBUILD_SHARED_LIBS=OFF`).
+  Production invocation: `crispasr --backend moonshine-streaming -l en
+  --no-punctuation -t 2 -m <model> -f <wav>`.
+- **Mirror:** entry added to `docs/plans/dispenser-demo/decisions-log.md`.
+- **Latency caveat for Phase 3.5 planning:** the board ASR sits right on
+  the latency gate, so the end-to-end pipeline must avoid serial second
+  passes (the punctuation pass we suppressed cost the same as the
+  decode itself). Streaming partial hypotheses from moonshine-streaming
+  may be needed to keep perceived latency reasonable.
 
 ---
 

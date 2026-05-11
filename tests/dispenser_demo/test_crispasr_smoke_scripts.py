@@ -92,6 +92,30 @@ def test_board_script_exists() -> None:
             2,
             "threads override propagated as int (e.g. 2 for SL2619 A55)",
         ),
+        (
+            ["--bin", "/a", "--model", "/b", "--wav", "/c"],
+            "language",
+            "en",
+            "default language 'en' skips auto-LID (no ggml-tiny.bin download, no extra RSS)",
+        ),
+        (
+            ["--bin", "/a", "--model", "/b", "--wav", "/c", "--language", "auto"],
+            "language",
+            "auto",
+            "language override 'auto' re-enables CrispASR's auto-LID",
+        ),
+        (
+            ["--bin", "/a", "--model", "/b", "--wav", "/c"],
+            "punctuation",
+            False,
+            "default punctuation off (--no-punctuation propagated, suppresses fireredpunc auto-download)",
+        ),
+        (
+            ["--bin", "/a", "--model", "/b", "--wav", "/c", "--punctuation"],
+            "punctuation",
+            True,
+            "--punctuation re-enables upstream auto-fetch behaviour",
+        ),
     ],
 )
 def test_parse_args_defaults_and_overrides(
@@ -190,7 +214,7 @@ def test_board_script_help_runs() -> None:
         check=False,
     )
     assert r.returncode == 0, f"--help exited {r.returncode}; stderr={r.stderr}"
-    for needle in ("--bin", "--model", "--wav", "--threads", "MemAvailable", "/board_probe"):
+    for needle in ("--bin", "--model", "--wav", "--threads", "--language", "MemAvailable", "/board_probe"):
         assert needle in r.stdout, f"help text missing {needle!r}"
 
 

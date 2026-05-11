@@ -4,13 +4,18 @@ Fine-tune **FunctionGemma 270M-IT** for closed-world function-calling against a 
 
 The deliverable is a 224 MiB GGUF that answers natural-language health questions on-device at **~10 tok/s decode**, with tool dispatch + a human-readable formatter resolving the structured output back into one sentence per question.
 
+A second active track — the **dispenser demo** — stacks an on-device STT front-end (CrispASR + Moonshine Streaming Tiny GGUF) and a BLE-driven ESP32 medication dispenser on top of this FunctionGemma brain. Phase 0 (STT runtime spike) closed 2026-05-11 with a passing gate; data authoring + BLE bring-up run next in parallel. See [`docs/plans/dispenser-demo/plan.md`](docs/plans/dispenser-demo/plan.md).
+
 ## Status
 
 | Track | State |
 | --- | --- |
-| FunctionGemma iteration 001 (Distil Labs) | **DONE** — 0.9583 on every metric on the 24-row contaminated holdout (`releases/functiongemma-270m/001-baseline/distil/`) |
+| FunctionGemma iteration 001 (Distil Labs) | **DONE** — 0.9583 on every metric on the 24-row contaminated holdout (`releases/functiongemma-270m/001-baseline/distil/`); no retrain planned |
 | INT4/INT8 board quantization sweep | **DONE 2026-05-02** — Q4_0 selected; full report in [`docs/bench-notes/functiongemma/2026-05-02_quantization-sweep.md`](docs/bench-notes/functiongemma/2026-05-02_quantization-sweep.md) |
 | On-board interactive REPL (`chat_board.py`) | **DONE** — prompt-cache primed; ~6 s/turn after the one-time prime |
+| Dispenser demo — Phase 0 (CrispASR STT spike) | **DONE 2026-05-11** — board: 7.48 s wall / 11 s audio, 69.5 MB RSS; extrapolated 3 s utterance meets the ≤ 2.0 s / ≤ 250 MB gate. Audit: [`docs/plans/dispenser-demo/crispasr-spike-notes.md`](docs/plans/dispenser-demo/crispasr-spike-notes.md) |
+| Dispenser demo — Phase 1 (data + Distil retrain) | **NEXT** — runs in parallel with Phase 2 |
+| Dispenser demo — Phase 2 (BLE GATT + P10S audio) | **NEXT** — pybleno against M.2 Broadcom BT, ESP32 peripheral |
 
 ## Quick start
 
@@ -72,6 +77,22 @@ flowchart TB
     USER[User question] --> CHAT
     FMT --> ANS[Human-readable answer]
 ```
+
+### Dispenser-demo voice pipeline (Phase 0+)
+
+```mermaid
+flowchart LR
+    MIC[P10S USB mic<br/>16 kHz mono]
+    STT[crispasr-cli<br/>moonshine-streaming-tiny GGUF q4_k<br/>-l en --no-punctuation -t 2]
+    BRAIN[chat_board.py<br/>FunctionGemma Q4_0]
+    BLE[pybleno GATT server<br/>M.2 Broadcom BT]
+    ESP[ESP32 dispenser<br/>medication actuator]
+    MIC --> STT --> BRAIN --> BLE -- BLE notify --> ESP
+```
+
+Phase 0 (STT runtime) closed; Phase 1 (data + Distil retrain) and Phase 2
+(BLE bring-up + P10S audio) run next, in parallel. Full plan with phases,
+BLE wire contract, and wake-word state machine: [`docs/plans/dispenser-demo/plan.md`](docs/plans/dispenser-demo/plan.md).
 
 ## Hardware
 
@@ -301,13 +322,17 @@ gemma3-270M-finetune/
 |  |- quantize/build_variants.sh      Idempotent llama-quantize driver
 |  |- bench/aggregate_quant.py        Sweep JSONL -> Markdown aggregator
 |  |- deploy/                         chat_board.py, run_prompt.sh, ask_board.sh
+|- scripts/dispenser_demo/spike/
+|  |- crispasr_host_smoke.py          Phase 0 host-side CrispASR smoke (uv-run)
+|  |- crispasr_board_smoke.sh         Phase 0 board-side dispatcher (SSH read-only + decode + VmRSS poll)
 |- scripts/
 |  |- setup/server-bootstrap.sh       Idempotent Ubuntu-server SFT-stack bootstrap (RTX 5080)
 |  |- sl2619/p10s_aec_probe.py        P10S firmware AEC tone-suppression probe (duplex)
 |  |- sl2619/p10s_aec_speech_probe.py P10S speech-survival follow-up (operator speaks during duplex)
 |  |- pre_commit_phi_scanner.py       PHI scanner for FunctionGemma data ingest
 |- tests/
-|  |- functiongemma/                  Active tests (197 passed)
+|  |- functiongemma/                  Active FunctionGemma tests
+|  |- dispenser_demo/                 Phase 0 smoke-script tests (23 cases)
 |  |- _legacy/                        gemma3-270m health-QA tests (still in CI)
 |- data/
 |  |- health_table_v1.yaml            Synthetic patient record (no real PHI)
@@ -331,11 +356,12 @@ gemma3-270M-finetune/
 |- bench/functiongemma/runs/2026-05-02-quant/   Per-variant board sweep JSONL
 |- docs/
 |  |- conventions/                    Normative coding rules (Python, shell, testing, doc-update)
-|  |- references/upstream/            Opt-in submodules (gemma, llama.cpp, unsloth-notebooks)
+|  |- references/upstream/            Opt-in submodules (gemma, llama.cpp, CrispASR, Synaptics/*, unsloth-notebooks)
 |  |- plans/functiongemma/            recipe, decisions-log, quantization-plan, seed-authoring, llm-augmentation
+|  |- plans/dispenser-demo/           plan, crispasr-spike-notes, decisions-log (Phase 0 closed 2026-05-11)
 |  |- bench-notes/functiongemma/      2026-05-02_quantization-sweep.md (the sweep report)
 |  |- deployment/                     sl2619-board.md (cross-compile), functiongemma-board-deploy.md
-|  |- guides/                         finetune-best-practices, distil-iteration-recipe-and-lessons
+|  |- guides/                         finetune-best-practices, distil-iteration-recipe-and-lessons, usb-audio-testing-sl2619
 |- archive/
 |  |- README.md                       Archive index
 |  |- gemma3-270m-health-qa/          Frozen gemma3-270m track
@@ -368,7 +394,7 @@ ssh nouslogic-server 'cd ~/functiongemma-finetune && source .venv/bin/activate &
 ## Test / lint / typecheck
 
 ```bash
-uv run pytest                    # 545 passed
+uv run pytest                    # 568 passed (FunctionGemma + dispenser_demo + _legacy)
 uv run ruff check src tests
 uv run mypy src
 ```
@@ -456,6 +482,7 @@ Full results, decision criteria, and the critical duplex gotcha (USB endpoint sc
 - **No model weights in git** — `*.gguf`, `*.bin`, `*.safetensors`, `*.pt` are gitignored. `releases/.../gguf/CHECKSUMS.txt` is the authoritative SHA record.
 - **Synthetic PHI only** — `data/health_table_v1.yaml` is hand-authored fake data. Any move to real patient data goes through OQ-5 review.
 - **PHI scanner gates ingest** — `scripts/pre_commit_phi_scanner.py` runs on every staged JSONL before merge.
+- **CrispASR runtime traps** — any production code invoking the board's crispasr binary MUST pass `-l en --no-punctuation -t 2`. Auto-LID and auto-punctuation silently fetch models from HF at runtime — fatal on the offline SL2619 and a RAM bomb on the 2 GB device. See [`docs/plans/dispenser-demo/decisions-log.md`](docs/plans/dispenser-demo/decisions-log.md).
 - **SSH to the board is read-only from agents** (R3) — deploy `scp`/`ssh` commands are emitted; the human runs them. `docs/tmp/` snapshots from `/board_probe` are gitignored.
 - **No private keys / passphrases / Tailscale IPs in tracked files.** SSH credentials live in `.claude/CLAUDE.local.md` (gitignored). `.gitignore` covers `.claude/`, model weights, and `docs/tmp/`.
 

@@ -75,6 +75,29 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         "letting CrispASR pick min(4, hardware_concurrency()).",
     )
     p.add_argument(
+        "--language",
+        default="en",
+        help="Language code passed as `-l LANG`. Default 'en' skips the auto-LID "
+        "step (which on first run downloads ggml-tiny.bin ~77 MB into "
+        "~/.cache/crispasr/ and on every run costs ~70 MB RSS + extra latency). "
+        "Pass 'auto' to re-enable auto-detect.",
+    )
+    p.add_argument(
+        "--no-punctuation",
+        dest="punctuation",
+        action="store_false",
+        help="Pass --no-punctuation to crispasr (default). Without this, "
+        "moonshine-streaming auto-fetches FireRedPunc (~80 MB) and runs a "
+        "second model pass — bad for the board's RAM and offline constraint.",
+    )
+    p.add_argument(
+        "--punctuation",
+        dest="punctuation",
+        action="store_true",
+        help="Re-enable upstream auto-punctuation behaviour (auto-downloads FireRedPunc).",
+    )
+    p.set_defaults(punctuation=False)
+    p.add_argument(
         "--timeout",
         type=float,
         default=30.0,
@@ -139,11 +162,15 @@ def run_smoke(args: argparse.Namespace) -> int:
         str(args.bin),
         "--backend",
         args.backend,
+        "-l",
+        args.language,
         "-m",
         str(args.model),
         "-f",
         str(args.wav),
     ]
+    if not args.punctuation:
+        cmd.append("--no-punctuation")
     if args.threads is not None:
         cmd.extend(["-t", str(args.threads)])
     log.info("invoking: %s", " ".join(cmd))
