@@ -63,6 +63,7 @@ flowchart TB
 | `docs/bench-notes/functiongemma/2026-05-02_quantization-sweep.md` | The single canonical sweep report |
 | `docs/deployment/sl2619-board.md` | Board cross-compile + deploy runbook |
 | `docs/deployment/functiongemma-board-deploy.md` | FunctionGemma-specific board deploy recipe |
+| `docs/guides/usb-audio-testing-sl2619.md` | USB speaker + mic verification recipe on the board (ALSA + Python stdlib only) |
 | `docs/conventions/` | Normative coding/repo/workflow rules (Python, shell, testing, doc-update) |
 | `docs/references/` | Upstream source notes + opt-in submodules under `upstream/{gemma,llama.cpp}` |
 | `docs/tmp/` | Local-only `/board_probe` snapshots (gitignored) |
@@ -216,6 +217,7 @@ Pinned recommendation:
 - `docs/plans/functiongemma/decisions-log.md` — decisions table.
 - `docs/plans/functiongemma/quantization-plan.md` — Stage-1 done; Stage-2 deferred.
 - `docs/bench-notes/functiongemma/2026-05-02_quantization-sweep.md` — the single canonical sweep report.
+- `docs/guides/usb-audio-testing-sl2619.md` — verified recipe for USB speaker + mic on the board (raise PCM first, native rate only, Python stdlib for level analysis; no Pulse/PipeWire, no `sox`/`ffmpeg`/`opkg` on this image).
 - `releases/functiongemma-270m/001-baseline/RECIPE.md` — how iter-001 was produced + reproduce steps.
 - `releases/functiongemma-270m/001-baseline/distil/README.md` — Distil platform invocation timeline.
 - `releases/functiongemma-270m/001-baseline/gguf/RECOMMENDED.md` — Q4_0 selection rationale.
