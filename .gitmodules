@@ -124,3 +124,7 @@
 	update = none
 	shallow = true
 	ignore = dirty
+[submodule "docs/references/upstream/synaptic-sl2619"]
+	path = docs/references/upstream/synaptic-sl2619
+	url = git@github.com:ngoctienbkit/SynapticSL2619.git
+	branch = lan-pham
