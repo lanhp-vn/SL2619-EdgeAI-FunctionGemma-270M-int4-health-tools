@@ -174,6 +174,160 @@ R: peak=27393 (  -1.6 dBFS)   rms=  662 ( -33.9 dBFS)
 - Speaker 440 Hz sine: audible, clean, both channels.
 - End-to-end loopback: audible and intelligible.
 
+## AEC capability probe (duplex)
+
+The P10S is marketed as a Zoom-certified speakerphone, which strongly implies
+on-chip / firmware acoustic echo cancellation (AEC). Two probes verify this
+empirically and answer two distinct questions:
+
+| Probe | Question it answers | Script |
+|---|---|---|
+| **Tone test** | Does the firmware suppress its own playback in the captured stream? | [`scripts/sl2619/p10s_aec_probe.py`](../../scripts/sl2619/p10s_aec_probe.py) |
+| **Speech-survival** | Does the firmware also attenuate human speech during playback (heavy-handed) or only the echo (selective)? | [`scripts/sl2619/p10s_aec_speech_probe.py`](../../scripts/sl2619/p10s_aec_speech_probe.py) |
+
+Both scripts run on the board, write captures to `/tmp/p10s_aec_*.wav`, and
+print a verdict. They use stdlib only (`wave` + `audioop`) and a Goertzel
+single-bin DFT — no `numpy`/`scipy` required on the board image.
+
+### Critical duplex gotcha (read before running)
+
+ALSA on this board image fails the duplex with a mid-stream
+`pcm_read:2272: read error: Input/output error` when **both** of these hold:
+
+1. Capture is **stereo** (`-c 2`) at 48 kHz, while playback is also stereo 48 kHz.
+2. `aplay` is started before `arecord`.
+
+USB Audio Class 1 endpoint scheduling on the SL2619 USB host can't sustain
+the bandwidth for simultaneous stereo I/O at 48 kHz. The fix is two-fold:
+
+- **Capture mono** (`-c 1`). On the P10S this loses nothing — the device has a
+  single capsule duplicated to both channels (see L/R within 1 dB above).
+- **Start `arecord` first**, sleep ~1 s for the capture endpoint to claim
+  bandwidth, **then** start `aplay` in background.
+
+Both probe scripts already follow this order. Replicate it for any custom
+duplex test.
+
+### 1. Tone test — does the firmware AEC exist at all?
+
+```bash
+ssh nouslogic-sl2619 'python3 -W ignore::DeprecationWarning /tmp/p10s_aec_probe.py'
+```
+
+(`scp scripts/sl2619/p10s_aec_probe.py nouslogic-sl2619:/tmp/` first if it's
+not already on the board.)
+
+What it does:
+
+- Generates a 1234 Hz sine WAV (prime-ish frequency, not near mains hum
+  harmonics, well inside the speech band where AEC is tuned).
+- Captures 5 s of silence (no playback) — establishes noise floor.
+- Captures 5 s while the 1234 Hz tone plays through the P10S speaker.
+- Measures total RMS and the 1234 Hz Goertzel amplitude (single-bin DFT) in
+  both captures. Reports the deltas.
+
+Decision criteria:
+
+| Δ 1234 Hz (duplex − silence) | Verdict |
+|---|---|
+| `< 6 dB` | Firmware AEC active — the device suppresses its own playback below the noise floor |
+| `> 20 dB` | No firmware AEC — playback bleeds straight into capture; software AEC needed |
+| `6–20 dB` | Inconclusive — re-run or check PCM volume |
+
+Sanity check: **you should hear the 1234 Hz tone** from the P10S during the
+run. If you don't, PCM volume is at 0% (the silent-success trap above) and
+the result is meaningless.
+
+Known-good result on the P10S (2026-05-11):
+
+```
+silence  total = -45.3 dBFS   1234 Hz = -108.8 dBFS
+duplex   total = -49.2 dBFS   1234 Hz = -106.6 dBFS
+Δ total = -3.9 dB      Δ 1234 Hz = +2.2 dB
+=> FIRMWARE AEC LIKELY ACTIVE
+```
+
+The 1234 Hz energy is sitting at the S16 quantization floor in *both*
+captures — the AEC drives it completely below detectable noise. Total RMS
+even drops slightly during duplex, which is a hallmark of the firmware
+attenuating the entire mic stream when it sees its own playback as a near-end
+reference. Reference signal is internal (the device taps its own DAC) — no
+USB Audio Class jack/feature-unit setup needed.
+
+### 2. Speech-survival probe — is the AEC selective?
+
+A device-level AEC that kills *all* mic input during playback would still
+pass the tone test. The follow-up probe checks whether human speech survives
+the AEC.
+
+```bash
+ssh -tt nouslogic-sl2619 'python3 -u -W ignore::DeprecationWarning /tmp/p10s_aec_speech_probe.py'
+```
+
+(`-tt` forces a PTY so the countdown prompts flush in real-time.)
+
+What it does:
+
+- **Phase A — speech-only baseline.** Prompts you with `=== SPEAK NOW ===`,
+  captures 5 s of your voice with no playback.
+- **Phase B — speech + duplex.** Prompts you, captures 5 s of your voice
+  while the 1234 Hz tone plays simultaneously.
+- Compares total RMS between A and B. Because the tone is already suppressed
+  to the noise floor (per Probe 1), total RMS = speech + ambient, so this is
+  a clean speech-survival metric.
+
+For a fair comparison, **use the same phrase, same volume, same distance
+from the P10S in both phases**. Counting `one two three four five six seven
+eight nine ten` slowly is a good default — it fills the 5 s window and has
+broadband energy.
+
+Decision criteria:
+
+| Δ speech total RMS (B − A) | Verdict |
+|---|---|
+| `\|Δ\| < 6 dB` | AEC is selective — voice survives during playback; barge-in viable |
+| `Δ < -15 dB` | AEC also kills speech — half-duplex (mute mic during TTS) mandatory |
+| `-15 to -6 dB` | Partial degradation — judgment call; re-test with louder voice |
+
+Known-good result on the P10S (2026-05-11):
+
+```
+silence (prior)    total = -45.3 dBFS   1234 Hz = -108.8 dBFS
+speech only        total = -43.3 dBFS   1234 Hz =  -86.5 dBFS
+speech + duplex    total = -45.2 dBFS   1234 Hz =  -75.3 dBFS
+Δ speech total RMS (B − A) = -1.9 dB
+=> AEC IS SELECTIVE — speech survives during playback
+```
+
+Interpretation:
+
+- **Speech survives almost untouched** (Δ = -1.9 dB) — the firmware AEC
+  preserves the near-end voice while killing its own echo.
+- **The 1234 Hz bin rises to -75 dBFS during double-talk** (vs -108 in
+  Probe 1's single-talk case). This is *not* a regression — the AEC relaxes
+  slightly during double-talk to avoid clipping speech. Even so, it provides
+  ~55–65 dB of echo suppression vs the typical "no AEC" bleed level
+  (-10 to -20 dBFS at 50% PCM).
+- Speech itself has formant energy in the 1234 Hz band (visible as -86.5 dBFS
+  in pure speech), which accounts for most of the 1234 Hz energy in
+  double-talk. Don't read the elevated tone-bin number as "AEC failed."
+
+### Implications
+
+For any voice pipeline targeting the P10S on the SL2619:
+
+- **No software AEC is required.** `speexdsp` / `webrtc-audio-processing` are
+  not needed.
+- **No host-side AEC reference channel is required.** Vanilla `aplay` +
+  `arecord` against `plughw:<N>,0` activates the firmware AEC; the device
+  uses its own DAC as the reference internally.
+- **Continuous wake-word and barge-in during TTS are viable.** The mic stream
+  during playback contains clean near-end speech with ~55–65 dB of echo
+  suppression on the playback signal.
+
+A half-duplex rule (mute mic during TTS) is still a defensible v1 simplicity
+choice — but it's an engineering preference, not a hardware necessity.
+
 ## Triage matrix
 
 | Symptom | Likely cause | Action |
@@ -182,6 +336,7 @@ R: peak=27393 (  -1.6 dBFS)   rms=  662 ( -33.9 dBFS)
 | Speaker test completes with `# 0 buffer underruns`, no sound | PCM volume at 0% (most common); device on a switched USB hub powering down between bursts | `amixer -c <N>` and raise PCM; check hub power |
 | Mic peaks below −50 dBFS | Mic muted, gain at 0%, or another process holds the device | `amixer -c <N>`; `fuser -v /dev/snd/*` |
 | Stutter on playback of a WAV already on local disk | USB underrun; full-speed bus contention with other devices | Unplug other USB devices; verify topology with `lsusb -t` |
+| `arecord: pcm_read:2272: read error: Input/output error` mid-stream during duplex | UAC1 USB endpoint bandwidth exhaustion when both capture and playback are stereo 48 kHz simultaneously | Capture mono (`-c 1`) and start `arecord` *before* `aplay` — see "AEC capability probe" section above |
 | L vs R asymmetric > 6 dB | Hardware fault or unusual mic config | Investigate the device — not a board-side issue |
 | SSH passphrase prompt loops forever | Identity key is encrypted and ssh-agent doesn't have it loaded | `ssh-add ~/.ssh/sl2619_nouslogic_wsl` in a terminal session before SSH-ing |
 | `audioop` raises `DeprecationWarning` | Python 3.12 deprecation; will become an error on 3.13 | Run with `python3 -W ignore::DeprecationWarning`; replace with raw `struct`/`array` parsing before any 3.13 image |

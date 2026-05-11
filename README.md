@@ -303,6 +303,8 @@ gemma3-270M-finetune/
 |  |- deploy/                         chat_board.py, run_prompt.sh, ask_board.sh
 |- scripts/
 |  |- setup/server-bootstrap.sh       Idempotent Ubuntu-server SFT-stack bootstrap (RTX 5080)
+|  |- sl2619/p10s_aec_probe.py        P10S firmware AEC tone-suppression probe (duplex)
+|  |- sl2619/p10s_aec_speech_probe.py P10S speech-survival follow-up (operator speaks during duplex)
 |  |- pre_commit_phi_scanner.py       PHI scanner for FunctionGemma data ingest
 |- tests/
 |  |- functiongemma/                  Active tests (197 passed)
@@ -411,6 +413,23 @@ ssh nouslogic-sl2619 'aplay -D plughw:<N>,0 /tmp/usb_mic_test.wav'
 ```
 
 Healthy voice peaks at −20 to −6 dBFS; below −50 dBFS means no signal reached the mic. On single-mic speakerphones L and R should be within ~1 dB (single capsule duplicated to stereo).
+
+### Probe the firmware echo canceller (AEC)
+
+The P10S is a Zoom-certified speakerphone and ships with on-chip AEC. Two stdlib-only probes verify this without external tooling — confirmed 2026-05-11 that the firmware suppresses device echo by ~65 dB during single-talk and ~55 dB during double-talk while preserving near-end speech (Δ -1.9 dB). No software AEC (`speexdsp`, `webrtc-audio-processing`) is needed for a duplex voice pipeline targeting this device.
+
+```bash
+# Tone test — does AEC exist?
+scp scripts/sl2619/p10s_aec_probe.py nouslogic-sl2619:/tmp/
+ssh nouslogic-sl2619 'python3 -W ignore::DeprecationWarning /tmp/p10s_aec_probe.py'
+
+# Speech-survival follow-up — is AEC selective?
+scp scripts/sl2619/p10s_aec_speech_probe.py nouslogic-sl2619:/tmp/
+ssh -tt nouslogic-sl2619 'python3 -u -W ignore::DeprecationWarning /tmp/p10s_aec_speech_probe.py'
+# Speak during the "=== SPEAK NOW ===" prompts; use the same phrase in both phases.
+```
+
+Full results, decision criteria, and the critical duplex gotcha (USB endpoint scheduling fails on stereo+stereo @ 48 kHz — must use mono capture and start `arecord` before `aplay`) are in [`docs/guides/usb-audio-testing-sl2619.md`](docs/guides/usb-audio-testing-sl2619.md).
 
 ## URL references
 

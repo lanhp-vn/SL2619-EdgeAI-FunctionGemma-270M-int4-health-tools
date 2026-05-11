@@ -49,6 +49,8 @@ flowchart TB
 | `scripts/functiongemma/eval/eval_holdout.py` | Holdout evaluation; HF (`--checkpoint`) + GGUF (`--gguf`) seams |
 | `scripts/functiongemma/deploy/` | Board deploy: `chat_board.py`, `ask_board.sh`, `run_prompt.sh` |
 | `scripts/setup/server-bootstrap.sh` | Idempotent Ubuntu-server SFT-stack bootstrap (RTX 5080) |
+| `scripts/sl2619/p10s_aec_probe.py` | P10S firmware AEC tone-suppression probe (duplex; verdict via Goertzel) |
+| `scripts/sl2619/p10s_aec_speech_probe.py` | P10S speech-survival follow-up — prompts operator to speak during duplex |
 | `scripts/pre_commit_phi_scanner.py` | PHI scanner for FunctionGemma data ingest |
 | `data/health_table_v1.yaml` | Synthetic patient record (no real PHI) |
 | `data/functiongemma/dataset_v1/{train,val,test}.jsonl` | Active Distil iteration-001 training splits |
@@ -63,7 +65,7 @@ flowchart TB
 | `docs/bench-notes/functiongemma/2026-05-02_quantization-sweep.md` | The single canonical sweep report |
 | `docs/deployment/sl2619-board.md` | Board cross-compile + deploy runbook |
 | `docs/deployment/functiongemma-board-deploy.md` | FunctionGemma-specific board deploy recipe |
-| `docs/guides/usb-audio-testing-sl2619.md` | USB speaker + mic verification recipe on the board (ALSA + Python stdlib only) |
+| `docs/guides/usb-audio-testing-sl2619.md` | USB speaker + mic verification recipe + P10S firmware AEC probe (ALSA + Python stdlib only) |
 | `docs/conventions/` | Normative coding/repo/workflow rules (Python, shell, testing, doc-update) |
 | `docs/references/` | Upstream source notes + opt-in submodules under `upstream/{gemma,llama.cpp}` |
 | `docs/tmp/` | Local-only `/board_probe` snapshots (gitignored) |
@@ -217,7 +219,7 @@ Pinned recommendation:
 - `docs/plans/functiongemma/decisions-log.md` — decisions table.
 - `docs/plans/functiongemma/quantization-plan.md` — Stage-1 done; Stage-2 deferred.
 - `docs/bench-notes/functiongemma/2026-05-02_quantization-sweep.md` — the single canonical sweep report.
-- `docs/guides/usb-audio-testing-sl2619.md` — verified recipe for USB speaker + mic on the board (raise PCM first, native rate only, Python stdlib for level analysis; no Pulse/PipeWire, no `sox`/`ffmpeg`/`opkg` on this image).
+- `docs/guides/usb-audio-testing-sl2619.md` — verified recipe for USB speaker + mic on the board (raise PCM first, native rate only, Python stdlib for level analysis; no Pulse/PipeWire, no `sox`/`ffmpeg`/`opkg` on this image). Now also documents the P10S firmware AEC probe — verified 2026-05-11 that the device handles echo cancellation in firmware (no software AEC needed for any duplex voice pipeline targeting the P10S).
 - `releases/functiongemma-270m/001-baseline/RECIPE.md` — how iter-001 was produced + reproduce steps.
 - `releases/functiongemma-270m/001-baseline/distil/README.md` — Distil platform invocation timeline.
 - `releases/functiongemma-270m/001-baseline/gguf/RECOMMENDED.md` — Q4_0 selection rationale.
