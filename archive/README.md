@@ -16,22 +16,25 @@ archive/
 │   ├── scripts/                        # finetune.py, merge.py, smoke_test.py, chat_remote.sh
 │   ├── model-card/                     # per-model README (IFEval, quantization, prompt strategy)
 │   └── (live code lives at src/gemma_tools/_legacy/, tests/_legacy/, data/_legacy/)
-└── functiongemma-pre-distil/           # FunctionGemma path before switch to Distil Labs
-    ├── README.md                       # what was tried, why it was abandoned
-    ├── bench/
-    │   ├── eval-summary.md             # consolidated rollup of 43 micro-files
-    │   ├── 2026-05-01_functiongemma-block-e-supplement-repair.md
-    │   ├── 2026-05-01_functiongemma-block-f1-refusal-reweight.md
-    │   └── 2026-05-01_functiongemma-v2-finetune-eval.md
-    ├── data/                           # supplement_dataset.jsonl, raw teacher dumps, refusal2x
-    ├── plans/
-    │   └── phase-d-readme-original.md  # 2321-line original FunctionGemma plan, verbatim
-    ├── scripts/                        # finetune_functiongemma.py (v1, refusal-weighted),
-    │                                   # build_block_e_supplement.py, build_weighted_train.py
-    └── tests/                          # test_finetune_functiongemma_weighting.py (NOT in CI)
+├── functiongemma-pre-distil/           # FunctionGemma path before switch to Distil Labs
+│   ├── README.md                       # what was tried, why it was abandoned
+│   ├── bench/
+│   │   ├── eval-summary.md             # consolidated rollup of 43 micro-files
+│   │   ├── 2026-05-01_functiongemma-block-e-supplement-repair.md
+│   │   ├── 2026-05-01_functiongemma-block-f1-refusal-reweight.md
+│   │   └── 2026-05-01_functiongemma-v2-finetune-eval.md
+│   ├── data/                           # supplement_dataset.jsonl, raw teacher dumps, refusal2x
+│   ├── plans/
+│   │   └── phase-d-readme-original.md  # 2321-line original FunctionGemma plan, verbatim
+│   ├── scripts/                        # finetune_functiongemma.py (v1, refusal-weighted),
+│   │                                   # build_block_e_supplement.py, build_weighted_train.py
+│   └── tests/                          # test_finetune_functiongemma_weighting.py (NOT in CI)
+└── dispenser-demo-moonshine-streaming/ # Dispenser-demo STT, streaming variant — superseded same day
+    ├── README.md                       # why streaming-tiny was provisionally pinned and then flipped
+    └── working-recipe.md               # complete build/deploy/smoke recipe, captured before supersession
 ```
 
-## Why two tracks
+## Why three tracks
 
 - **gemma3-270m-health-qa** — the original closed-world YAML-QA SFT path. The
   model retrieves and quotes facts from `data/health_table_v1.yaml`. Live
@@ -41,6 +44,12 @@ archive/
   to Distil Labs. Local Unsloth-based finetune (v1 with refusal weighting,
   v2 cleaner). v2 lives at `scripts/functiongemma/train/finetune_local.py`
   as the active local fallback; v1 + the Block-E/F1 experiments are here.
+- **dispenser-demo-moonshine-streaming** — the streaming variant of Moonshine
+  Tiny GGUF, provisionally pinned during dispenser-demo Phase 0 (2026-05-11 AM)
+  and superseded by `moonshine-tiny` (non-streaming) the same afternoon after
+  a head-to-head proof on the SL2619 showed -38 % wall, -29 % RSS. The
+  recipe is preserved here in case Phase 3.5 redesigns voice capture for
+  partial-hypothesis streaming, which is the streaming variant's actual win.
 
 ## Scope
 

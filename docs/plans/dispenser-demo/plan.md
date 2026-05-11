@@ -58,7 +58,7 @@
 | `llama-quantize` Q4_0 build | Reusable | `scripts/functiongemma/quantize/build_variants.sh` |
 | On-board llama-completion driver + prompt-cache trick | Library-extract; do not subclass `chat_board.py` directly | `scripts/functiongemma/deploy/chat_board.py` |
 | P10S USB audio (mic + speaker) | Verified working 2026-05-11 against ROFALL P1U-4 / MV-SILICON P10S (USB ID `1234:5684`). Pure ALSA path — no Pulse/PipeWire on the board image. Single capsule duplicated to L/R; native capture 48 kHz S16_LE only. PCM playback level can sit at 0% after insertion (silent-success trap). | `docs/guides/usb-audio-testing-sl2619.md` |
-| Moonshine STT | Documented ONNX path; **new STT runtime (CrispASR/GGUF) chosen** — unproven on board (§4). | `docs/references/sl2619-moonshine.md` |
+| Moonshine STT | **Phase 0 closed (2026-05-11)** — pinned to `cstr/moonshine-tiny-GGUF` via CrispASR `--backend moonshine`, proven on board. ONNX path retained as documented fallback. | `docs/plans/dispenser-demo/decisions-log.md`, `docs/references/sl2619-moonshine.md` |
 | Wake-word | **No engine in repo.** Will add openWakeWord. | — |
 | VAD | **No engine in repo.** Will add Silero VAD. | — |
 | BLE peripheral scaffold | Reusable; **bring-up specifics differ on the current Broadcom M.2 adapter — see §2 M.2 note.** | `docs/references/old-dispenser-demo/{ble_peripheral.py,pybleno-setup-guide.md}` |
@@ -400,20 +400,38 @@ stateDiagram-v2
 Numbered phases, sequenced per user instruction (train first, BLE next, voice
 last). Each phase has a clear exit gate. Use `/clear` between phases.
 
-### Phase 0 — CrispASR runtime spike (gate)
+### Phase 0 — CrispASR runtime spike (CLOSED 2026-05-11)
 
-**Why first**: `cstr/moonshine-streaming-tiny-GGUF` is unproven on this board.
-Find out before committing the voice stack to it.
+**Outcome:** KEEP CrispASR with `cstr/moonshine-tiny-GGUF` (non-streaming
+`--backend moonshine`). On-board: 4.66 s wall for 11 s audio (2.4× realtime),
+49.6 MB peak RSS, exact transcript. Pinned in
+`docs/plans/dispenser-demo/decisions-log.md`. The streaming variant was
+provisionally pinned earlier the same day and superseded after a direct
+comparison; its frozen working recipe lives at
+`archive/dispenser-demo-moonshine-streaming/`.
 
-| Step | Action | Pass criterion |
+| Step | Action | Result |
 | --- | --- | --- |
-| 0.1 | Host smoke (`scripts/dispenser_demo/spike/crispasr_host_smoke.py`): build CrispASR for x86_64, decode a known WAV. | Decoded text matches expected sentence; runtime ≤ 1 s for a 3 s clip. |
-| 0.2 | Board smoke: cross-compile or use prebuilt aarch64 CrispASR; decode the same WAV on SL2619. Measure RSS + decode latency. | RSS ≤ 250 MB; decode ≤ 2 s for a 3 s clip. |
-| 0.3 | Decision: keep CrispASR or fall back to documented Moonshine Tiny float ONNX. Record in `docs/plans/dispenser-demo/crispasr-spike-notes.md`. | Either path proven; one chosen. |
+| 0.1 | Host smoke (`scripts/dispenser_demo/spike/crispasr_host_smoke.py`): build CrispASR for x86_64, decode a known WAV. | **PASS** — 1.10 s wall for 11 s audio, 155 MB host RSS, transcript exact. |
+| 0.2 | Board smoke: aarch64 cross-compile (static, no OpenMP); decode the same WAV on SL2619 via `crispasr_board_smoke.sh`. | **PASS** — 4.66 s / 11 s = 2.4× RT, 49.6 MB RSS. Plan gate (≤ 2 s / 3 s, ≤ 250 MB) met with headroom. |
+| 0.3 | Decision recorded. | **KEEP CrispASR + moonshine-tiny**. |
 
-**Phase 0 fallback rule:** If 0.2 fails (build, OOM, latency > 5 s), fall back
-to **Moonshine Tiny float ONNX** per `docs/references/sl2619-moonshine.md` —
-documented, no spike risk. The fallback is the only safe net.
+**Phase 0 fallback rule (retained for future regressions):** If a later
+regression breaks `crispasr` on the board (build, OOM, latency > 5 s), fall
+back to **Moonshine Tiny float ONNX** per `docs/references/sl2619-moonshine.md`
+— a documented, empirically verified path (Phase A 2026-04-23 baseline).
+
+**Production launcher invocation (binding from Phase 3.5 onward):**
+
+```bash
+crispasr --backend moonshine -l en --no-punctuation -t 2 \
+    -m /mnt/sdcard/models/moonshine-tiny/moonshine-tiny-q4_k.gguf \
+    -f <captured-wav>
+```
+
+All four flags are required — `-l en` and `--no-punctuation` together suppress
+two distinct runtime model auto-fetches that fail offline; `-t 2` matches the
+2-core A55.
 
 ### Phase 1 — Data + Distil training (long-running, user priority)
 

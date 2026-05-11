@@ -1,21 +1,26 @@
 # CrispASR runtime spike — Phase 0 notes
 
-> **Status:** NOT YET RUN (artifacts staged 2026-05-11).
-> **Plan ref:** [plan.md §9 Phase 0](plan.md#phase-0--crispasr-runtime-spike-gate).
+> **Status:** **CLOSED 2026-05-11.** Binding: CrispASR + `cstr/moonshine-tiny-GGUF`
+> (non-streaming, `--backend moonshine`). Streaming variant provisionally pinned
+> in the morning and superseded the same afternoon — frozen recipe at
+> `archive/dispenser-demo-moonshine-streaming/`. See
+> [`decisions-log.md`](decisions-log.md) for the supersession entry and §7 below
+> for the original-vs-current decision blocks.
+> **Plan ref:** [plan.md §9 Phase 0](plan.md#phase-0--crispasr-runtime-spike-closed-2026-05-11).
 > **Owner:** Lan.
-> **Result file (when run):** append `## Result — <date>` sections below;
-> do not edit historical entries.
+> **Result entries:** §6 is append-only; do not edit prior runs.
 
 ---
 
 ## 1. Objective
 
 Decide whether to commit the dispenser-demo voice stack to the CrispASR runtime
-(loading `cstr/moonshine-streaming-tiny-GGUF`) or to fall back to the proven
-Moonshine Tiny float ONNX path documented in
+(initially `cstr/moonshine-streaming-tiny-GGUF`, ultimately
+`cstr/moonshine-tiny-GGUF` after the same-day comparison) or to fall back to
+the proven Moonshine Tiny float ONNX path documented in
 [`docs/references/sl2619-moonshine.md`](../../references/sl2619-moonshine.md).
-The fallback is the only safety net — there is no second alternative under
-evaluation.
+The ONNX fallback remains the safety net for future regressions but was not
+needed.
 
 Pass criteria from the plan:
 
@@ -50,7 +55,8 @@ and was empirically validated 2026-04-23 (Phase A closure).
 | Supported audio formats | `flac, mp3, ogg, wav` (the CLI decodes inside `read_audio_data()` before passing F32 PCM to the backend) | `examples/cli/cli.cpp:631`, `cli.cpp:1911` |
 | Input sample rate | 16 kHz mono float32 (backend computes `n_samples / 16000.0`) | `examples/cli/crispasr_backend_moonshine_streaming.cpp:48` |
 | Tokenizer | Separate `tokenizer.bin`, **auto-discovered from the model directory** via `dir_of(path_model) + "/tokenizer.bin"` | `src/moonshine_streaming.cpp:374` |
-| Model artifact (HF) | `cstr/moonshine-streaming-tiny-GGUF` — registry entry `moonshine-streaming-tiny-q4_k.gguf` + `tokenizer.bin`, ~31 MB on disk | `src/crispasr_model_registry.cpp:103-105` |
+| Model artifact (HF, ACTIVE) | `cstr/moonshine-tiny-GGUF` — registry entry `moonshine-tiny-q4_k.gguf` + `tokenizer.bin`, ~20.2 MB on disk. Pinned 2026-05-11 (PM). | `src/crispasr_model_registry.cpp:97-99` |
+| Model artifact (HF, archived) | `cstr/moonshine-streaming-tiny-GGUF` — `moonshine-streaming-tiny-q4_k.gguf` (~30.6 MB) + same `tokenizer.bin`. Superseded 2026-05-11 (PM); recipe at `archive/dispenser-demo-moonshine-streaming/working-recipe.md`. | `src/crispasr_model_registry.cpp:103-105` |
 | Model size | 34 M params, 6-layer enc/dec | upstream README |
 | Encoder architecture | Sliding-window transformer (80 ms lookahead), streaming | upstream README |
 | Audio frontend | Raw waveform → 80-sample frames → CMVN → asinh → linear+SiLU → 2× causal Conv1d. No mel spectrogram. | `src/moonshine_streaming.cpp:387` (comment block) |
@@ -114,22 +120,29 @@ is CPU only on host to mirror board conditions.
 ```bash
 # Operator runs (uses the new `hf` CLI; `huggingface-cli` is deprecated as of
 # huggingface_hub >= 1.0):
-mkdir -p /tmp/moonshine-stream-tiny
+mkdir -p /tmp/moonshine-tiny
 source .venv/bin/activate    # `hf` ships with huggingface_hub already in [dev]
-hf download cstr/moonshine-streaming-tiny-GGUF --local-dir /tmp/moonshine-stream-tiny
+hf download cstr/moonshine-tiny-GGUF --local-dir /tmp/moonshine-tiny
 # Then report back: the path to the chosen .gguf and confirm tokenizer.bin is co-located.
 ```
 
-The repo contains multiple quant variants (q4_k, q5_k, q8_0, …) plus
-`tokenizer.bin`. For the Phase 0 gate use `moonshine-streaming-tiny-q4_k.gguf`
-— it is the documented default in `crispasr_model_registry.cpp:103-105`.
+The repo contains multiple quant variants (q4_k, q8_0, plus the fp16 source)
+and `tokenizer.bin`. For the Phase 0 gate use `moonshine-tiny-q4_k.gguf` —
+the documented entry in `crispasr_model_registry.cpp:97-99` and the variant
+proven on board (20.2 MB, 49.6 MB peak RSS).
 
-The HF repo bundles both the model GGUF (e.g.
-`moonshine-streaming-tiny-q4_k.gguf`) and the matching tokenizer artifact in a
-co-located layout — CrispASR auto-discovers the tokenizer (`dir_of(path_model)
-+ "/tokenizer.bin"`, `moonshine_streaming.cpp:374`) when both sit in the same
-directory. If the download yields multiple quant variants, default to `q4_k`
-(smallest viable; matches the board RAM budget).
+The HF repo bundles both the model GGUF (e.g. `moonshine-tiny-q4_k.gguf`) and
+the matching tokenizer artifact in a co-located layout — CrispASR auto-discovers
+the tokenizer (`dir_of(path_model) + "/tokenizer.bin"`,
+`moonshine_streaming.cpp:374` is the streaming-variant copy; the non-streaming
+`moonshine.cpp` follows the same convention) when both sit in the same
+directory. The `tokenizer.bin` is bit-identical between the two HF repos
+(sha256 `0e90e02b...`).
+
+> **Archived alternative:** for the now-superseded streaming variant, swap the
+> repo name to `cstr/moonshine-streaming-tiny-GGUF` and the file to
+> `moonshine-streaming-tiny-q4_k.gguf`. Full recipe at
+> `archive/dispenser-demo-moonshine-streaming/working-recipe.md`.
 
 ### 3.3 Stage a test WAV
 
@@ -161,9 +174,10 @@ toolchain-file pattern. Options in priority order:
 Stage the binary, GGUF + tokenizer to SD card:
 
 ```bash
-ssh nouslogic-sl2619 'mkdir -p /mnt/sdcard/bin /mnt/sdcard/models/moonshine-stream-tiny'
+ssh nouslogic-sl2619 'mkdir -p /mnt/sdcard/bin /mnt/sdcard/models/moonshine-tiny /mnt/sdcard/fixtures'
 scp crispasr.aarch64 nouslogic-sl2619:/mnt/sdcard/bin/crispasr
-scp /tmp/moonshine-stream-tiny/*.gguf nouslogic-sl2619:/mnt/sdcard/models/moonshine-stream-tiny/
+scp /tmp/moonshine-tiny/moonshine-tiny-q4_k.gguf nouslogic-sl2619:/mnt/sdcard/models/moonshine-tiny/
+scp /tmp/moonshine-tiny/tokenizer.bin            nouslogic-sl2619:/mnt/sdcard/models/moonshine-tiny/
 scp /tmp/spike-clip.wav nouslogic-sl2619:/mnt/sdcard/fixtures/spike-clip.wav
 ssh nouslogic-sl2619 'chmod +x /mnt/sdcard/bin/crispasr; sync'
 ```
@@ -178,11 +192,14 @@ the wrong home for these artifacts.
 ```bash
 uv run python scripts/dispenser_demo/spike/crispasr_host_smoke.py \
     --bin /tmp/crispasr-build/bin/crispasr \
-    --model /tmp/moonshine-stream-tiny/moonshine-streaming-tiny-q4_k.gguf \
+    --model /tmp/moonshine-tiny/moonshine-tiny-q4_k.gguf \
     --wav /tmp/spike-clip.wav \
     --expected "<a few words you know are in the clip>" \
     --latency-budget-s 1.0
 ```
+
+Default `--backend moonshine`. Pass `--backend moonshine-streaming` with a
+matching streaming model GGUF if you need to re-test the archived variant.
 
 `--threads N` is optional; omit to let CrispASR pick `min(4, nproc)`, or pass
 `--threads $(nproc)` to pin explicitly for a known thread budget.
@@ -204,12 +221,16 @@ whether to remove it (per Iron Law R3 the agent will not delete board state).
 ```bash
 ./scripts/dispenser_demo/spike/crispasr_board_smoke.sh \
     --bin /mnt/sdcard/bin/crispasr \
-    --model /mnt/sdcard/models/moonshine-stream-tiny/moonshine-streaming-tiny-q4_k.gguf \
+    --model /mnt/sdcard/models/moonshine-tiny/moonshine-tiny-q4_k.gguf \
     --wav /mnt/sdcard/fixtures/spike-clip.wav \
     --threads 2 \
     --latency-budget-s 2.0 \
     --rss-budget-mb 250
 ```
+
+Default `--backend moonshine`, `--language en`, `--punctuation off`. Override
+`--backend moonshine-streaming` + the streaming-tiny model path to re-test
+the archived variant.
 
 `--threads 2` matches the SL2619's two A55 cores. The CrispASR default
 (`min(4, hardware_concurrency())`) resolves to 2 anyway, but pinning is
@@ -236,7 +257,7 @@ log is append-only so we can compare across attempts.
 
 - Operator:
 - CrispASR commit:
-- Model: `moonshine-streaming-tiny-q4_k.gguf` (sha256: `<...>`)
+- Model: `moonshine-tiny-q4_k.gguf` (sha256: `<...>`) — active variant; for re-tests of the archived streaming variant substitute `moonshine-streaming-tiny-q4_k.gguf`.
 - WAV: `<path>`, duration: `<s>`
 - Decoded transcript: `<...>`
 - Wall time: `<s>`
@@ -267,6 +288,63 @@ log is append-only so we can compare across attempts.
   ~70 MB to peak RSS (244 MB with auto-LID vs 155 MB with `-l en`). The host
   smoke script and the board dispatcher now default `--language en`. For the
   board this is non-negotiable: no network + 600 MB MemoryMax budget.
+
+### Result — 2026-05-11 (board, moonshine non-streaming variant proof)
+
+Parallel proof requested by the user: deploy and run `cstr/moonshine-tiny-GGUF`
+(non-streaming) on board to verify the binary handles both backends. **Does
+NOT change the §7 binding decision**; that remains KEEP CrispASR + moonshine-streaming-tiny.
+The data below is captured for future-decision context.
+
+- Operator: agent (R3 scoped override, same Phase 0 session)
+- Model: `/tmp/moonshine-tiny/moonshine-tiny-q4_k.gguf` (~20.2 MB) +
+  co-located `tokenizer.bin` (246 KB) — tokenizer sha256 IDENTICAL to the
+  streaming variant (`0e90e02b...`)
+- Model sha256: `333bb4a7df0c51da04fa2694fdc944936e75e79e57745c7ac3fd11f3176a8368`
+- Board staging: `/mnt/sdcard/models/moonshine-tiny/{moonshine-tiny-q4_k.gguf,tokenizer.bin}`
+- Same `/mnt/sdcard/bin/crispasr` binary (sha256 `5bfedc14...`) — no rebuild
+- Invocation: `crispasr --backend moonshine -l en --no-punctuation -t 2 -m … -f /mnt/sdcard/fixtures/jfk.wav`
+- Decoded transcript: `"and so my fellow americans ask not what your country can do for you ask what you can do for your country"`
+  (lowercase — the non-streaming model normalizes case differently; convenient
+  for downstream wordform normalization)
+- Wall time: **4.66 s** (11.0 s audio → **2.4× realtime**; backend self-reports 4.55 s)
+- Peak RSS (VmRSS, 50 ms polling): **50808 KB ≈ 49.6 MB**
+- Verdict: **PASS** — exit 0, both gates met, transcript exact (semantically).
+
+**Side-by-side with the streaming variant** (both on the same board, same WAV, same flags):
+
+| Metric | moonshine-streaming-tiny (pinned in §7) | moonshine-tiny (this proof) | Delta |
+|---|---|---|---|
+| GGUF size (q4_k) | 30.6 MB | 20.2 MB | -34 % |
+| Wall (11 s audio) | 7.48 s | **4.66 s** | **-38 %** |
+| Realtime factor | 1.5× | **2.4×** | **+60 %** |
+| Peak VmRSS | 69.5 MB | **49.6 MB** | -29 % |
+| Transcript | mixed case | lowercase | normalization free for wordform layer |
+| Exit | 0 | 0 | — |
+
+**Interpretation (not a decision):** the non-streaming variant materially
+outperforms the streaming variant for batch-decode of a complete utterance,
+exactly as the architecture-level argument predicted (full-pass encoder vs
+sliding-window bookkeeping; ~34 % fewer parameters; CrispASR's moonshine
+backend has `CAP_PUNCTUATION_TOGGLE` so the punctuation auto-fetch policy is
+gated natively — `--no-punctuation` is still honored). Extrapolated to a 3 s
+command utterance: ~1.27 s wall, ~50 MB RSS — well inside plan §9 Phase 0
+gates with comfortable headroom.
+
+**Why this is a proof, not a decision flip:** the streaming variant was chosen
+in part for its streaming-native architecture, which Phase 3.5 may need for
+perceived latency (partial hypotheses while the user is still speaking). The
+non-streaming variant cannot emit partial hypotheses. The latency win above
+is for *batch* decode of a known-complete clip — Phase 3.5 may operate in
+either mode depending on the wake-word vs VAD vs push-to-talk design.
+
+**Action items for the user to consider (recorded here, not actioned):**
+
+1. If Phase 3.5 settles on push-to-talk or VAD-cut-at-silence (batch decode
+   of a complete utterance), open a fresh Phase-0-extension entry in
+   `decisions-log.md` flipping the binding to `moonshine-tiny`.
+2. If Phase 3.5 needs partial hypotheses (perceived-latency engineering),
+   keep `moonshine-streaming-tiny` and accept the ~3 s extra wall.
 
 ### Result — YYYY-MM-DD (board, step 0.2)
 
@@ -329,6 +407,19 @@ log is append-only so we can compare across attempts.
 ---
 
 ## 7. Decision (step 0.3)
+
+> **Decision update — 2026-05-11 (PM).** The original decision below (KEEP
+> CrispASR + `moonshine-streaming-tiny`) was superseded the same afternoon
+> by the proof in §6 row "moonshine non-streaming variant proof". The
+> current binding is **KEEP CrispASR + `cstr/moonshine-tiny-GGUF` (non-streaming
+> `--backend moonshine`)**. -38 % wall, -29 % RSS, -34 % model size on the
+> same board, same fixture, same flags. Streaming-variant recipe preserved
+> in `archive/dispenser-demo-moonshine-streaming/`. See
+> `docs/plans/dispenser-demo/decisions-log.md` for the supersession entry.
+>
+> The text below is preserved as the original 2026-05-11 (AM) reasoning.
+
+### Original decision (2026-05-11 AM — superseded)
 
 - **Outcome:** **KEEP CrispASR** (resolved 2026-05-11).
 - **Why:** both gates met — host §6 row 1 (1.10 s wall, 155 MB RSS, exact

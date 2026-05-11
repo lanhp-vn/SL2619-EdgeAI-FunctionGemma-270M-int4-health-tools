@@ -4,7 +4,7 @@ Fine-tune **FunctionGemma 270M-IT** for closed-world function-calling against a 
 
 The deliverable is a 224 MiB GGUF that answers natural-language health questions on-device at **~10 tok/s decode**, with tool dispatch + a human-readable formatter resolving the structured output back into one sentence per question.
 
-A second active track — the **dispenser demo** — stacks an on-device STT front-end (CrispASR + Moonshine Streaming Tiny GGUF) and a BLE-driven ESP32 medication dispenser on top of this FunctionGemma brain. Phase 0 (STT runtime spike) closed 2026-05-11 with a passing gate; data authoring + BLE bring-up run next in parallel. See [`docs/plans/dispenser-demo/plan.md`](docs/plans/dispenser-demo/plan.md).
+A second active track — the **dispenser demo** — stacks an on-device STT front-end (CrispASR + Moonshine Tiny GGUF, non-streaming) and a BLE-driven ESP32 medication dispenser on top of this FunctionGemma brain. Phase 0 (STT runtime spike) closed 2026-05-11 with a passing gate after a same-day supersession from the streaming variant to the smaller non-streaming `moonshine-tiny`; data authoring + BLE bring-up run next in parallel. See [`docs/plans/dispenser-demo/plan.md`](docs/plans/dispenser-demo/plan.md).
 
 ## Status
 
@@ -13,7 +13,7 @@ A second active track — the **dispenser demo** — stacks an on-device STT fro
 | FunctionGemma iteration 001 (Distil Labs) | **DONE** — 0.9583 on every metric on the 24-row contaminated holdout (`releases/functiongemma-270m/001-baseline/distil/`); no retrain planned |
 | INT4/INT8 board quantization sweep | **DONE 2026-05-02** — Q4_0 selected; full report in [`docs/bench-notes/functiongemma/2026-05-02_quantization-sweep.md`](docs/bench-notes/functiongemma/2026-05-02_quantization-sweep.md) |
 | On-board interactive REPL (`chat_board.py`) | **DONE** — prompt-cache primed; ~6 s/turn after the one-time prime |
-| Dispenser demo — Phase 0 (CrispASR STT spike) | **DONE 2026-05-11** — board: 7.48 s wall / 11 s audio, 69.5 MB RSS; extrapolated 3 s utterance meets the ≤ 2.0 s / ≤ 250 MB gate. Audit: [`docs/plans/dispenser-demo/crispasr-spike-notes.md`](docs/plans/dispenser-demo/crispasr-spike-notes.md) |
+| Dispenser demo — Phase 0 (CrispASR STT spike) | **DONE 2026-05-11** — pinned `cstr/moonshine-tiny-GGUF` via `--backend moonshine` (superseded the streaming variant the same afternoon; archive recipe at `archive/dispenser-demo-moonshine-streaming/`). Board: 4.66 s wall / 11 s audio, 49.6 MB RSS; extrapolated 3 s utterance ≈ 1.27 s / ≈ 50 MB, well inside the ≤ 2.0 s / ≤ 250 MB gate. Audit: [`docs/plans/dispenser-demo/crispasr-spike-notes.md`](docs/plans/dispenser-demo/crispasr-spike-notes.md) |
 | Dispenser demo — Phase 1 (data + Distil retrain) | **NEXT** — runs in parallel with Phase 2 |
 | Dispenser demo — Phase 2 (BLE GATT + P10S audio) | **NEXT** — pybleno against M.2 Broadcom BT, ESP32 peripheral |
 
@@ -83,7 +83,7 @@ flowchart TB
 ```mermaid
 flowchart LR
     MIC[P10S USB mic<br/>16 kHz mono]
-    STT[crispasr-cli<br/>moonshine-streaming-tiny GGUF q4_k<br/>-l en --no-punctuation -t 2]
+    STT[crispasr-cli<br/>moonshine-tiny GGUF q4_k<br/>--backend moonshine -l en --no-punctuation -t 2]
     BRAIN[chat_board.py<br/>FunctionGemma Q4_0]
     BLE[pybleno GATT server<br/>M.2 Broadcom BT]
     ESP[ESP32 dispenser<br/>medication actuator]
@@ -366,6 +366,7 @@ gemma3-270M-finetune/
 |  |- README.md                       Archive index
 |  |- gemma3-270m-health-qa/          Frozen gemma3-270m track
 |  |- functiongemma-pre-distil/       Frozen pre-distil FunctionGemma path
+|  |- dispenser-demo-moonshine-streaming/  Superseded streaming-STT recipe (2026-05-11 AM)
 ```
 
 ## Reproduce iteration 001

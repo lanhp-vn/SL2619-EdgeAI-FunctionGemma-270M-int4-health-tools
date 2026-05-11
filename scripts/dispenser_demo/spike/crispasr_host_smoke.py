@@ -1,18 +1,23 @@
 #!/usr/bin/env python3
-"""Phase 0 host smoke test for the CrispASR runtime + Moonshine Streaming Tiny GGUF.
+"""Phase 0 host smoke test for the CrispASR runtime + Moonshine Tiny GGUF.
 
-Determines whether `cstr/moonshine-streaming-tiny-GGUF` decodes correctly via the
-CrispASR binary (https://github.com/CrispStrobe/CrispASR) on the WSL2 host. Plan
-gate: decoded text matches expected sentence; runtime <= 1 s for a 3 s clip.
+Determines whether `cstr/moonshine-tiny-GGUF` decodes correctly via the
+CrispASR binary (https://github.com/CrispStrobe/CrispASR) on the WSL2 host.
+Plan gate: decoded text matches expected sentence; runtime <= 1 s for a 3 s clip.
 See docs/plans/dispenser-demo/crispasr-spike-notes.md for the bootstrap recipe.
 
 The script wraps the documented invocation:
 
-    crispasr --backend moonshine-streaming -m MODEL.gguf -f AUDIO.wav
+    crispasr --backend moonshine -m MODEL.gguf -f AUDIO.wav
 
 It measures wall-clock decode time and peak child RSS via
 ``resource.getrusage(RUSAGE_CHILDREN)`` (Linux: ``ru_maxrss`` in KB). No model
 download, no build — the user runs the bootstrap commands first (see notes).
+
+The streaming variant (`moonshine-streaming`, `cstr/moonshine-streaming-tiny-GGUF`)
+was provisionally pinned and then superseded — see
+archive/dispenser-demo-moonshine-streaming/ for the frozen recipe. Override
+this script's defaults with --backend / --model to re-test the streaming path.
 """
 
 from __future__ import annotations
@@ -48,7 +53,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         "--model",
         type=Path,
         required=True,
-        help="Path to the moonshine-streaming-tiny GGUF (e.g. moonshine-streaming-tiny-q4_k.gguf). "
+        help="Path to the moonshine-tiny GGUF (e.g. moonshine-tiny-q4_k.gguf). "
         "Tokenizer must be co-located per CrispASR docs.",
     )
     p.add_argument(
@@ -59,8 +64,10 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     )
     p.add_argument(
         "--backend",
-        default="moonshine-streaming",
-        help="CrispASR backend flag (default: moonshine-streaming).",
+        default="moonshine",
+        help="CrispASR backend flag (default: moonshine — the non-streaming "
+        "variant pinned for dispenser-demo). Pass 'moonshine-streaming' to "
+        "re-test the superseded streaming variant.",
     )
     p.add_argument(
         "--expected",
@@ -86,9 +93,12 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         "--no-punctuation",
         dest="punctuation",
         action="store_false",
-        help="Pass --no-punctuation to crispasr (default). Without this, "
-        "moonshine-streaming auto-fetches FireRedPunc (~80 MB) and runs a "
-        "second model pass — bad for the board's RAM and offline constraint.",
+        help="Pass --no-punctuation to crispasr (default). For the active "
+        "moonshine backend this turns off native punctuation (it has "
+        "CAP_PUNCTUATION_TOGGLE, so no auto-fetch). For other backends "
+        "without that capability, this also gates the dispatch-layer "
+        "FireRedPunc auto-fetch (~80 MB + second model pass) — required "
+        "on the offline SL2619.",
     )
     p.add_argument(
         "--punctuation",
@@ -127,7 +137,7 @@ def _check_inputs(args: argparse.Namespace) -> None:
     if not args.model.exists():
         raise FileNotFoundError(
             f"Model GGUF not found at {args.model}. "
-            "Download with `huggingface-cli download cstr/moonshine-streaming-tiny-GGUF` "
+            "Download with `hf download cstr/moonshine-tiny-GGUF` "
             "(see spike notes §Bootstrap)."
         )
     if not args.wav.exists():
