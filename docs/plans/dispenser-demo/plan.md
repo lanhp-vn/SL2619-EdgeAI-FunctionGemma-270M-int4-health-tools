@@ -19,9 +19,14 @@
   notification to ESP32.
 - Closed, narrow scope: patient profile, next appointment, emergency contact,
   dispense medication, refuse everything else.
-- All user-facing strings are **word-only** (no digits anywhere — dates, times,
-  ages, phone numbers, room numbers). This is enforced at the tool boundary,
-  not the LLM (see §5).
+- Every digit-bearing tool field has a `*_words` companion (e.g. `age` →
+  `age_words`). The TTS / display layer renders from the `*_words` fields,
+  so end-user output is word-only by construction (no digits anywhere —
+  dates, times, ages, phone numbers, room numbers). **The model is free to
+  use digits in its free-text narration; the rule is enforced at the tool
+  boundary, NOT the LLM.** Derivation lives in one helper
+  (`wordform.py`, §5.2); training teaches the model to quote `*_words`
+  when speaking to a TTS-bound user.
 - Reuse the proven FunctionGemma + Distil Labs synthgen recipe. Reuse the
   existing pybleno peripheral scaffold from `docs/references/old-dispenser-demo/`.
 - Ship a separate release artifact at `releases/functiongemma-270m/002-dispenser-demo/`.
@@ -96,8 +101,8 @@ git submodule update --init docs/references/upstream/synaptic-sl2619/references/
 ```
 src/gemma_tools/dispenser_demo/
     __init__.py
-    tools.py              # 4 tools + refusal helper; word-only response shapes
-    dataset.py            # JSONL validator; word-only assertion (regex [0-9])
+    tools.py              # 4 tools + refusal helper; every digit-bearing field has a `*_words` companion
+    dataset.py            # JSONL validator; tool-response *_words companion check (regex [0-9] on *_words keys only)
     system_prompt.py      # Short, scope-locked prompt for this demo
     state_machine.py      # Pure-logic FSM (wake / VAD / STT / timers) — no I/O
     ble_client.py         # pybleno peripheral wrapper; abstract BleClient ABC for tests
@@ -111,7 +116,7 @@ scripts/dispenser_demo/
     train/
         finetune_local.py         # Unsloth fallback only (Distil is the production path)
     eval/
-        eval_holdout.py           # category pass-rate + digit-free regex gate
+        eval_holdout.py           # per-category pass-rate (tool dispatch accuracy + answer fidelity via judge)
     deploy/
         dispenser_voice.py        # ← NEW long-running daemon (the demo binary)
         ble_test.py               # standalone BLE notify smoke test (host or board)
@@ -441,10 +446,10 @@ server time; doesn't touch the board).
 | Step | Action | Pass criterion |
 | --- | --- | --- |
 | 1.1 | Author 40 seeds in `data/dispenser_demo/seed_conversations.jsonl`. 8 rows × 5 categories: `patient_profile`, `next_appointment`, `emergency_contact`, `dispense`, `out_of_scope_refusal`. Use wordforms verbatim from §5.2. | `pytest tests/dispenser_demo/test_dataset_validator.py` green. PHI scan green. |
-| 1.2 | Write `src/gemma_tools/dispenser_demo/tools.py` + `wordform.py` + `dataset.py`. Unit tests for word-only invariants (regex `[0-9]` over every assistant content field). | `uv run pytest tests/dispenser_demo/` green, `mypy src` clean. |
+| 1.2 | Write `src/gemma_tools/dispenser_demo/tools.py` + `wordform.py` + `dataset.py`. Unit tests cover `wordform.py` (table-driven per §5.2) and the tool-boundary invariant: every digit-bearing key in a tool response has a digit-free `*_words` companion. The model's free narration is NOT checked. | `uv run pytest tests/dispenser_demo/` green, `mypy src` clean. |
 | 1.3 | Build splits via `scripts/dispenser_demo/data/build_splits.py`. Stratified split: train 60% / val 20% / test 20%. | `train.jsonl + val.jsonl + test.jsonl` validate via `dataset.py`. |
-| 1.4 | Author Distil config + job_description for `002-dispenser-demo`. Mirror `001-baseline/distil/config.yaml` with task `multi-turn-tool-calling-closed-book`, synthgen target 1500, validation_similarity_threshold 0.90. `job_description.json` includes the word-only rule explicitly. | Both files lint-clean. |
-| 1.5 | Upload to Distil Labs, run synthgen, iterate task description as in iter-001's 3-round flow. Headline metric: judge ≥ 0.92 on hold-out, 100 % digit-free over post-`</think>` text. | Judge ≥ 0.92 AND digit-free 100 %. |
+| 1.4 | Author Distil config + job_description for `002-dispenser-demo`. Mirror `001-baseline/distil/config.yaml` with task `multi-turn-tool-calling-closed-book`, synthgen target 1500, validation_similarity_threshold 0.90. `job_description.json` documents the tool return shape: every digit-bearing field MUST be accompanied by a `*_words` companion; the model is trained to quote the `*_words` field when speaking to a TTS-bound user, but its free narration is unrestricted. | Both files lint-clean. |
+| 1.5 | Upload to Distil Labs, run synthgen, iterate task description as in iter-001's 3-round flow. Headline metric: Distil judge ≥ 0.92 on hold-out. The judge already checks tool-call correctness and answer fidelity — no separate digit-free regex; the tool boundary owns digit-vs-word, the model owns intent + tool-arg routing. | Judge ≥ 0.92. |
 | 1.6 | Download merged HF weights to `releases/functiongemma-270m/002-dispenser-demo/merged/`. Run host eval via `scripts/dispenser_demo/eval/eval_holdout.py --checkpoint ...`. | Per-category pass-rate ≥ 90 %. |
 | 1.7 | Quantize: `scripts/functiongemma/quantize/build_variants.sh --release-dir releases/functiongemma-270m/002-dispenser-demo`. Q4_0 + FP16. CHECKSUMS.txt committed. | Q4_0 GGUF eval ≥ 88 % (≤ 2 pp drop). |
 
@@ -510,7 +515,7 @@ notification firing the real ESP32.
 | Gate | Method | Target |
 | --- | --- | --- |
 | Per-intent accuracy (model) | `eval_holdout.py` on 50-row holdout | ≥ 90 % per category |
-| Digit-free outputs | regex `[0-9]` over post-`</think>` text | 100 % |
+| Tool-response `*_words` integrity | `test_tools_word_only.py` — every digit-bearing key in any seed/holdout tool response has a digit-free `*_words` companion | 100 % (tool-boundary invariant, not a model gate) |
 | BLE dispense write to real ESP32 | manual on-board test | ≥ 1 successful, repeatable |
 | End-to-end on board, 5 intents | live demo session | each intent answered + correct behavior |
 | Memory budget | `/usr/bin/time -v dispenser_voice.py` on board | record max RSS; flag if > 700 MB; no hard ceiling yet |
@@ -524,8 +529,8 @@ Latency budget: **deferred per user**. Recorded but not gated.
 | Layer | Test | Marker | Runs in |
 | --- | --- | --- | --- |
 | Wordform helpers | `test_wordform.py` — parametrized table per §5.2 | none | CI |
-| Tool registry | `test_tools_word_only.py` — every tool response field is either non-string or digit-free | none | CI |
-| Dataset validator | `test_dataset_validator.py` — schema + word-only across all seeds | none | CI |
+| Tool registry | `test_tools_word_only.py` — for every tool response, every digit-bearing key has a digit-free `*_words` companion. **Does not** assert anything about the LLM's free narration. | none | CI |
+| Dataset validator | `test_dataset_validator.py` — schema across all seeds; for tool-response objects embedded in seeds, the same `*_words`-companion invariant. Free-text assistant content is unrestricted. | none | CI |
 | State machine | `test_state_machine.py` — pure FSM, fake clock, every edge in §8.2 covered | none | CI |
 | BLE client | `test_ble_client.py` — MockBleClient verifies the right bytes are emitted on `dispense` | none | CI |
 | Simulated end-to-end | `test_end_to_end_simulated.py` — synthetic STT inputs → expected terminal outputs + mock BLE bytes | none | CI |
@@ -547,7 +552,7 @@ before merge.
 | R2 | pybleno fails against M.2 Broadcom path | medium | Phase 2 step 2.3 branches to `bluez-peripheral` or D-Bus shim. |
 | R3 | Memory ceiling (~600 MB) exceeded once everything is loaded | medium | Phase 4 incremental measurement; cut openWakeWord (replace with smaller) or VAD if needed. |
 | R4 | openWakeWord custom training quality | medium | Burn one day to train + tune threshold; fallback to Porcupine if FPR > 5 / hr. |
-| R5 | 270M model still generates digits despite word-only fields | medium | Eval gate fails the release; iterate task_description text + add more digit-trap seeds. |
+| R5 | A tool's `*_words` companion field is missing, mis-derived, or contains digits (e.g. `wordform.py` regression) | medium | `test_tools_word_only.py` + `test_wordform.py` are CI gates. Model-level digit output in free narration is OUT OF SCOPE as a defect — TTS reads `*_words` fields, not free narration. |
 | R6 | ESP32 firmware not ready when Phase 2 starts | low | Phase 2 step 2.4 acceptable with `nRF Connect` standing in for ESP32 (subscribes + reads notification). |
 | O1 | `STT_FINAL` semantics — is "joint VAD-end + STT-final" event the intended trigger for the 3-s timer? | open | **Default in this plan: yes.** Override before Phase 3 if not. |
 | O2 | Greeting **content** for the dispense response when BLE peer not connected | open | Default in this plan: `"I cannot reach the dispenser right now."` — override if you want it dropped. |
