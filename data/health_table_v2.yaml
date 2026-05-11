@@ -1,0 +1,30 @@
+# SL2619 closed-world health-record fixture. Single source of truth for the
+# Gemma 3 270M YAML-QA bench. Schema and loader: tools/src/sl2619_tools/health_table.py.
+#
+# Dates are ISO-8601. Times are 24h HH:MM in the patient's local timezone
+# (implicit — no timezone handling on 270M edge path). Dose strings are free-form
+# so the model quotes them verbatim ("10 mg" stays "10 mg", not "10mg") —
+# consistent with docs/conventions/16-slm-system-prompt.md §3 R-2 ("quote verbatim").
+#
+# This fixture is NOT a real patient record. It is designed to exercise each
+# prompt class: fact_lookup, fact_absence, domain_refusal, summarization.
+
+patient:
+  name: "David Smith"
+  age: 45
+  sex: "Male"
+  diagnoses:
+    - "Type 2 Diabetes"
+    - "Hypertension"
+
+appointments:
+  - date: "2026-05-20"
+    time: "10:30"
+    provider: "Dr. Evelyn Chen"
+    purpose: "quarterly diabetes check-up"
+    location: "Maple Clinic, Room 204"
+
+emergency_contacts:
+  - name: "Jane Doe"
+    relation: "daughter"
+    phone: "+1-555-0142"

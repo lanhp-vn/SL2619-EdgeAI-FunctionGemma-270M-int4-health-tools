@@ -128,3 +128,5 @@
 	path = docs/references/upstream/synaptic-sl2619
 	url = git@github.com:ngoctienbkit/SynapticSL2619.git
 	branch = lan-pham
+	update = none
+	shallow = true
