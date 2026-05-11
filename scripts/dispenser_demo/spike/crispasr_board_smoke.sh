@@ -25,10 +25,10 @@ SSH_HOST="nouslogic-sl2619"
 BIN_PATH=""
 MODEL_PATH=""
 WAV_PATH=""
-BACKEND="moonshine-streaming"
+BACKEND="moonshine"  # non-streaming variant — pinned for dispenser-demo per docs/plans/dispenser-demo/decisions-log.md (2026-05-11 PM supersession). Use --backend moonshine-streaming to re-test the archived variant.
 THREADS="2"   # matches the SL2619's two A55 cores; CrispASR's default would resolve to this anyway
 LANGUAGE="en" # skips CrispASR's auto-LID (which fetches ggml-tiny.bin ~77 MB on first run and adds ~70 MB RSS every run — fatal on the 600 MB board budget)
-PUNCTUATION="off" # 'off' passes --no-punctuation, suppressing CrispASR's auto-download of fireredpunc-q4_k.gguf for moonshine-streaming (another runtime network trap). 'on' restores upstream default.
+PUNCTUATION="off" # 'off' passes --no-punctuation. For the active moonshine backend (CAP_PUNCTUATION_TOGGLE) this disables native punctuation. For backends without that cap (e.g. moonshine-streaming) it also gates the dispatch-layer FireRedPunc auto-fetch (~80 MB + second model pass). Required on the offline SL2619. 'on' restores upstream default.
 LATENCY_BUDGET_S="2.0"
 RSS_BUDGET_MB="250"
 MEM_FLOOR_MB="350"   # MemAvailable must be >= RSS_BUDGET_MB + headroom before we attempt
@@ -42,7 +42,7 @@ Usage: $(basename "$0") --bin PATH --model PATH --wav PATH [options]
 
 Required (paths on the board):
   --bin PATH               aarch64 crispasr binary (e.g. /mnt/sdcard/bin/crispasr)
-  --model PATH             moonshine-streaming-tiny GGUF (tokenizer must be co-located)
+  --model PATH             moonshine-tiny GGUF (tokenizer must be co-located)
   --wav PATH               input WAV (16 kHz mono recommended)
 
 Optional:

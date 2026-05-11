@@ -59,14 +59,14 @@ def test_board_script_exists() -> None:
         (
             ["--bin", "/a", "--model", "/b", "--wav", "/c"],
             "backend",
-            "moonshine-streaming",
-            "default backend matches upstream documented value",
+            "moonshine",
+            "default backend = non-streaming moonshine (pinned 2026-05-11 PM after proof)",
         ),
         (
-            ["--bin", "/a", "--model", "/b", "--wav", "/c", "--backend", "whisper"],
+            ["--bin", "/a", "--model", "/b", "--wav", "/c", "--backend", "moonshine-streaming"],
             "backend",
-            "whisper",
-            "backend override accepted",
+            "moonshine-streaming",
+            "backend override accepted (e.g. to re-test archived streaming variant)",
         ),
         (
             ["--bin", "/a", "--model", "/b", "--wav", "/c"],

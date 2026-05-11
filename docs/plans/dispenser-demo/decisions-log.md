@@ -10,7 +10,68 @@ record of the underlying analysis; this file is the index.
 
 ---
 
-## 2026-05-11 — Phase 0: KEEP CrispASR + Moonshine Streaming Tiny GGUF
+## 2026-05-11 (PM) — Phase 0 supersession: switch to Moonshine Tiny (non-streaming)
+
+Supersedes the 2026-05-11 (AM) entry below. Empirical proof on the SL2619
+showed the non-streaming `moonshine` backend with `cstr/moonshine-tiny-GGUF`
+materially outperforms `moonshine-streaming` on the relevant axes for
+batch-mode (push-to-talk / VAD-cut) voice command decoding.
+
+- **Phase 3 STT runtime (binding, revised):** `cstr/moonshine-tiny-GGUF`
+  via CrispASR's `--backend moonshine` (NOT `moonshine-streaming`).
+- **Invocation flags (binding for production launcher, unchanged):**
+  `-l en --no-punctuation -t 2`. For the moonshine backend
+  `--no-punctuation` is honored natively via `CAP_PUNCTUATION_TOGGLE`; for
+  defense-in-depth (so the same launcher works if the binding is ever
+  re-flipped) the flag stays mandatory.
+- **Model path on board (binding):** `/mnt/sdcard/models/moonshine-tiny/moonshine-tiny-q4_k.gguf`
+  + co-located `tokenizer.bin` (sha `0e90e02b...`, identical to the streaming
+  variant — both ship the same tokenizer).
+- **Empirical numbers** (same `crispasr` binary, same JFK 11 s fixture, same
+  flags — captured in `crispasr-spike-notes.md` §6 row "moonshine non-streaming
+  variant proof"):
+
+  | Metric | streaming-tiny (superseded) | tiny (active) |
+  | --- | --- | --- |
+  | GGUF q4_k size | 30.6 MB | **20.2 MB** |
+  | Wall (11 s clip) | 7.48 s | **4.66 s** |
+  | RT factor | 1.5× | **2.4×** |
+  | Peak VmRSS | 69.5 MB | **49.6 MB** |
+
+  Extrapolated to a 3 s command utterance: ~1.27 s wall, ~50 MB RSS. Comfortably
+  inside plan §9 Phase 0 gates on both axes.
+
+- **What changed in the code base:**
+  - `scripts/dispenser_demo/spike/crispasr_host_smoke.py` — default `--backend`
+    flipped to `moonshine`; help text updated.
+  - `scripts/dispenser_demo/spike/crispasr_board_smoke.sh` — same.
+  - `tests/dispenser_demo/test_crispasr_smoke_scripts.py` — parametrize
+    expectation updated.
+  - `docs/plans/dispenser-demo/crispasr-spike-notes.md` §7 — supersession
+    block appended below the original decision.
+  - `archive/dispenser-demo-moonshine-streaming/` — frozen recipe for the
+    streaming variant preserved for the Phase-3.5 partial-hypothesis case
+    (see "When to reconsider" below).
+- **What did NOT change:**
+  - Build profile for `crispasr-cli` (static aarch64, no OpenMP) — same.
+  - Iron-Law R3, `/board_probe` pre-flight, BusyBox `/proc/uptime` timer
+    convention, the auto-LID and auto-punctuation suppression flags — all
+    still binding.
+  - The same aarch64 `crispasr` binary handles both backends; no rebuild
+    needed for the flip.
+- **When to reconsider (would warrant a new dated entry, not a rewrite of
+  this one):**
+  - Phase 3.5 voice capture design moves to streaming-while-speaking with
+    partial hypotheses sent to FunctionGemma → streaming variant's TTFT win
+    becomes material; consult
+    `archive/dispenser-demo-moonshine-streaming/working-recipe.md`.
+  - The active moonshine path develops an accuracy regression on real
+    command audio (the JFK fixture is general English, not imperative
+    commands).
+
+---
+
+## 2026-05-11 (AM) — Phase 0: KEEP CrispASR + Moonshine Streaming Tiny GGUF (superseded the same day)
 
 - **Phase 3 STT runtime (binding):** `cstr/moonshine-streaming-tiny-GGUF`
   via CrispASR (whisper.cpp-style C++ runtime, vendored
@@ -52,3 +113,8 @@ record of the underlying analysis; this file is the index.
   documented as a fallback per plan §9, but not selected. CrispASR's
   smaller RAM footprint (70 MB vs 180 MB for ONNX) and streaming-native
   decoder tip the balance.
+
+> **Note (added 2026-05-11 PM):** this entry is superseded by the 2026-05-11
+> (PM) entry above. The streaming-tiny pin lasted only a few hours before
+> the moonshine-tiny proof flipped the binding. The full streaming recipe
+> survives in `archive/dispenser-demo-moonshine-streaming/`.

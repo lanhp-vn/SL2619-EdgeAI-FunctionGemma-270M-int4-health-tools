@@ -13,11 +13,12 @@ Two active focuses sharing one board (Synaptics SL2619, Cortex-A55 ×2,
    `releases/functiongemma-270m/001-baseline/`; the 2026-05-02 quantization
    sweep selected **Q4_0** as the on-board variant. No retrain planned.
 2. **Dispenser demo** (active, Phase 0 closed 2026-05-11) — voice-driven
-   medication dispenser stacking **CrispASR + Moonshine Streaming Tiny GGUF**
-   for STT on top of the FunctionGemma tool-call brain, with BLE GATT to an
-   ESP32-controlled dispenser. Plan + decisions live under
-   `docs/plans/dispenser-demo/`. Phase 1 (data + Distil retrain) and Phase 2
-   (BLE bring-up) run next, in parallel.
+   medication dispenser stacking **CrispASR + Moonshine Tiny GGUF**
+   (non-streaming, `--backend moonshine`; superseded the streaming variant
+   the same afternoon) for STT on top of the FunctionGemma tool-call brain,
+   with BLE GATT to an ESP32-controlled dispenser. Plan + decisions live
+   under `docs/plans/dispenser-demo/`. Phase 1 (data + Distil retrain) and
+   Phase 2 (BLE bring-up) run next, in parallel.
 
 The original Gemma 3 270M-IT health-QA SFT track is frozen as a reference
 under `archive/gemma3-270m-health-qa/`; live code at `src/gemma_tools/_legacy/`,
@@ -40,7 +41,7 @@ flowchart TB
     end
     subgraph DD[Dispenser voice pipeline on board]
         MIC[P10S USB mic]
-        STT[crispasr-cli + moonshine-streaming-tiny GGUF]
+        STT[crispasr-cli + moonshine-tiny GGUF q4_k]
         BRAIN[chat_board.py - FunctionGemma]
         BLE[BLE GATT - pybleno]
         ESP[ESP32 dispenser]
@@ -87,7 +88,7 @@ flowchart TB
 | `docs/conventions/` | Normative coding/repo/workflow rules (Python, shell, testing, doc-update) |
 | `docs/references/upstream/` | Opt-in shallow submodules: `gemma`, `llama.cpp`, `CrispASR`, `Synaptics/*`, `unsloth-notebooks` (nested clone) |
 | `docs/tmp/` | Local-only `/board_probe` snapshots (gitignored) |
-| `archive/{gemma3-270m-health-qa,functiongemma-pre-distil}/` | Frozen historical tracks |
+| `archive/{gemma3-270m-health-qa,functiongemma-pre-distil,dispenser-demo-moonshine-streaming}/` | Frozen historical tracks (last entry = superseded streaming-STT recipe) |
 
 ## Workflows
 
@@ -204,7 +205,7 @@ a new cache. Clear with `rm /tmp/fg_pc_*.bin` if the prefix changes.
 ## Pinned runtime variants
 
 - **FunctionGemma on board: Q4_0 only.** The 2026-05-02 sweep tested Q4_0, Q4_K_M, Q5_K_M, Q8_0, IQ4_XS. Only Q4_0 preserves the FunctionGemma wire format on the board's `b8925`/`0adede8` runtime (K-quant scale-factor encoding skew with the older runtime drops `<start_function_call>`). Repo ships only Q4_0 + FP16 source on disk. Rationale: [`releases/functiongemma-270m/001-baseline/gguf/RECOMMENDED.md`](releases/functiongemma-270m/001-baseline/gguf/RECOMMENDED.md).
-- **STT on board: CrispASR + Moonshine Streaming Tiny GGUF (q4_k).** Build profile: static aarch64, no OpenMP, `crispasr-cli` target (NOT bare `crispasr`, which builds only `libcrispasr.so`). Phase 0 (2026-05-11) measured 7.48 s wall on an 11 s clip / 69.5 MB RSS on board (host: 1.10 s / 155 MB) — extrapolated 3 s utterance ≈ 2.0 s wall, ≈ 70 MB RSS, meeting `plan.md` §9 Phase 0 gate. Full flag list, decision rationale, and reproduction in [`docs/plans/dispenser-demo/decisions-log.md`](docs/plans/dispenser-demo/decisions-log.md) and [`docs/plans/dispenser-demo/crispasr-spike-notes.md`](docs/plans/dispenser-demo/crispasr-spike-notes.md).
+- **STT on board: CrispASR + Moonshine Tiny GGUF (q4_k, non-streaming).** Pinned model: `cstr/moonshine-tiny-GGUF` → `moonshine-tiny-q4_k.gguf` (~20.2 MB) at `/mnt/sdcard/models/moonshine-tiny/`, invoked via CrispASR `--backend moonshine` (NOT `moonshine-streaming` — that variant was provisionally pinned 2026-05-11 (AM) and superseded the same afternoon after a head-to-head: −38 % wall, −29 % RSS, −34 % model size). Build profile: static aarch64, no OpenMP, `crispasr-cli` target (NOT bare `crispasr`, which builds only `libcrispasr.so`). Phase 0 (2026-05-11) measured: host (WSL2, x86_64) 1.10 s wall / 155 MB RSS on an 11 s clip; board (SL2619, 2× A55) **4.66 s wall (2.4× realtime) / 49.6 MB RSS** — extrapolated 3 s utterance ≈ 1.27 s wall, ≈ 50 MB RSS, comfortably meeting `plan.md` §9 Phase 0 gate. Production launcher flags (binding): `-l en --no-punctuation -t 2` — `--no-punctuation` remains mandatory for defense-in-depth even though the non-streaming backend honors it natively (`CAP_PUNCTUATION_TOGGLE`), so the same launcher survives a future re-flip to a backend without that cap. Full flag list, rationale, and reproduction in [`docs/plans/dispenser-demo/decisions-log.md`](docs/plans/dispenser-demo/decisions-log.md) and [`docs/plans/dispenser-demo/crispasr-spike-notes.md`](docs/plans/dispenser-demo/crispasr-spike-notes.md). Frozen streaming-variant recipe at [`archive/dispenser-demo-moonshine-streaming/working-recipe.md`](archive/dispenser-demo-moonshine-streaming/working-recipe.md).
 
 ## Pointers
 
