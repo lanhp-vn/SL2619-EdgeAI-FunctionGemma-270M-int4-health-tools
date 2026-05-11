@@ -14,13 +14,14 @@
 
 ### Goals
 
-- Voice command from DMIC → `Hey Sago` wake word → STT → FunctionGemma intent
-  → terminal answer + (for medication intent) BLE notification to ESP32.
+- Voice command from the P10S USB mic → `Hey Sago` wake word → STT →
+  FunctionGemma intent → terminal answer + (for medication intent) BLE
+  notification to ESP32.
 - Closed, narrow scope: patient profile, next appointment, emergency contact,
   dispense medication, refuse everything else.
 - All user-facing strings are **word-only** (no digits anywhere — dates, times,
   ages, phone numbers, room numbers). This is enforced at the tool boundary,
-  not the LLM (see §6).
+  not the LLM (see §5).
 - Reuse the proven FunctionGemma + Distil Labs synthgen recipe. Reuse the
   existing pybleno peripheral scaffold from `docs/references/old-dispenser-demo/`.
 - Ship a separate release artifact at `releases/functiongemma-270m/002-dispenser-demo/`.
@@ -28,10 +29,17 @@
 
 ### Non-goals
 
-- TTS / spoken answer playback. **v1 is terminal text only.** A future v2 will
-  add speaker output and revisit barge-in / echo cancellation.
+- TTS / spoken answer playback. **v1 is terminal text only.** v2 will add
+  spoken output via the P10S speaker (`aplay -D plughw:<N>,0`). v2 AEC is
+  provided by the P10S firmware — verified 2026-05-11 to suppress device
+  echo by ~65 dB during single-talk and ~55 dB during double-talk while
+  preserving near-end speech (Δ -1.9 dB). No software AEC, no host-side
+  echo-reference channel, no UAC2 jack setup is needed. v1 still uses a
+  half-duplex rule (mute mic during any playback) for engineering
+  simplicity, not hardware necessity. See §8.3 E2 and the probe results
+  in `docs/guides/usb-audio-testing-sl2619.md`.
 - ESP32 firmware development. The ESP32 firmware is **user-provided**; this
-  plan only fixes the wire contract (§7.2).
+  plan only fixes the wire contract (§6.2).
 - Multi-turn conversation memory. Each utterance starts fresh.
 - Confirmation dialogs for dispense. Spec is "fire on first valid intent".
 - Optimizing wake-to-answer latency. Functional correctness first; latency
@@ -39,22 +47,7 @@
 
 ---
 
-## 2. Decisions made on convention that contradict interview sign-offs
-
-Two answers from the interview need flagging because subsequent research
-showed they conflict with existing repo convention. The plan adopts the
-convention.
-
-| ID | Interview answer | Convention | Plan decision |
-| --- | --- | --- | --- |
-| **D-1** | `out_of_scope_refusal()` tool | Refusals in `seed_conversations.jsonl` use no tool (`tool_calls` field absent), with refusal text in `content` after `</think>`. | **4 tools, not 5.** Refusal is a no-tool row (category `out_of_scope_refusal`). |
-| **D-2** | Model produces word-only output through training pressure alone | Existing R-2 rule "quote verbatim" — small models reliably quote tool fields, unreliably rewrite digits. | Word-form fields baked into the **tool response** (e.g. `phone_words`, `age_words`). Model just quotes them. |
-
-If either reversal is unwanted, flag it before Phase 1 starts.
-
----
-
-## 3. Current repo context (inspected during planning)
+## 2. Current repo context (inspected during planning)
 
 | Area | Status | Key file pointers |
 | --- | --- | --- |
@@ -64,24 +57,22 @@ If either reversal is unwanted, flag it before Phase 1 starts.
 | Distil Labs synthgen path | Production path, ready to reuse | `releases/functiongemma-270m/001-baseline/distil/config.yaml`, `RECIPE.md` |
 | `llama-quantize` Q4_0 build | Reusable | `scripts/functiongemma/quantize/build_variants.sh` |
 | On-board llama-completion driver + prompt-cache trick | Library-extract; do not subclass `chat_board.py` directly | `scripts/functiongemma/deploy/chat_board.py` |
-| DMIC capture | Documented; **no Python wrapper exists yet**. 48 dB S24_LE upper-bits trap is a gotcha. | `docs/references/sl2619-dmic.md` |
-| Moonshine STT | Documented ONNX path; **new STT runtime (CrispASR/GGUF) chosen** — unproven on board (§5). | `docs/references/sl2619-moonshine.md` |
+| P10S USB audio (mic + speaker) | Verified working 2026-05-11 against ROFALL P1U-4 / MV-SILICON P10S (USB ID `1234:5684`). Pure ALSA path — no Pulse/PipeWire on the board image. Single capsule duplicated to L/R; native capture 48 kHz S16_LE only. PCM playback level can sit at 0% after insertion (silent-success trap). | `docs/guides/usb-audio-testing-sl2619.md` |
+| Moonshine STT | Documented ONNX path; **new STT runtime (CrispASR/GGUF) chosen** — unproven on board (§4). | `docs/references/sl2619-moonshine.md` |
 | Wake-word | **No engine in repo.** Will add openWakeWord. | — |
 | VAD | **No engine in repo.** Will add Silero VAD. | — |
-| BLE peripheral scaffold | Reusable; **but adapter changed from RTL USB → Broadcom M.2 — bring-up differs.** | `docs/references/old-dispenser-demo/{ble_peripheral.py,pybleno-setup-guide.md}` |
+| BLE peripheral scaffold | Reusable; **bring-up specifics differ on the current Broadcom M.2 adapter — see §2 M.2 note.** | `docs/references/old-dispenser-demo/{ble_peripheral.py,pybleno-setup-guide.md}` |
 | Existing release `001-baseline` | Frozen. Do not mutate. | `releases/functiongemma-270m/001-baseline/` |
 
-### M.2 Broadcom note
+### M.2 Broadcom BT note
 
-Old setup guide assumes the **RTL8822BU USB stick** (`btusb.ko` + `btrtl.ko`,
-firmware in `/lib/firmware/rtl_bt/`). The board now uses the **M.2 daughter
-card on SDIO1 (mmc1)** with Broadcom Wi-Fi/BT combo, per
-`docs/references/upstream/synaptic-sl2619/docs/plans/backlogs.md` and
-`tech-reference.md`. Different driver (`btbcm.ko`), different firmware path
-(`/lib/firmware/brcm/*`), possibly different hci device name (`hci0` is not
-guaranteed; could be `hci1` depending on devicetree order). Killing Wi-Fi may
-break BT on a combo module. **Phase 2 must verify on the board via
-`/board_probe` before assuming pybleno will work as-is.** See §10 pre-flight.
+The board's Bluetooth radio is the **M.2 daughter card on SDIO1 (mmc1)** — a
+Broadcom Wi-Fi/BT combo (`btbcm.ko`, firmware under `/lib/firmware/brcm/*`),
+per `docs/references/upstream/synaptic-sl2619/docs/plans/backlogs.md` and
+`tech-reference.md`. The hci device name is not guaranteed to be `hci0` —
+devicetree order can place it on `hci1`. Killing Wi-Fi may break BT on a combo
+module. **Phase 2 must verify on the board via `/board_probe` before
+assuming pybleno will work as-is.** See §9 pre-flight.
 
 ### Reference paths (saved to memory for future sessions)
 
@@ -100,7 +91,7 @@ git submodule update --init docs/references/upstream/synaptic-sl2619/references/
 
 ---
 
-## 4. Proposed directory layout
+## 3. Proposed directory layout
 
 ```
 src/gemma_tools/dispenser_demo/
@@ -110,7 +101,7 @@ src/gemma_tools/dispenser_demo/
     system_prompt.py      # Short, scope-locked prompt for this demo
     state_machine.py      # Pure-logic FSM (wake / VAD / STT / timers) — no I/O
     ble_client.py         # pybleno peripheral wrapper; abstract BleClient ABC for tests
-    audio.py              # arecord pipeline + S24_LE >>8 + L+R downmix + float
+    audio.py              # arecord pipeline on P10S: plughw:<N>,0 S16_LE → 16 kHz mono float32
 
 scripts/dispenser_demo/
     data/
@@ -176,20 +167,20 @@ tests/dispenser_demo/
 | --- | --- |
 | Dispenser demo plan | `docs/plans/dispenser-demo/plan.md` |
 | Dispenser tool registry + word-only rules | `src/gemma_tools/dispenser_demo/tools.py` |
-| Dispenser BLE wire contract | this file §7.2 |
+| Dispenser BLE wire contract | this file §6.2 |
 | Dispenser STT spike notes | `docs/plans/dispenser-demo/crispasr-spike-notes.md` |
 
 To be added to `doc-update.md §8.1` in the same PR that lands this plan.
 
 ---
 
-## 5. Architecture overview
+## 4. Architecture overview
 
 ```mermaid
 flowchart TB
     subgraph SL2619["SL2619 board (long-running dispenser_voice.py)"]
-        DMIC[DMIC: arecord<br/>S24_LE 16 kHz stereo]
-        AUDIO[audio.py:<br/>L+R downmix, >>8, float32]
+        MIC[P10S USB mic: arecord<br/>plughw:N,0 S16_LE 48 kHz]
+        AUDIO[audio.py:<br/>plug-resample → 16 kHz mono float32]
         OWW[openWakeWord<br/>'Hey Sago']
         FSM[state_machine.py<br/>events + timers]
         VAD[Silero VAD]
@@ -203,7 +194,7 @@ flowchart TB
     YAML[(data/health_table_v2.yaml<br/>+ word-form helpers)]
     ESP[ESP32 dispenser<br/>BLE central<br/>USER-PROVIDED FIRMWARE]
 
-    DMIC --> AUDIO --> OWW --> FSM
+    MIC --> AUDIO --> OWW --> FSM
     FSM -->|on WAKE_DETECTED| VAD
     VAD --> STT
     STT --> FSM
@@ -217,9 +208,9 @@ flowchart TB
 
 ---
 
-## 6. Data and schema
+## 5. Data and schema
 
-### 6.1 `health_table_v2.yaml`
+### 5.1 `health_table_v2.yaml`
 
 Stays as currently committed: **digit-form**. No rewrite. Word-form derivation
 is the loader's responsibility:
@@ -241,21 +232,21 @@ Tool responses for **all** tools include the `*_words` companion field for
 every digit-containing field. The model is trained to quote those fields, not
 to derive them.
 
-### 6.2 Word-form rules (centralized in one helper)
+### 5.2 Word-form rules (centralized in one helper)
 
 | Field | Raw form | Word-form rule |
 | --- | --- | --- |
 | age | `45` | `"forty five"` (two-digit, no hyphen) |
 | date | `"2026-05-20"` | `"May twentieth, twenty twenty six"` (no weekday) |
 | time | `"10:30"` | `"ten thirty"` (no AM/PM) |
-| phone | `"+1-555-0142"` | digit-by-digit, comma-grouped: `"plus one, five five five, zero one four two"` |
-| room | `"Room 204"` | `"Room two hundred four"` |
+| phone | `"+1-555-0142"` | digit-by-digit, no separators: `"plus one five five five zero one four two"` |
+| room | `"204"` | `"two hundred four"` (bare number; the literal word "Room" is added by the assistant in prose, not in the data field) |
 | diagnosis name with digits | `"Type 2 Diabetes"` | `"Type Two Diabetes"` |
 
 Single source: `src/gemma_tools/dispenser_demo/wordform.py`. Pure functions,
 table-driven unit tests with `desc=` per `docs/conventions/testing.md`.
 
-### 6.3 Health table v2 stays as-is
+### 5.3 Health table v2 stays as-is
 
 No `medications` array needed — the dispense intent is unconditional. The
 canned answer `"Your medication is being dispensed. Please check the
@@ -263,9 +254,9 @@ dispenser."` references no specific medication.
 
 ---
 
-## 7. Dispense intent: tool, BLE wire contract, ESP32 contract
+## 6. Dispense intent: tool, BLE wire contract, ESP32 contract
 
-### 7.1 `dispense_medication()` tool — side-effecting
+### 6.1 `dispense_medication()` tool — side-effecting
 
 This is the **only** side-effecting tool in the repo to date. Convention
 extension required:
@@ -284,12 +275,12 @@ extension required:
 - The dispatcher accepts an injectable `BleClient` ABC. Production wires
   pybleno; unit tests inject `MockBleClient`.
 
-### 7.2 BLE wire contract (mirror old peripheral scheme)
+### 6.2 BLE wire contract (mirror old peripheral scheme)
 
 | Item | Value |
 | --- | --- |
 | SL2619 BLE role | **Peripheral** |
-| Adapter | M.2 daughter card (Broadcom, SDIO1 — see §3 note) |
+| Adapter | M.2 daughter card (Broadcom, SDIO1 — see §2 note) |
 | Userspace stack | BlueZ + pybleno |
 | Advertising device name | `NousVoice` |
 | Advertising service UUID | `0x00FB` |
@@ -303,7 +294,7 @@ extension required:
 Verified: spelling is `dispense` (with final `e`). No `dispens` truncation
 anywhere in `docs/references/old-dispenser-demo/`.
 
-### 7.3 ESP32 firmware contract (user-provided — out-of-repo)
+### 6.3 ESP32 firmware contract (user-provided — out-of-repo)
 
 The ESP32 dispenser firmware is NOT part of this repo. The seam:
 
@@ -316,11 +307,11 @@ The ESP32 dispenser firmware is NOT part of this repo. The seam:
 
 This contract is the integration contract. Document it in
 `docs/plans/dispenser-demo/esp32-firmware-contract.md` (one-page),
-add to the §8.1 registry.
+add to the `docs/conventions/doc-update.md §8.1` ownership registry.
 
 ---
 
-## 8. Tool registry (final, with reasoning blocks)
+## 7. Tool registry (final, with reasoning blocks)
 
 | Tool | Args | Return | Reused / new |
 | --- | --- | --- | --- |
@@ -345,9 +336,9 @@ fields ending in "_words" verbatim. Never produce digits in your final answer.
 
 ---
 
-## 9. Wake-word and timeout state machine
+## 8. Wake-word and timeout state machine
 
-### 9.1 Explicit events (resolves the "after decoding is successful" caveat)
+### 8.1 Explicit events (resolves the "after decoding is successful" caveat)
 
 | Event | Source | Meaning |
 | --- | --- | --- |
@@ -359,7 +350,7 @@ fields ending in "_words" verbatim. Never produce digits in your final answer.
 | `T_5S` | timer | 5 s elapsed in `WAITING_FOR_COMMAND_AFTER_GREETING` |
 | `LLM_DONE` | dispenser_voice | model produced final answer + tools dispatched |
 
-### 9.2 State diagram
+### 8.2 State diagram
 
 ```mermaid
 stateDiagram-v2
@@ -375,15 +366,27 @@ stateDiagram-v2
     ROUTE_TO_LLM --> LISTENING_FOR_WAKE: LLM_DONE
 ```
 
-### 9.3 Edge rules
+### 8.3 Edge rules
 
 - **One-breath wake+command (E1).** First `STT_FINAL` after `WAKE_DETECTED`:
   strip wake phrase (case-insensitive, leading match). If residual non-empty →
   route to LLM, skip greeting, skip both timers.
 - **Greeting playback / barge-in (E2).** Greeting is terminal print in v1 — no
-  barge-in needed. Audio during `EMIT_GREETING` state is ignored. **Code
-  comment must call out the future v2 speaker variant: revisit echo
-  cancellation + VAD-during-TTS-gating.**
+  barge-in needed. Audio during `EMIT_GREETING` state is ignored.
+  - **v1 half-duplex rule (forward-compatible with v2 TTS).** Whenever any
+    P10S playback is in flight, `audio.py` mutes the mic stream at the
+    pipeline boundary; the FSM ignores `WAKE_DETECTED`, `VAD_*`, and `STT_*`
+    until playback completes. This sidesteps echo entirely at the cost of
+    no barge-in.
+  - **v2 AEC: the P10S firmware handles it.** Verified 2026-05-11
+    (`docs/guides/usb-audio-testing-sl2619.md`, "AEC capability probe").
+    During single-talk the firmware drives the playback echo to the
+    S16 quantization floor (~65 dB suppression); during double-talk it
+    relaxes to ~55 dB suppression while preserving near-end speech
+    (Δ -1.9 dB on a normal-volume voice test). Continuous wake-word
+    listening during TTS and barge-in are both viable on this hardware.
+    No software AEC (`speexdsp` / `webrtc-audio-processing`) and no
+    host-side echo-reference channel are required.
 - **Dispense confirmation (E3).** None. Fire on first valid intent.
 - **Timeout sound (D-7).** Silent. No spoken phrase. Just transition back to
   `LISTENING_FOR_WAKE`.
@@ -392,7 +395,7 @@ stateDiagram-v2
 
 ---
 
-## 10. Phased implementation
+## 9. Phased implementation
 
 Numbered phases, sequenced per user instruction (train first, BLE next, voice
 last). Each phase has a clear exit gate. Use `/clear` between phases.
@@ -419,7 +422,7 @@ server time; doesn't touch the board).
 
 | Step | Action | Pass criterion |
 | --- | --- | --- |
-| 1.1 | Author 40 seeds in `data/dispenser_demo/seed_conversations.jsonl`. 8 rows × 5 categories: `patient_profile`, `next_appointment`, `emergency_contact`, `dispense`, `out_of_scope_refusal`. Use wordforms verbatim from §6.2. | `pytest tests/dispenser_demo/test_dataset_validator.py` green. PHI scan green. |
+| 1.1 | Author 40 seeds in `data/dispenser_demo/seed_conversations.jsonl`. 8 rows × 5 categories: `patient_profile`, `next_appointment`, `emergency_contact`, `dispense`, `out_of_scope_refusal`. Use wordforms verbatim from §5.2. | `pytest tests/dispenser_demo/test_dataset_validator.py` green. PHI scan green. |
 | 1.2 | Write `src/gemma_tools/dispenser_demo/tools.py` + `wordform.py` + `dataset.py`. Unit tests for word-only invariants (regex `[0-9]` over every assistant content field). | `uv run pytest tests/dispenser_demo/` green, `mypy src` clean. |
 | 1.3 | Build splits via `scripts/dispenser_demo/data/build_splits.py`. Stratified split: train 60% / val 20% / test 20%. | `train.jsonl + val.jsonl + test.jsonl` validate via `dataset.py`. |
 | 1.4 | Author Distil config + job_description for `002-dispenser-demo`. Mirror `001-baseline/distil/config.yaml` with task `multi-turn-tool-calling-closed-book`, synthgen target 1500, validation_similarity_threshold 0.90. `job_description.json` includes the word-only rule explicitly. | Both files lint-clean. |
@@ -429,18 +432,30 @@ server time; doesn't touch the board).
 
 Exit Phase 1 with a deployable Q4_0 GGUF and a passing host eval.
 
-### Phase 2 — Board BLE bring-up (M.2 module verification)
+### Phase 2 — Board hardware bring-up (BLE + P10S audio)
 
-**Pre-step:** Run `/board_probe` before any Phase 2 action. Specific BT-side
-commands the probe must run:
+**Pre-step:** Run `/board_probe` before any Phase 2 action. The probe must
+cover both the BT radio and the P10S USB audio device.
+
+BT-side commands:
 
 ```bash
 hciconfig -a
 dmesg | grep -iE 'brcm|broadcom|bluetooth|bt[a-z]*\.ko'
 ls /lib/firmware/brcm/ 2>/dev/null || ls /lib/firmware/ | grep -i b
 systemctl status bluetooth
-lsmod | grep -E 'btbcm|btusb|btrtl|hci'
+lsmod | grep -E 'btbcm|btusb|hci'
 ls -la /sys/bus/mmc/devices/mmc1*/
+```
+
+P10S audio-side commands (re-running the read-only steps of
+`docs/guides/usb-audio-testing-sl2619.md`):
+
+```bash
+lsusb | grep -i 1234:5684      # MV-SILICON P10S (ROFALL P1U-4)
+cat /proc/asound/cards         # note the ALSA card index <N>
+cat /proc/asound/card<N>/stream0
+amixer -c <N>
 ```
 
 Optionally: `git submodule update --init docs/references/upstream/synaptic-sl2619/references/Synaptics/linux-drivers-synaptics`
@@ -448,21 +463,24 @@ to read exact chipset / firmware filename.
 
 | Step | Action | Pass criterion |
 | --- | --- | --- |
-| 2.1 | `/board_probe` confirms an `hci*` interface UP. Note its name and chipset; update `docs/references/old-dispenser-demo/pybleno-setup-guide.md` (or fork to `docs/references/sl2619-ble-m2.md`) with the M.2 Broadcom bring-up. | One `hci*` UP on board. |
-| 2.2 | Port the pybleno scaffold to a clean `src/gemma_tools/dispenser_demo/ble_client.py` (or `_peripheral.py` since the role is peripheral). Keep the Python 3.12 / kernel 6.x patches from the old setup guide. Expose: `start_advertising()`, `wait_for_subscriber()`, `send_dispense_notify()`. | Code lints clean, unit tests with `MockBleClient` green. |
-| 2.3 | Standalone `scripts/dispenser_demo/deploy/ble_test.py`: on the board, start advertising as `NousVoice`, wait for the ESP32 to connect+subscribe, send one `5A A5 01 00` notify. | ESP32 actuator fires once. Logged on both sides. |
+| 2.1 | `/board_probe` confirms an `hci*` interface UP **and** the P10S enumerates as an ALSA card. Record both indices in the snapshot. | One `hci*` UP on board; one ALSA card matches USB ID `1234:5684`. |
+| 2.2 | Run the full `docs/guides/usb-audio-testing-sl2619.md` recipe on the board end-to-end: detect card, raise PCM to 50%, sine speaker test at 440 Hz, 5-s mono-capsule capture at native 48 kHz, signal analysis (peak/RMS via `wave` + `audioop`), aplay loopback. | Sine tone clean on both channels (single capsule duplicated, L/R within ~1 dB); mic peak in [-20, -1] dBFS on a voice utterance; loopback intelligible. |
+| 2.3 | Port the pybleno scaffold to a clean `src/gemma_tools/dispenser_demo/ble_client.py` (peripheral role). Keep the Python 3.12 / kernel 6.x patches from the old setup guide. Expose: `start_advertising()`, `wait_for_subscriber()`, `send_dispense_notify()`. | Code lints clean; unit tests with `MockBleClient` green. |
+| 2.4 | Standalone `scripts/dispenser_demo/deploy/ble_test.py`: on the board, start advertising as `NousVoice`, wait for the ESP32 to connect+subscribe, send one `5A A5 01 00` notify. | ESP32 actuator fires once. Logged on both sides. |
+| 2.5 | **P10S AEC re-verification.** AEC was probed on 2026-05-11 and found selective — firmware path, ~65 dB single-talk suppression, ~55 dB double-talk suppression with Δ near-end speech -1.9 dB. Re-run only if the P10S hardware or firmware changes. Recipe: `scp scripts/sl2619/p10s_aec_{probe,speech_probe}.py nouslogic-sl2619:/tmp/`, then `ssh nouslogic-sl2619 'python3 /tmp/p10s_aec_probe.py'` and `ssh -tt nouslogic-sl2619 'python3 -u /tmp/p10s_aec_speech_probe.py'`. Probe details in `docs/guides/usb-audio-testing-sl2619.md`. | Tone-probe Δ 1234 Hz `< 6 dB`; speech-probe Δ total RMS within ±6 dB. Findings logged to `decisions-log.md`. |
 
 **Branch rule:** if pybleno fails against the Broadcom path (BlueZ socket
 issues, kernel mismatches), fall back to `bluez-peripheral` or a thin
 D-Bus shim. Decision logged in `decisions-log.md`.
 
-Exit Phase 2 with a one-shot BLE notification firing the real ESP32.
+Exit Phase 2 with a verified P10S audio path **and** a one-shot BLE
+notification firing the real ESP32.
 
 ### Phase 3 — Voice stack integration
 
 | Step | Action | Pass criterion |
 | --- | --- | --- |
-| 3.1 | `audio.py`: arecord subprocess wrapper, S24_LE >> 8, L+R downmix to mono float32 at 16 kHz. Host unit test on synthetic WAV. | Output bit-exact vs reference. |
+| 3.1 | `audio.py`: arecord subprocess wrapper targeting the P10S — `plughw:<N>,0`, S16_LE, kernel-resampled to 16 kHz mono, float32-normalized. Card index `<N>` discovered at startup via `/proc/asound/cards` (no hard-coding — USB enumeration is bus-order dependent). Mixer pre-set on startup: `PCM` 50%, `Mic` 70%. Half-duplex guard: when `dispenser_voice` is in playback (future v2), mute the capture stream at the pipeline boundary. Host unit test on synthetic WAV. | Output bit-exact vs reference; mixer state asserted on board start; half-duplex flag honored in unit test. |
 | 3.2 | openWakeWord integration. Train custom "Hey Sago" model (Colab via openwakeword tool) OR find pretrained. Drop ONNX to `/mnt/sdcard/models/wakeword/`. | False-positive rate ≤ 1 / hour on bench audio; true-positive rate ≥ 90 %. |
 | 3.3 | Silero VAD wrapper. CPU onnxruntime. | Speech-start / speech-end events on bench utterances. |
 | 3.4 | STT runtime per Phase 0 outcome (CrispASR or fallback). Wrap in `stt.py` with a single `decode_streaming()` API; state machine consumes `STT_FINAL` events. | Decoded transcripts match expected for ≥ 8 / 10 bench utterances. |
@@ -483,14 +501,14 @@ Latency budget: **deferred per user**. Recorded but not gated.
 
 ---
 
-## 11. Test and verification matrix
+## 10. Test and verification matrix
 
 | Layer | Test | Marker | Runs in |
 | --- | --- | --- | --- |
-| Wordform helpers | `test_wordform.py` — parametrized table per §6.2 | none | CI |
+| Wordform helpers | `test_wordform.py` — parametrized table per §5.2 | none | CI |
 | Tool registry | `test_tools_word_only.py` — every tool response field is either non-string or digit-free | none | CI |
 | Dataset validator | `test_dataset_validator.py` — schema + word-only across all seeds | none | CI |
-| State machine | `test_state_machine.py` — pure FSM, fake clock, every edge in §9.2 covered | none | CI |
+| State machine | `test_state_machine.py` — pure FSM, fake clock, every edge in §8.2 covered | none | CI |
 | BLE client | `test_ble_client.py` — MockBleClient verifies the right bytes are emitted on `dispense` | none | CI |
 | Simulated end-to-end | `test_end_to_end_simulated.py` — synthetic STT inputs → expected terminal outputs + mock BLE bytes | none | CI |
 | Holdout eval | `eval_holdout.py` | none | CI on every model |
@@ -503,16 +521,16 @@ before merge.
 
 ---
 
-## 12. Risks and open decisions
+## 11. Risks and open decisions
 
 | ID | Risk / decision | Severity | Mitigation |
 | --- | --- | --- | --- |
 | R1 | CrispASR fails to build / runs OOM on board | high | Phase 0 spike gates; fallback to Moonshine Tiny float ONNX. |
-| R2 | pybleno fails against M.2 Broadcom path | medium | Phase 2 step 2.2 branches to `bluez-peripheral` or D-Bus shim. |
+| R2 | pybleno fails against M.2 Broadcom path | medium | Phase 2 step 2.3 branches to `bluez-peripheral` or D-Bus shim. |
 | R3 | Memory ceiling (~600 MB) exceeded once everything is loaded | medium | Phase 4 incremental measurement; cut openWakeWord (replace with smaller) or VAD if needed. |
 | R4 | openWakeWord custom training quality | medium | Burn one day to train + tune threshold; fallback to Porcupine if FPR > 5 / hr. |
 | R5 | 270M model still generates digits despite word-only fields | medium | Eval gate fails the release; iterate task_description text + add more digit-trap seeds. |
-| R6 | ESP32 firmware not ready when Phase 2 starts | low | Phase 2 step 2.3 acceptable with `nRF Connect` standing in for ESP32 (subscribes + reads notification). |
+| R6 | ESP32 firmware not ready when Phase 2 starts | low | Phase 2 step 2.4 acceptable with `nRF Connect` standing in for ESP32 (subscribes + reads notification). |
 | O1 | `STT_FINAL` semantics — is "joint VAD-end + STT-final" event the intended trigger for the 3-s timer? | open | **Default in this plan: yes.** Override before Phase 3 if not. |
 | O2 | Greeting **content** for the dispense response when BLE peer not connected | open | Default in this plan: `"I cannot reach the dispenser right now."` — override if you want it dropped. |
 | O3 | `out_of_scope_refusal` paraphrases (8 seeds) — what topics? | open | Default: stock health-adjacent (medication advice, symptom diagnosis, treatment), plus generic (weather, news, joke, math). |
@@ -520,7 +538,7 @@ before merge.
 
 ---
 
-## 13. Context-management guidance (separate Claude Code sessions)
+## 12. Context-management guidance (separate Claude Code sessions)
 
 Use `/clear` between major phases — each one is a heavy chunk that benefits
 from a fresh context.
@@ -529,7 +547,7 @@ from a fresh context.
 | --- | --- | --- |
 | **S1** | Phase 0 + Phase 1.1–1.3 (data authoring + validator + splits) | After splits committed. |
 | **S2** | Phase 1.4–1.7 (Distil config, upload, iterate, quantize) | After Q4_0 release committed. |
-| **S3** | Phase 2 (BLE on board, runs `/board_probe`) | After BLE smoke fires the real ESP32. |
+| **S3** | Phase 2 (P10S audio + BLE on board, runs `/board_probe`) | After BLE smoke fires the real ESP32 and P10S audio recipe passes end-to-end. |
 | **S4** | Phase 3 (voice integration on board) | After end-to-end smoke. |
 | **S5** | Phase 4 (acceptance + decisions-log + plan update) | Final. |
 
@@ -537,11 +555,12 @@ Each new session: open this plan first; the plan is the durable handoff.
 
 ---
 
-## 14. Pointers
+## 13. Pointers
 
 - Source convention: `docs/plans/functiongemma/recipe.md` (template for this plan's tone/sections).
 - Quantization recipe: `docs/plans/functiongemma/quantization-plan.md`.
-- DMIC: `docs/references/sl2619-dmic.md`.
+- P10S USB audio recipe (canonical mic + speaker path) + AEC probe results: `docs/guides/usb-audio-testing-sl2619.md`.
+- P10S AEC probe scripts (tone + speech-survival): `scripts/sl2619/p10s_aec_probe.py`, `scripts/sl2619/p10s_aec_speech_probe.py`.
 - Moonshine ONNX (fallback): `docs/references/sl2619-moonshine.md`.
 - Old BLE peripheral (scaffold to fork): `docs/references/old-dispenser-demo/ble_peripheral.py`.
 - SL2619 Broadcom M.2 specifics: `docs/references/upstream/synaptic-sl2619/{references/Synaptics, docs/datasheets/sl2610-datasheets}` — submodule, init on demand.
