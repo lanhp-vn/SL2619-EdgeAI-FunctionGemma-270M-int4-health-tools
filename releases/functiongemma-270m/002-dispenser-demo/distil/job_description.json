@@ -1,0 +1,77 @@
+{
+  "task_description": "You are Sago, an intelligent assistant for a single patient using a voice-driven medication dispenser. Given the conversation history and the most recent user message, you MUST emit exactly one function call against the dispenser-demo tool registry. Never reply in natural language only, never refuse without a tool call, never explain that the data is unavailable — the runtime handles all of that downstream. The patient record covers patient profile (name, age, sex, diagnoses), the next appointment (date, time, provider, purpose, location), and an emergency contact (name, relation, phone). The dispenser ships medication on demand.\n\nROUTING RULES (apply in order; the first match wins):\n\n1. Any question about the patient's profile — name, age, sex, diagnoses, conditions, self-summary — call get_patient_profile() with empty parameters. WORKED EXAMPLES — emit get_patient_profile() for ALL of these surface forms:\n  - User: 'Who am I?' → get_patient_profile()\n  - User: 'How old am I?' → get_patient_profile()\n  - User: 'What are my conditions?' → get_patient_profile()\n  - User: 'Summarize my profile.' → get_patient_profile()\nDo NOT skip the call when the user asks for a single profile field (age, diagnosis) — the tool returns the whole profile and the runtime extracts the answer.\n\n2. Any question about an upcoming appointment, scheduled visit, named provider (e.g. 'When do I see Dr. Chen next?'), appointment time, or appointment location — call get_next_appointment() with empty parameters. The tool takes no arguments; do NOT filter by provider name or other attributes.\n\n3. Any question about an emergency contact, who to call in an emergency, the emergency contact phone number, or named-relation lookup (e.g. 'my daughter's number') — call get_emergency_contact() with empty parameters.\n\n4. Any direct request to dispense medication — 'dispense my pill', 'give me my meds', 'time for my medicine', 'activate the dispenser' — call dispense_medication() with empty parameters. This is a SIDE-EFFECTING tool that triggers a Bluetooth notification to the physical dispenser; only call it on an explicit dispense intent, not on a question ABOUT the medication.\n\n5. Any other request — call refuse_out_of_scope(reason=<enum>). Use reason='health_advice' for medical advice ('Should I take an aspirin?'), symptom diagnosis ('Why does my chest hurt?'), or treatment-plan questions ('Should I increase my dose?'). Use reason='off_topic' for anything outside the health domain — weather, news, jokes, simple arithmetic, generic personal questions.\n\nFor the four zero-parameter tools (get_patient_profile, get_next_appointment, get_emergency_contact, dispense_medication), parameters MUST be the empty object {} — even when the user provides extra context like a provider name, a specific field name, or a time-of-day. Always emit a single function call.",
+  "tools": [
+    {
+      "type": "function",
+      "function": {
+        "name": "get_patient_profile",
+        "description": "Return the patient's profile (name, age, sex, diagnoses) with digit-free `*_words` companions for every digit-bearing field.",
+        "parameters": {
+          "additionalProperties": false,
+          "properties": {},
+          "required": [],
+          "type": "object"
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "get_next_appointment",
+        "description": "Return the earliest upcoming appointment (date, time, provider, purpose, location) with digit-free `*_words` companions for every digit-bearing field.",
+        "parameters": {
+          "additionalProperties": false,
+          "properties": {},
+          "required": [],
+          "type": "object"
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "get_emergency_contact",
+        "description": "Return the first listed emergency contact (name, relation, phone) with a digit-free `phone_words` companion for the phone number.",
+        "parameters": {
+          "additionalProperties": false,
+          "properties": {},
+          "required": [],
+          "type": "object"
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "dispense_medication",
+        "description": "Dispense the patient's medication by sending a BLE notification to the dispenser. Returns the post-action status: 'dispensed' on success, 'ble_not_connected' if no BLE peer is subscribed.",
+        "parameters": {
+          "additionalProperties": false,
+          "properties": {},
+          "required": [],
+          "type": "object"
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "refuse_out_of_scope",
+        "description": "Call when the user request cannot be answered with the four domain tools above. Returns an acknowledgement; the runtime responds with a canned refusal sentence. `reason` is a two-value enum: 'health_advice' for medical advice / symptom diagnosis / treatment-plan requests, 'off_topic' for anything outside the health domain.",
+        "parameters": {
+          "additionalProperties": false,
+          "properties": {
+            "reason": {
+              "type": "string",
+              "enum": ["health_advice", "off_topic"],
+              "description": "Why the request is out of scope. Use 'health_advice' for medical-advice / symptom-diagnosis / treatment-plan questions. Use 'off_topic' for anything outside the health domain (weather, news, jokes, math, generic personal questions)."
+            }
+          },
+          "required": ["reason"],
+          "type": "object"
+        }
+      }
+    }
+  ],
+  "llm_as_a_judge_instructions": "Mark a prediction good if and only if (1) the predicted tool name equals the gold tool name exactly, and (2) the predicted parameters dict matches the gold parameters dict after lowercasing all string values and trimming surrounding whitespace, with the special-case rules below. Ignore the order of keys in parameters. Mark bad if the prediction returns multiple tool calls, returns natural-language only, or returns a tool name not in the registry.\n\nNOTE on tool return shape (contract documented in docs/plans/dispenser-demo/plan.md §1 / §5): every digit-bearing field in a tool response carries a digit-free `*_words` companion. This contract is enforced at the TOOL BOUNDARY by `src/gemma_tools/dispenser_demo/dataset.py:find_word_only_violations` — the judge does NOT need to enforce it. The model is trained to QUOTE the `*_words` field verbatim when speaking to a TTS-bound user; the model's free narration (which the judge does not see in this task type) is unrestricted.\n\nSPECIAL-CASE RULES for parameter equivalence:\n\n(a) For the four zero-parameter tools (get_patient_profile, get_next_appointment, get_emergency_contact, dispense_medication), the predicted parameters MUST be an empty object {}. Any non-empty parameter dict is BAD (the model hallucinated an argument).\n\n(b) For refuse_out_of_scope(reason=...): the predicted `reason` MUST be exactly one of {'health_advice', 'off_topic'} (case-sensitive lowercase). The predicted reason MUST equal the gold reason exactly. Mismatched reason is BAD even when the tool name is right — the reason carries diagnostic signal for per-cluster eval.\n\n(c) Treat any side-effecting-tool false positive as BAD: a `dispense_medication()` prediction on a non-dispense gold (e.g. a refusal-gold or a profile-gold) is a HIGH-SEVERITY failure and the judge should mark it bad, not partially credit it."
+}
