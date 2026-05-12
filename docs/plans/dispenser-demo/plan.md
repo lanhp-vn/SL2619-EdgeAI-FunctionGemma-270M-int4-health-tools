@@ -1,12 +1,27 @@
 # Dispenser Demo — Implementation Plan
 
-> **Status:** Spec frozen, implementation pending.
-> **Date:** 2026-05-11.
+> **Status:** Spec frozen, implementation in progress (iter-001 demo path).
+> **Date:** 2026-05-11 (spec); 2026-05-12 (v1 demo pivot).
 > **Owner:** Lan.
 > **Headline goal:** Voice-driven medication-dispenser demo on SL2619 using a
 > dedicated FunctionGemma 270M iteration (`002-dispenser-demo`), wake word
 > "Hey Sago", word-only TTS-ready answers, and a BLE notification to an
 > ESP32 dispenser using the existing `pybleno` peripheral scaffold.
+
+> ### v1 demo pivot (2026-05-12)
+>
+> Iter-002 trained but is **NOT** the v1 demo's runtime — see
+> [`decisions-log.md#2026-05-12-phase-3-pivot`](decisions-log.md). The v1
+> demo runs on iter-001 (`releases/functiongemma-270m/001-baseline/`) with
+> `scripts/functiongemma/deploy/chat_board_dispense.py` — a wrapper that
+> hijacks `get_medications_at_time` + `get_medication_by_name` and routes
+> them to the §6 dispense intent (mock BLE notify + canned response). The
+> `dispense_medication()` named tool in §6.1 / §7 is retained as the
+> iter-002 target shape; iter-001's existing tool names are the v1 bridge.
+> Wake word for v1 is **pretrained "Hey Jarvis"** (openWakeWord v0.5.1),
+> not the original "Hey Sago"; custom Hey-Sago training is deferred.
+> Phase 3 smoke runs **WSL host first**, board second — see the Phase 3
+> sub-table below for the layered topology.
 
 ---
 
@@ -186,7 +201,7 @@ flowchart TB
     subgraph SL2619["SL2619 board (long-running dispenser_voice.py)"]
         MIC[P10S USB mic: arecord<br/>plughw:N,0 S16_LE 48 kHz]
         AUDIO[audio.py:<br/>plug-resample → 16 kHz mono float32]
-        OWW[openWakeWord<br/>'Hey Sago']
+        OWW[openWakeWord<br/>'Hey Jarvis' v0.1 ONNX]
         FSM[state_machine.py<br/>events + timers]
         VAD[Silero VAD]
         STT[Moonshine Streaming Tiny GGUF<br/>via CrispASR runtime]
@@ -260,6 +275,16 @@ dispenser."` references no specific medication.
 ---
 
 ## 6. Dispense intent: tool, BLE wire contract, ESP32 contract
+
+> **v1 demo bridge (2026-05-12):** the `dispense_medication()` named tool
+> defined below is the **iter-002 target shape** and is not deployed by the
+> v1 demo. v1 uses `scripts/functiongemma/deploy/chat_board_dispense.py`
+> to hijack iter-001's existing `get_medications_at_time` and
+> `get_medication_by_name` dispatchers, routing them to the same side-effect
+> + canned response described here. See
+> [`decisions-log.md#2026-05-12-phase-3-pivot`](decisions-log.md) for the
+> rationale; the §6.2 wire contract and §6.3 ESP32 contract are unchanged
+> and govern Phase 2 BLE bring-up regardless of which model variant is loaded.
 
 ### 6.1 `dispense_medication()` tool — side-effecting
 
@@ -519,11 +544,22 @@ notification firing the real ESP32.
 | Step | Action | Pass criterion |
 | --- | --- | --- |
 | 3.1 | `audio.py`: arecord subprocess wrapper targeting the P10S — `plughw:<N>,0`, S16_LE, kernel-resampled to 16 kHz mono, float32-normalized. Card index `<N>` discovered at startup via `/proc/asound/cards` (no hard-coding — USB enumeration is bus-order dependent). Mixer pre-set on startup: `PCM` 50%, `Mic` 70%. Half-duplex guard: when `dispenser_voice` is in playback (future v2), mute the capture stream at the pipeline boundary. Host unit test on synthetic WAV. | Output bit-exact vs reference; mixer state asserted on board start; half-duplex flag honored in unit test. |
-| 3.2 | openWakeWord integration. Train custom "Hey Sago" model (Colab via openwakeword tool) OR find pretrained. Drop ONNX to `/mnt/sdcard/models/wakeword/`. | False-positive rate ≤ 1 / hour on bench audio; true-positive rate ≥ 90 %. |
+| 3.2 | openWakeWord integration with **pretrained `hey_jarvis_v0.1`** (ONNX variant; upstream `v0.5.1` release). Drop to `/mnt/sdcard/models/wakeword/hey_jarvis_v0.1.onnx`. Custom "Hey Sago" training deferred — see [`decisions-log.md#2026-05-12-phase-3-wake-word`](decisions-log.md). | False-positive rate ≤ 1 / hour on bench audio; true-positive rate ≥ 90 %. |
 | 3.3 | Silero VAD wrapper. CPU onnxruntime. | Speech-start / speech-end events on bench utterances. |
 | 3.4 | STT runtime per Phase 0 outcome (CrispASR or fallback). Wrap in `stt.py` with a single `decode_streaming()` API; state machine consumes `STT_FINAL` events. | Decoded transcripts match expected for ≥ 8 / 10 bench utterances. |
 | 3.5 | `state_machine.py` + `dispenser_voice.py` glue. Prompt-cache priming on startup via `prompt_cache_prime.py` (extracted from `chat_board.py`). | Cold start ≤ 60 s (prime + load); warm path functional. |
 | 3.6 | End-to-end smoke on the board: each of the 5 intents (× 3 paraphrases) drives the right tool dispatch + right terminal text + (for dispense) BLE fire. | 12 / 15 utterances pass. |
+
+**Phase 3 smoke topology (2026-05-12):** §3.1–§3.6 above describe the final
+board-resident pipeline. The work is layered to limit blast radius — see
+[`decisions-log.md#2026-05-12-phase-3-smoke-topology`](decisions-log.md):
+
+| Layer | Where | What | Smoke gate |
+| --- | --- | --- | --- |
+| A | WSL host | Wake (Hey Jarvis ONNX) + Silero VAD + Moonshine STT, stdout. No LLM, no speaker. | **Skipped 2026-05-12** — WSL2 has no input device exposed through WSLg; pivoted to Layer B. Documented for future sessions on a machine with a working mic. |
+| B | SL2619 board | Same code path with P10S USB mic. | **Closed 2026-05-12.** First-run end-to-end: model load 0.97 s; wake-fire latency ~0.45 s on `"Hey Jarvis"`; VAD endpoint after 3.68 s capture; CrispASR decode 1.23 s (3.2× realtime); transcript `"give me my medication"` correct. Total wake→transcript ~4.8 s wall. Smoke: `scripts/dispenser_demo/voice/wake_stt_board_smoke.py`. |
+| C | SL2619 board | Wire Layer B into `chat_board_dispense.py` (iter-001 hijack). Output still stdout. | **Closed 2026-05-12.** First-run dispense intent: wake → STT (3.20 s capture, 1.14 s decode) → FG `get_medication_by_name{}` → `[BLE→ESP32] 5A A5 01 00` + canned line. Total ~10.7 s/turn. Loop reset clean. Long-running entry: `scripts/dispenser_demo/deploy/dispenser_voice.py`. |
+| D | SL2619 board | Add espeak-ng → aplay for the answer (promotes §1 v2 non-goal to v1 gate). | Audible answer on P10S speaker; §8.3 E2 half-duplex rule holds. |
 
 ### Phase 4 — Acceptance
 
@@ -566,13 +602,13 @@ before merge.
 | R1 | CrispASR fails to build / runs OOM on board | high | Phase 0 spike gates; fallback to Moonshine Tiny float ONNX. |
 | R2 | pybleno fails against M.2 Broadcom path | medium | Phase 2 step 2.3 branches to `bluez-peripheral` or D-Bus shim. |
 | R3 | Memory ceiling (~600 MB) exceeded once everything is loaded | medium | Phase 4 incremental measurement; cut openWakeWord (replace with smaller) or VAD if needed. |
-| R4 | openWakeWord custom training quality | medium | Burn one day to train + tune threshold; fallback to Porcupine if FPR > 5 / hr. |
+| R4 | openWakeWord custom training quality | medium | **Retired for v1 (2026-05-12)** — pretrained `hey_jarvis_v0.1` (openWakeWord v0.5.1) is the v1 wake phrase; upstream-validated FPR/TPR. Reopen if/when a custom "Hey Sago" model is needed. |
 | R5 | A tool's `*_words` companion field is missing, mis-derived, or contains digits (e.g. `wordform.py` regression) | medium | `test_tools_word_only.py` + `test_wordform.py` are CI gates. Model-level digit output in free narration is OUT OF SCOPE as a defect — TTS reads `*_words` fields, not free narration. |
 | R6 | ESP32 firmware not ready when Phase 2 starts | low | Phase 2 step 2.4 acceptable with `nRF Connect` standing in for ESP32 (subscribes + reads notification). |
 | O1 | `STT_FINAL` semantics — is "joint VAD-end + STT-final" event the intended trigger for the 3-s timer? | open | **Default in this plan: yes.** Override before Phase 3 if not. |
 | O2 | Greeting **content** for the dispense response when BLE peer not connected | open | Default in this plan: `"I cannot reach the dispenser right now."` — override if you want it dropped. |
 | O3 | `out_of_scope_refusal` paraphrases (8 seeds) — what topics? | open | Default: stock health-adjacent (medication advice, symptom diagnosis, treatment), plus generic (weather, news, joke, math). |
-| O4 | Wake-phrase tolerance: should `"Hey Sago"` also match `"Hi Sago"`, `"OK Sago"`? | open | Default: only `"Hey Sago"` matches the openWakeWord model. Strict. |
+| O4 | Wake-phrase tolerance: should `"Hey Sago"` also match `"Hi Sago"`, `"OK Sago"`? | **moot for v1** | v1 uses pretrained `"Hey Jarvis"` — model's tolerance is whatever upstream `hey_jarvis_v0.1` ships. Re-open when custom Hey-Sago training is scheduled. |
 
 ---
 
@@ -600,6 +636,11 @@ Each new session: open this plan first; the plan is the durable handoff.
 - P10S USB audio recipe (canonical mic + speaker path) + AEC probe results: `docs/guides/usb-audio-testing-sl2619.md`.
 - P10S AEC probe scripts (tone + speech-survival): `scripts/sl2619/p10s_aec_probe.py`, `scripts/sl2619/p10s_aec_speech_probe.py`.
 - Moonshine ONNX (fallback): `docs/references/sl2619-moonshine.md`.
+- **v1 demo bridge (2026-05-12):**
+  - Wrapper: `scripts/functiongemma/deploy/chat_board_dispense.py` — hijacks iter-001's `get_medications_at_time` + `get_medication_by_name` into the §6 dispense intent.
+  - Patient fixture: `data/health_table_v1_dispense_demo.yaml` (renders to `health_table_dispense.json` on board).
+  - Decisions: [`decisions-log.md`](decisions-log.md) entries for `Phase 3 pivot`, `Phase 3 wake-word`, `Phase 3 smoke topology` (all 2026-05-12).
+- openWakeWord upstream (submodule): `docs/references/upstream/openWakeWord/` — pretrained models fetched from GitHub releases on first use (URLs in `openwakeword/__init__.py:MODELS`).
 - Old BLE peripheral (scaffold to fork): `docs/references/old-dispenser-demo/ble_peripheral.py`.
 - SL2619 Broadcom M.2 specifics: `docs/references/upstream/synaptic-sl2619/{references/Synaptics, docs/datasheets/sl2610-datasheets}` — submodule, init on demand.
 - Conventions: `docs/conventions/{code-style-python.md, code-style-shell.md, testing.md, doc-update.md}`.

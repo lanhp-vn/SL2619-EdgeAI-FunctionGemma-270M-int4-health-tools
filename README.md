@@ -4,7 +4,7 @@ Fine-tune **FunctionGemma 270M-IT** for closed-world function-calling against a 
 
 The deliverable is a 224 MiB GGUF that answers natural-language health questions on-device at **~10 tok/s decode**, with tool dispatch + a human-readable formatter resolving the structured output back into one sentence per question.
 
-A second active track — the **dispenser demo** — stacks an on-device STT front-end (CrispASR + Moonshine Tiny GGUF, non-streaming) and a BLE-driven ESP32 medication dispenser on top of this FunctionGemma brain. Phase 0 (STT runtime spike) closed 2026-05-11 with a passing gate after a same-day supersession from the streaming variant to the smaller non-streaming `moonshine-tiny`; data authoring + BLE bring-up run next in parallel. See [`docs/plans/dispenser-demo/plan.md`](docs/plans/dispenser-demo/plan.md).
+A second active track — the **dispenser demo** — stacks an on-device voice front-end (pretrained openWakeWord `hey_jarvis_v0.1` ONNX + Silero VAD + CrispASR + Moonshine Tiny GGUF, non-streaming) and a BLE-driven ESP32 medication dispenser on top of this FunctionGemma brain. The v1 demo runtime is **iter-001 + a dispatcher-hijack wrapper** ([`scripts/functiongemma/deploy/chat_board_dispense.py`](scripts/functiongemma/deploy/chat_board_dispense.py)) that short-circuits two existing tools to the §6 dispense intent (mock BLE notify + canned response) — iter-002 ([`releases/functiongemma-270m/002-dispenser-demo/`](releases/functiongemma-270m/002-dispenser-demo/)) is trained but NOT deployed for v1 pending wire-format reconciliation. Phase 0 (STT runtime spike) closed 2026-05-11; Phase 3 (voice integration) Layer B (board wake→STT smoke) and Layer C (full pipeline via [`scripts/dispenser_demo/deploy/dispenser_voice.py`](scripts/dispenser_demo/deploy/dispenser_voice.py)) both closed 2026-05-12, first-run wall ~10.7 s/turn end-to-end. Layer A (WSL host) was skipped — WSL2 doesn't expose a mic via WSLg in this user's setup. Layer D (espeak-ng → aplay TTS) is the next gate; code does not exist yet. See [`docs/plans/dispenser-demo/plan.md`](docs/plans/dispenser-demo/plan.md) and [`decisions-log.md`](docs/plans/dispenser-demo/decisions-log.md).
 
 ## Status
 
@@ -14,8 +14,13 @@ A second active track — the **dispenser demo** — stacks an on-device STT fro
 | INT4/INT8 board quantization sweep | **DONE 2026-05-02** — Q4_0 selected; full report in [`docs/bench-notes/functiongemma/2026-05-02_quantization-sweep.md`](docs/bench-notes/functiongemma/2026-05-02_quantization-sweep.md) |
 | On-board interactive REPL (`chat_board.py`) | **DONE** — prompt-cache primed; ~6 s/turn after the one-time prime |
 | Dispenser demo — Phase 0 (CrispASR STT spike) | **DONE 2026-05-11** — pinned `cstr/moonshine-tiny-GGUF` via `--backend moonshine` (superseded the streaming variant the same afternoon; archive recipe at `archive/dispenser-demo-moonshine-streaming/`). Board: 4.66 s wall / 11 s audio, 49.6 MB RSS; extrapolated 3 s utterance ≈ 1.27 s / ≈ 50 MB, well inside the ≤ 2.0 s / ≤ 250 MB gate. Audit: [`docs/plans/dispenser-demo/crispasr-spike-notes.md`](docs/plans/dispenser-demo/crispasr-spike-notes.md) |
-| Dispenser demo — Phase 1 (data + Distil retrain) | **NEXT** — runs in parallel with Phase 2 |
-| Dispenser demo — Phase 2 (BLE GATT + P10S audio) | **NEXT** — pybleno against M.2 Broadcom BT, ESP32 peripheral |
+| Dispenser demo — iter-002 (Distil retrain) | **TRAINED, NOT DEPLOYED** — artifacts at `releases/functiongemma-270m/002-dispenser-demo/`. Host Q4_0 host-eval collapsed to 30 %; on-board output omits `<start_function_call>` opener. Held until wire-format reconciled |
+| Dispenser demo — Phase 1 (data + Distil retrain to land iter-002) | **DEFERRED** — v1 demo bridges with iter-001 + dispatcher-hijack (`chat_board_dispense.py`) instead. See `docs/plans/dispenser-demo/decisions-log.md` 2026-05-12 entries |
+| Dispenser demo — Phase 2 (BLE GATT + P10S audio) | **NEXT** — pybleno against M.2 Broadcom BT, ESP32 peripheral; runs in parallel with Phase 3 |
+| Dispenser demo — Phase 3 Layer A (wake + VAD + STT on WSL host, stdout only) | **SKIPPED** — WSL2 doesn't expose a mic via WSLg in this user's setup. Documented for future sessions on a machine with a working mic |
+| Dispenser demo — Phase 3 Layer B (wake + VAD + STT on board, stdout only) | **DONE 2026-05-12** — board wake→STT smoke green; details in `docs/plans/dispenser-demo/decisions-log.md` |
+| Dispenser demo — Phase 3 Layer C (full pipeline on board: wake→STT→FunctionGemma→stdout) | **DONE 2026-05-12** — long-running [`scripts/dispenser_demo/deploy/dispenser_voice.py`](scripts/dispenser_demo/deploy/dispenser_voice.py) wires Layer B into iter-001 hijack. First-run wall ~10.7 s/turn (wake ~1.55 s → STT 1.14 s → FunctionGemma 6.48 s → dispense override + canned line). Carry-over Layer C.1: arecord overrun during LLM turn (non-blocking ~10-line stdout-drain fix) |
+| Dispenser demo — Phase 3 Layer D (espeak-ng → aplay → P10S speaker) | **NEXT** — promotes plan §1 v2 non-goal (spoken answer) to v1 demo gate; code does NOT exist yet |
 
 ## Quick start
 
@@ -78,21 +83,21 @@ flowchart TB
     FMT --> ANS[Human-readable answer]
 ```
 
-### Dispenser-demo voice pipeline (Phase 0+)
+### Dispenser-demo voice pipeline (Phase 3 target shape)
 
 ```mermaid
 flowchart LR
     MIC[P10S USB mic<br/>16 kHz mono]
+    WAKE[openWakeWord<br/>hey_jarvis_v0.1 ONNX<br/>pretrained, v0.5.1 release]
+    VAD[Silero VAD<br/>ONNX]
     STT[crispasr-cli<br/>moonshine-tiny GGUF q4_k<br/>--backend moonshine -l en --no-punctuation -t 2]
-    BRAIN[chat_board.py<br/>FunctionGemma Q4_0]
-    BLE[pybleno GATT server<br/>M.2 Broadcom BT]
-    ESP[ESP32 dispenser<br/>medication actuator]
-    MIC --> STT --> BRAIN --> BLE -- BLE notify --> ESP
+    BRAIN[chat_board_dispense.py<br/>iter-001 Q4_0 + dispatch hijack]
+    BLE[pybleno GATT server<br/>M.2 Broadcom BT - planned]
+    ESP[ESP32 dispenser<br/>medication actuator - planned]
+    MIC --> WAKE --> VAD --> STT --> BRAIN --> BLE -- BLE notify --> ESP
 ```
 
-Phase 0 (STT runtime) closed; Phase 1 (data + Distil retrain) and Phase 2
-(BLE bring-up + P10S audio) run next, in parallel. Full plan with phases,
-BLE wire contract, and wake-word state machine: [`docs/plans/dispenser-demo/plan.md`](docs/plans/dispenser-demo/plan.md).
+Phase 0 (STT runtime) closed 2026-05-11. Phase 3 (voice integration): Layer A (WSL host) skipped — no WSLg mic in this user's setup. Layer B (board wake + VAD + STT) and Layer C (full pipeline through `chat_board_dispense.py` via the long-running [`scripts/dispenser_demo/deploy/dispenser_voice.py`](scripts/dispenser_demo/deploy/dispenser_voice.py)) both closed 2026-05-12, ~10.7 s/turn first-run end-to-end. Layer D (espeak-ng → aplay TTS) is the next gate; code does not exist yet. Phase 1 (Distil retrain to land iter-002) is deferred; Phase 2 (BLE GATT bring-up + P10S audio) runs in parallel with Phase 3. Full plan, BLE wire contract, and wake-word state machine: [`docs/plans/dispenser-demo/plan.md`](docs/plans/dispenser-demo/plan.md); binding decisions: [`docs/plans/dispenser-demo/decisions-log.md`](docs/plans/dispenser-demo/decisions-log.md).
 
 ## Hardware
 
@@ -321,10 +326,14 @@ gemma3-270M-finetune/
 |  |- eval/eval_holdout.py            Host holdout evaluation (HF + GGUF seams)
 |  |- quantize/build_variants.sh      Idempotent llama-quantize driver
 |  |- bench/aggregate_quant.py        Sweep JSONL -> Markdown aggregator
-|  |- deploy/                         chat_board.py, run_prompt.sh, ask_board.sh
-|- scripts/dispenser_demo/spike/
-|  |- crispasr_host_smoke.py          Phase 0 host-side CrispASR smoke (uv-run)
-|  |- crispasr_board_smoke.sh         Phase 0 board-side dispatcher (SSH read-only + decode + VmRSS poll)
+|  |- deploy/                         chat_board.py, chat_board_dispense.py (v1 hijack), run_prompt.sh, ask_board.sh
+|- scripts/dispenser_demo/
+|  |- spike/                          Phase 0 CrispASR smoke (host + board)
+|  |- data/                           Iter-002 dataset prep (build_seeds, build_splits, build_distil_data, gen_prompt_templates)
+|  |- eval/eval_holdout.py            Iter-002 holdout eval (not used by v1 demo)
+|  |- deploy/ble_test.py              Iter-002 BLE smoke
+|  |- deploy/dispenser_voice.py       Phase 3 Layer C long-running entry — voice→wake→VAD→STT→FunctionGemma→stdout, iter-001 hijack
+|  |- chat.py                         Iter-002 host REPL (not used by v1 demo)
 |- scripts/
 |  |- setup/server-bootstrap.sh       Idempotent Ubuntu-server SFT-stack bootstrap (RTX 5080)
 |  |- sl2619/p10s_aec_probe.py        P10S firmware AEC tone-suppression probe (duplex)
@@ -335,28 +344,30 @@ gemma3-270M-finetune/
 |  |- dispenser_demo/                 Phase 0 smoke-script tests (23 cases)
 |  |- _legacy/                        gemma3-270m health-QA tests (still in CI)
 |- data/
-|  |- health_table_v1.yaml            Synthetic patient record (no real PHI)
+|  |- health_table_v1.yaml            Synthetic patient record (no real PHI) — v1 fixture (Test Patient)
+|  |- health_table_v1_dispense_demo.yaml  Dispenser-demo patient (David Smith) — paired with chat_board_dispense.py
+|  |- health_table_v2.yaml            Iter-002 patient fixture (v2 schema)
 |  |- functiongemma/                  dataset_v1, seed_conversations, eval_holdouts, tools_v1.yaml
+|  |- dispenser_demo/                 Iter-002 training substrate (dataset_v1, seed_conversations)
 |  |- _legacy/                        Frozen gemma3-270m SFT corpora + prompts.yaml
-|- releases/functiongemma-270m/001-baseline/
-|  |- RECIPE.md                       How iter-001 was produced + reproduce steps
-|  |- merged/                         HF merged BF16 weights + tokenizer + chat template
-|  |- adapter/                        LoRA adapter (r=64, alpha=64)
-|  |- gguf/                           CHECKSUMS.txt, RECOMMENDED.md, Modelfile,
+|- releases/functiongemma-270m/
+|  |- 001-baseline/                   Iter-001 deployable (v1 demo runtime source)
+|  |  |- RECIPE.md                    How iter-001 was produced + reproduce steps
+|  |  |- merged/                      HF merged BF16 weights + tokenizer + chat template
+|  |  |- adapter/                     LoRA adapter (r=64, alpha=64)
+|  |  |- gguf/                        CHECKSUMS.txt, RECOMMENDED.md, Modelfile,
 |  |  |                               finetuned_functiongemma_{fp16,q4_0}.gguf (gitignored)
-|  |- distil/                         Distil platform deliverables (from running cloud SFT)
-|  |  |- README.md                    Iteration timeline (3 versions)
-|  |  |- config.yaml                  Distil hyperparameters
-|  |  |- job_description.json         Routing rules + judge instructions
-|  |  |- training-analysis.md         Aggregate + per-row metrics (final 0.9583)
-|  |  |- teacher-eval-analysis.md     Teacher prediction analysis (v1, v2, v3)
-|  |  |- data/{train,test}.jsonl      Dataset uploaded to platform
-|  |  |- predictions/                 student.jsonl + teacher-v{1,2,3}.jsonl
-|  |- model_client.py                 Distil deploy client (Ollama / vLLM HTTP wrapper)
+|  |  |- distil/                      Distil platform deliverables (config, training-analysis, predictions, etc.)
+|  |  |- model_client.py              Distil deploy client (Ollama / vLLM HTTP wrapper)
+|  |- 002-dispenser-demo/             Iter-002 (TRAINED, NOT DEPLOYED for v1)
+|  |  |- DISTIL_README.md             Distil platform writeup
+|  |  |- merged/ adapter/ gguf/       HF merged + LoRA + GGUF (host Q4_0 host-eval collapsed; see decisions-log.md)
+|  |  |- distil/                      Distil platform deliverables
+|  |  |- Modelfile model_client.py model.tar
 |- bench/functiongemma/runs/2026-05-02-quant/   Per-variant board sweep JSONL
 |- docs/
 |  |- conventions/                    Normative coding rules (Python, shell, testing, doc-update)
-|  |- references/upstream/            Opt-in submodules (gemma, llama.cpp, CrispASR, Synaptics/*, unsloth-notebooks)
+|  |- references/upstream/            Opt-in submodules (gemma, llama.cpp, CrispASR, openWakeWord, silero-vad, distil-cli-skill, synaptic-sl2619, unsloth-notebooks)
 |  |- plans/functiongemma/            recipe, decisions-log, quantization-plan, seed-authoring, llm-augmentation
 |  |- plans/dispenser-demo/           plan, crispasr-spike-notes, decisions-log (Phase 0 closed 2026-05-11)
 |  |- bench-notes/functiongemma/      2026-05-02_quantization-sweep.md (the sweep report)

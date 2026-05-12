@@ -10,6 +10,276 @@ record of the underlying analysis; this file is the index.
 
 ---
 
+## 2026-05-12 (Phase 3 Layer C closed) — Full pipeline (wake → STT → FunctionGemma → dispense override) works end-to-end on board
+
+First-run, single-turn dispense intent on SL2619:
+
+| Stage | Wall | Note |
+| --- | --- | --- |
+| oww + VAD load | 0.90 s | unchanged vs Layer B |
+| Mixer pre-set (Mic 70%, PCM 50%) | <50 ms | per plan §9.3 step 3.1 — recommend keeping every boot |
+| FG prompt-cache resolve | ~0 s | existing 20 MiB `/tmp/fg_pc_finetuned_functiongemma_q4_0.gguf.bin` reused (warm from Layer B) |
+| Wake fire | ~1.55 s from speech | score 0.979 → 0.822, patience=2 |
+| Pre-speech silence survived | 1.24 s | speech-relative cap (Layer C improvement over Layer B) kept LISTENING open until first `speech_seen=True` |
+| Speech endpoint | 3.20 s captured | `silence_run >= 13` |
+| CrispASR decode | 1.14 s (3.0× rt) | transcript: `"give me my medication"` |
+| FunctionGemma turn | 6.48 s | 11 prompt @ 28.6 tok/s + 14 decode @ 10.4 tok/s — single-turn envelope identical to standalone `chat_board.py` |
+| **End-to-end wake → done** | **~10.7 s** | one utterance |
+| Loop reset (`=== turn 2 ===`) | <50 ms | `wake_model.reset()` + `vad.reset_states()` + buffer clears |
+| Ctrl-C exit | clean | `[exit]` printed, no hung subprocess |
+
+Dispense override confirmed wired: tool call was
+`get_medication_by_name{}` (model emitted no args — the hijack treats
+this as dispense intent unconditionally), dispatch printed
+`[BLE→ESP32] 5A A5 01 00`, formatter returned the verbatim §6.1 canned
+response. Same control flow that the standalone
+`chat_board_dispense.py --probe` smoke validated.
+
+### Binding
+
+- **Long-running entry point: `scripts/dispenser_demo/deploy/dispenser_voice.py`.**
+  Single board process: ArecordMic → openWakeWord → Silero VAD → CrispASR → `chat_board._run_turn` (with dispense override applied via side-effect `import chat_board_dispense`). 676 lines, pure stdlib + numpy + onnxruntime + vendored openwakeword + the chat_board library.
+- **Board deploy layout (unchanged from Layer B + this new file)**:
+  - `/mnt/sdcard/python-deps/site/{onnxruntime,openwakeword}/` (Layer B stage)
+  - `/mnt/sdcard/dispenser_demo/{wake_stt_board_smoke,dispenser_voice}.py`
+  - `/mnt/sdcard/models/functiongemma-270m/chat_board{,_dispense}.py`
+  - FG model + STT model + binary paths unchanged.
+- **Invocation**: `PYTHONPATH=/mnt/sdcard/python-deps/site python3 /mnt/sdcard/dispenser_demo/dispenser_voice.py`.
+
+### Carried-over gap → Layer C.1 (closed 2026-05-12 inside Layer D)
+
+**arecord stderr `overrun!!! (at least 5026.625 ms long)` during/after the
+LLM turn.** Python is blocked in the llama-completion subprocess for
+~6.5 s per turn; arecord's ALSA capture buffer (≈1 s) overflows during
+that window. Effects on the next turn:
+
+- Up to ~5 s of stale audio sitting in the buffer when LISTENING resumes.
+- Risk of phantom wake from stale audio.
+- Up to ~5 s wake-detection latency before real-time audio reaches the
+  consumer.
+
+**Closed 2026-05-12 inside Layer D**: `ArecordMic.drain(max_seconds=6)` —
+non-blocking pipe drain (`fcntl.O_NONBLOCK` + `os.read` loop) called after
+each LLM turn (and implicitly after TTS playback since the same code path
+ran during SIGSTOP/SIGCONT). The 6 s cap is sized to cover the LLM
+subprocess + TTS WAV combined; runs in <1 ms when there's nothing to
+drain. Same logic prevents the post-playback stale-audio bug from Layer D
+without a separate fix.
+
+### Known carry-overs from Layer B (still applicable)
+
+- **No espeak-ng / TTS yet.** Layer D promotes the §1 v2 non-goal to v1.
+
+### When to reconsider
+
+- If the overrun produces a phantom wake in real use, implement the
+  drain-between-turns fix above.
+- If LLM turn wall climbs past ~10 s (slower hardware, larger model),
+  the same fix is mandatory; the overrun grows linearly with LLM wall.
+
+---
+
+## 2026-05-12 (Phase 3 Layer B closed) — Wake → VAD → STT pipeline works end-to-end on board
+
+First-run measurement on SL2619 against the P10S USB mic, `plughw:1,0`,
+fully cold (no warm caches):
+
+| Phase | Wall | Note |
+| --- | --- | --- |
+| openWakeWord + Silero VAD model load | 0.97 s | ONNX runtime sessions × 4 (mel, embed, hey_jarvis, vad) |
+| Wake-model prime (5 silent frames) | 0.13 s | covers the documented init-zeroing window from `openwakeword/model.py:332` |
+| Wake-fire latency (from speech to `[WAKE]`) | ~0.45 s | 1 frame @ 0.967, 1 @ 0.901 — patience=2 satisfied immediately |
+| VAD endpoint after silence_run=13 | — | speech captured cleanly; pre-speech silence (~1.5 s while user gathered the utterance) correctly *did not* end the listen state because `speech_seen` was still False |
+| Audio captured | 3.68 s | 16-kHz mono PCM, 58 880 samples |
+| CrispASR decode | 1.23 s | `--backend moonshine -l en --no-punctuation -t 2`, 3.2× realtime — matches Phase 0 envelope |
+| **Total wake → `[TRANSCRIPT]`** | **~4.8 s** | first-utterance, no warm cache |
+
+Transcript on the first try: `"give me my medication"` — correct.
+
+### Binding
+
+- Smoke entry point: `scripts/dispenser_demo/voice/wake_stt_board_smoke.py`
+  (one-shot, `--probe`-equivalent for the wake→STT layer). Production
+  long-running pipeline lands at `scripts/dispenser_demo/deploy/dispenser_voice.py`
+  in Layer C.
+- Board deploy layout — pinned at this run:
+  - `/mnt/sdcard/python-deps/site/onnxruntime/` (manylinux_2_28 aarch64 wheel, extracted, 12 MB)
+  - `/mnt/sdcard/python-deps/site/openwakeword/` (vendored .py + 4 ONNX models under `resources/models/`, 5.3 MB)
+  - `/mnt/sdcard/dispenser_demo/wake_stt_board_smoke.py`
+  - Invocation: `PYTHONPATH=/mnt/sdcard/python-deps/site python3 /mnt/sdcard/dispenser_demo/wake_stt_board_smoke.py`
+- Stub gate at script top is binding — openWakeWord's `__init__.py` eagerly
+  imports `train_custom_verifier` which transitively pulls scipy + sklearn +
+  tqdm + requests; none are on the board image, none are touched at runtime,
+  all four are stubbed via `sys.modules` before `import openwakeword`.
+
+### Known gaps (carried into Layer C)
+
+- **Listen-state hard cap is 5 s absolute, not 5 s post-speech-start.** If
+  the user takes >5 s to start talking after wake, the cap fires and we
+  capture mostly silence → empty transcript. Layer C should make the cap
+  speech-relative (e.g., `max 5 s after first speech_seen=True frame`).
+- **Trailing `arecord: pcm_read:2272: read error: Interrupted system call`
+  on script exit is benign** (SIGTERM interrupting arecord's in-progress
+  read syscall). Optional polish: capture arecord stderr silently in
+  `ArecordMic.__exit__` if it's noise in the wider pipeline.
+- **No mixer pre-set in the script.** Phase 3.1 in plan §9.3 calls for
+  `PCM 50%, Mic 70%` on startup; deferred to the long-running entry point
+  (smoke is one-shot, you set the mixer once per boot).
+
+### When to reconsider
+
+- If FPR climbs in a less quiet room, bump `--wake-threshold` to 0.6 or
+  0.7. Current 0.5 + patience=2 fired clean here; the score was 0.967 so
+  there's headroom.
+- If the wake phrase tail leaks into the captured audio and hurts STT,
+  bump `--prewake-rollback-frames` from 0 to a small negative offset
+  (script doesn't currently support negative — would need an inverse
+  "skip first N frames of LISTENING" knob).
+
+---
+
+## 2026-05-12 (Phase 3 pivot) — Demo uses iter-001 + dispatcher-hijack; iter-002 retained but not deployed
+
+Despite iter-002 being trained (`releases/functiongemma-270m/002-dispenser-demo/`)
+and routing correctly on board for `na-003`, two open quirks make iter-001
+the safer demo substrate today:
+
+1. **Iter-002 on-board wire format differs from iter-001.** It emits a bare
+   `call: NAME{...}<end_function_call>` (no `<start_function_call>` opener)
+   after a filler `information:` prefix (see the Phase 1.7 entry below).
+   The iter-001 deploy path (`chat_board.py`) is fully proven against the
+   `<start_function_call>...<end_function_call>` form.
+2. **Iter-002 host eval Q4_0 collapsed to 30 %** (Phase 1.7 entry). Q4_0 is
+   the on-board variant; the gap between host (broken) and board (correct)
+   makes pre-deploy regression checks awkward.
+
+The dispenser-demo functional surface is small enough that we can reuse
+iter-001's existing tool registry instead of waiting on iter-002 to land
+end-to-end.
+
+### Binding
+
+- **Active demo entry point: `scripts/functiongemma/deploy/chat_board_dispense.py`.**
+  Thin wrapper around `chat_board.py` that monkey-patches `dispatch` and
+  `format_response` so `get_medications_at_time` and `get_medication_by_name`
+  short-circuit to the dispense intent: print `[BLE→ESP32] 5A A5 01 00`
+  (mock BLE notify per plan §6.2) and return `{"status": "dispensed"}`; the
+  formatter emits the verbatim §6.1 canned response. Tool schema unchanged
+  → warm prompt cache `/tmp/fg_pc_finetuned_functiongemma_q4_0.gguf.bin`
+  reuses across the original `chat_board.py` and the wrapper.
+- **Patient fixture: `data/health_table_v1_dispense_demo.yaml`** (renders to
+  `health_table_dispense.json` on the board). Same v1 schema, fresh patient
+  (David Smith) so the non-dispense tools (vitals/allergies/appt/contact/
+  food-interaction) still demo cleanly without exposing the iter-001 test
+  patient identity.
+- **The `dispense_medication()` named tool from plan §6.1 is NOT deployed
+  for v1.** It remains the iter-002 target shape. Plan §6.1 and §7 retain
+  it as the design intent; the wrapper is the bridge until iter-002 ships
+  on board.
+- **Mock BLE for v1.** Wrapper prints the payload to stdout. Real `pybleno`
+  notify on characteristic `0xFFB2` lands in Phase 2 (currently deferred —
+  not blocking the wake→STT smoke).
+
+### When to reconsider
+
+- When the iter-002 on-board wire-format quirk is reconciled (parser regex
+  relaxation per the Phase 1.7 entry, validated across a 10-row board
+  sweep), swap the wrapper out for the iter-002 release. The tool name in
+  the registry becomes `dispense_medication()` per plan §6.1 / §7.
+- When real BLE is wired (Phase 2), replace the stdout `[BLE→ESP32]` line
+  in `chat_board_dispense.py:dispatch` with a `pybleno` notify call.
+
+---
+
+## 2026-05-12 (Phase 3 wake-word) — Pretrained openWakeWord `hey_jarvis_v0.1`; custom `Hey Sago` training deferred
+
+Plan §3.2 left the choice open ("Train Hey Sago OR find pretrained"). For
+the v1 demo we pick pretrained:
+
+- Upstream `dscripka/openWakeWord` ships a `hey_jarvis_v0.1` model
+  (TFLite + ONNX, ~3 MB) at
+  <https://github.com/dscripka/openWakeWord/releases/download/v0.5.1/hey_jarvis_v0.1.tflite>
+  (replace `.tflite` with `.onnx` for the ONNX variant). The submodule
+  ships only source; models are fetched on first use.
+- Custom training "Hey Sago" requires a Colab run + synthetic data +
+  threshold tuning (plan §11 R4 budgeted one day). Pretrained "Hey Jarvis"
+  is available immediately and is a known-good baseline for shaking out
+  the wake → STT plumbing.
+- Inference framework: **ONNX** (not TFLite), because Silero VAD is
+  ONNX-native; keeping a single runtime on the board avoids a duplicate
+  wheel install. Both models load through `onnxruntime` ≥ 1.16.
+
+### Binding
+
+- Wake phrase for v1 demo: **"Hey Jarvis"** (not "Hey Sago"). Plan §1
+  Goals + §4 architecture-diagram label updated in lock-step.
+- Runtime: ONNX for both wake-word and VAD. Local cache lands under
+  `models/wakeword/hey_jarvis_v0.1.onnx` and `models/vad/silero_vad.onnx`
+  (gitignored; bootstrap script downloads on first run).
+- Custom `Hey Sago` training is a **future iteration**, not a v1 gate.
+  Plan §11 R4 (custom-model FPR/TPR risk) retires for v1 — pretrained
+  performance is upstream-validated.
+
+### When to reconsider
+
+- When the demo's branding requires "Hey Sago" specifically (or another
+  product-named wake phrase), schedule the openWakeWord training pass per
+  the upstream `notebooks/training_models.ipynb` recipe.
+
+---
+
+## 2026-05-12 (Phase 3 smoke topology) — WSL host first, board second; speaker deferred until wake→STT proves out
+
+> **Revised same day:** WSL2 (`PHL`) has no input device exposed through WSLg
+> — `pactl list sources short` shows only `RDPSink.monitor` + `RDPSource`,
+> and PortAudio cannot bind a usable mic (the host has no `libportaudio2`
+> installed and the Windows side has not surfaced a mic to WSL). **Layer A
+> is therefore SKIPPED for this user's environment**; Phase 3 starts at
+> Layer B (board, wake → STT). Layer A remains the documented entry point
+> for future sessions on a machine with a working mic.
+
+Plan §3.1–§3.6 implies on-board work from day one. For the iter-001 +
+dispatcher-hijack pivot we sequence smoke layers explicitly to limit blast
+radius per integration:
+
+1. **Layer A — host WSL, wake → STT only.** openWakeWord (Hey Jarvis) +
+   Silero VAD + Moonshine via CrispASR `--backend moonshine`. No LLM, no
+   speaker. Output: stdout transcript. Closes the audio-plumbing surface
+   in isolation.
+2. **Layer B — board, wake → STT.** Same code path on SL2619 with the P10S
+   USB mic. Confirms the ONNX runtimes deploy cleanly and timing fits in
+   the budget alongside FunctionGemma's KV cache (~600 MB RAM ceiling).
+3. **Layer C — board, full pipeline.** Wire Layer B into
+   `chat_board_dispense.py`. Output is still stdout (no espeak-ng yet).
+4. **Layer D — board, with espeak-ng on speaker.** Add aplay-piped
+   espeak-ng output for the answer. Promotes TTS from plan §1 v2 non-goal
+   to v1 demo gate. Half-duplex rule (mute mic during playback) applies
+   per §8.3 E2.
+
+Each layer is independently testable and skippable in dev (hand audio
+files into Moonshine to bypass mic; hand transcripts into the LLM to
+bypass STT; etc.).
+
+### Binding
+
+- New code lands under `scripts/dispenser_demo/voice/` (host-side smoke +
+  shared modules) and a thin board entry point at
+  `scripts/dispenser_demo/deploy/dispenser_voice.py` when Layer B starts.
+- **Done criterion for THIS sprint: Layer B (board).** Live mic on the
+  SL2619 via the P10S USB capsule, say "Hey Jarvis" then a command, see
+  the Moonshine transcript on stdout from the SSH session. (Layer A on
+  WSL skipped — see callout above.)
+- TTS via espeak-ng deferred to Layer D — keeps the speaker hardware path
+  out of the wake/STT debugging loop.
+
+### When to reconsider
+
+- If a future session has a working WSL/host mic, Layer A is the faster
+  iteration loop — re-enable it before touching board scripts. Today's
+  pivot to Layer B was forced by missing mic plumbing, not chosen.
+
+---
+
 ## 2026-05-12 (Phase 1.7) — Q4_0 ships on board; host eval invalid for Q4_0; parser regex needs relaxation for iter-002
 
 Iter-001 documented Q4_0 as the only quant that decodes cleanly on the

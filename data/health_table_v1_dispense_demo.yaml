@@ -1,0 +1,95 @@
+# Dispenser-demo prototype patient — synthetic, NOT a real record.
+# Shape mirrors data/health_table_v1.yaml (loader: src/gemma_tools/health_table.py)
+# so the non-dispense tools (vitals/allergies/appt/contact/food) still resolve.
+#
+# Paired with scripts/functiongemma/deploy/chat_board_dispense.py, which
+# hijacks get_medications_at_time and get_medication_by_name to route to the
+# plan.md §6 dispense intent (mock BLE notify + canned response).
+# The medications list below is still consumed by check_food_interaction
+# (avoid_foods) and is included for shape-parity with v1 — it is NOT what
+# the model surfaces on dispense intents.
+
+patient:
+  name: "David Smith"
+  age: 67
+  sex: "M"
+  blood_type: "A+"
+
+vitals:
+  heart_rate_bpm: 82
+  blood_pressure_systolic: 142
+  blood_pressure_diastolic: 88
+  spo2_percent: 96
+  body_temperature_c: 36.5
+  respiratory_rate: 18
+  last_measured: "2026-05-11 07:30"
+
+conditions:
+  - name: "Type 2 Diabetes"
+    diagnosed_at: "2018-09-04"
+    severity: "moderate"
+    controlled: true
+  - name: "Hypertension"
+    diagnosed_at: "2020-02-17"
+    severity: "moderate"
+    controlled: false
+
+allergies:
+  - substance: "Sulfa drugs"
+    severity: "severe"
+    reaction: "rash and difficulty breathing"
+  - substance: "Peanuts"
+    severity: "moderate"
+    reaction: "swelling"
+
+medications:
+  - name: "Insulin"
+    dose: "10 units"
+    schedule: "07:30, 19:30"
+    with_food: false
+    purpose: "blood sugar control"
+    avoid_foods: []
+    avoid_drugs: []
+  - name: "Amlodipine"
+    dose: "5 mg"
+    schedule: "08:00"
+    with_food: false
+    purpose: "blood pressure control"
+    avoid_foods: ["Grapefruit"]
+    avoid_drugs: []
+  - name: "Metoprolol"
+    dose: "25 mg"
+    schedule: "08:00, 20:00"
+    with_food: true
+    purpose: "heart rate control"
+    avoid_foods: []
+    avoid_drugs: []
+  - name: "Aspirin"
+    dose: "81 mg"
+    schedule: "08:00"
+    with_food: true
+    purpose: "cardiovascular protection"
+    avoid_foods: []
+    avoid_drugs: ["Ibuprofen"]
+
+dietary_restrictions:
+  - rule: "low sodium (under 1500 mg per day)"
+    reason: "hypertension management"
+  - rule: "carbohydrate counting"
+    reason: "diabetes management"
+
+appointments:
+  - date: "2026-05-20"
+    time: "10:30"
+    provider: "Dr. Sarah Kim"
+    purpose: "diabetes follow-up"
+    location: "Maple Clinic, Room 204"
+
+emergency_contacts:
+  - name: "Margaret Smith"
+    relation: "wife"
+    phone: "+1-555-0188"
+
+notes:
+  - "Dispenser-demo prototype patient"
+  - "Mock data — not a real patient"
