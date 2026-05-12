@@ -139,3 +139,6 @@
 [submodule "references/upstream/openWakeWord"]
 	path = references/upstream/openWakeWord
 	url = https://github.com/dscripka/openWakeWord
+[submodule "docs/references/upstream/openWakeWord"]
+	path = docs/references/upstream/openWakeWord
+	url = https://github.com/dscripka/openWakeWord
