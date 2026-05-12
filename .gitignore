@@ -23,6 +23,10 @@ htmlcov/
 *.pt
 *.pth
 *.ckpt
+# Distil-side model bundles (HF weights + LoRA + GGUF packed into a single tarball;
+# the extracted contents are kept locally but the bundle itself is huge and redundant
+# once extracted).
+*.tar
 
 # Fine-tune checkpoints (large; use explicit git-add if you want a specific one)
 checkpoints/

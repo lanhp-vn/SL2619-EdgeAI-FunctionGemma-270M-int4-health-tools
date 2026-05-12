@@ -10,6 +10,142 @@ record of the underlying analysis; this file is the index.
 
 ---
 
+## 2026-05-12 (Phase 1.7) — Q4_0 ships on board; host eval invalid for Q4_0; parser regex needs relaxation for iter-002
+
+Iter-001 documented Q4_0 as the only quant that decodes cleanly on the
+SL2619's `llama-completion b8925` (K-quants drop `<start_function_call>`
+on that older build). For iter-002 the asymmetry is preserved but with
+two new wrinkles:
+
+1. **Host eval of iter-002 Q4_0 collapsed to 30 %.** Output corrupted —
+   `<start_function_call>len_of_age_digits...` style gibberish. Per
+   iter-001's "Why every quant except Q4_0 fails on this board build"
+   §, this is consistent with Q4_0's symmetric INT4 representation
+   losing precision on weight distributions with extreme outliers; the
+   newer host runtime is stricter than the older board runtime. K-quants
+   (`Q4_K_M`, `Q5_K_M`, `Q8_0`, `IQ4_XS`) all score 100 % on host.
+2. **On-board Q4_0 routes correctly** (`docs/bench-notes/dispenser-demo/2026-05-12_iter-002-q4_0-on-board-smoke.md`)
+   — tool routing on `na-003 "When do I see Dr. Chen?"` returns
+   `get_next_appointment{}`, 10.39 tok/s decode, 849 MiB RSS. Matches
+   iter-001's on-board envelope.
+3. **The on-board output omits the `<start_function_call>` opener.**
+   Iter-001's model emits `<start_function_call>call:NAME{...}<end_function_call>`;
+   iter-002 emits a bare `call: NAME{...}<end_function_call>` after a
+   filler `information:` prefix. Tool name + args still correct, but the
+   wire format differs from iter-001.
+
+### Binding
+
+- **On-board production GGUF: `finetuned_dispenser_q4_0.gguf`.** Sha256
+  `85893a795aec4b2adc2dbc7084f5b27e3ecd5a1ef885fd69d5af9678632368b9`,
+  pinned in `releases/.../002-dispenser-demo/gguf/CHECKSUMS.txt`.
+- **Host eval MUST use FP16 (or Q5_K_M / Q8_0).** Q4_0 host scores are
+  meaningless. `scripts/dispenser_demo/eval/eval_holdout.py --gguf
+  finetuned_dispenser_q4_0.gguf` is a known-broken combination; do not
+  re-run as a gate. Use `--gguf finetuned_dispenser_fp16.gguf` for any
+  re-validation pass.
+- **Phase 3 parser regex needs relaxation.** The current iter-001
+  parser at `scripts/functiongemma/eval/eval_holdout.py:_FG_CALL_RE`
+  requires the `<start_function_call>` opener; iter-002 on-board output
+  omits it. Update to make the opener optional:
+
+  ```python
+  _FG_CALL_RE = re.compile(
+      r"(?:<start_function_call>)?\s*call\s*[:\s]\s*(\w+)\s*\{(.*?)\}\s*<end_function_call>",
+      re.DOTALL,
+  )
+  ```
+
+  Backward compatible with iter-001 (`(?:...)?` matches an empty prefix).
+  Same update goes in `scripts/dispenser_demo/eval/eval_holdout.py` (host
+  side, will be a no-op since host eval should not use Q4_0) and the
+  forthcoming Phase 3 on-board dispatcher.
+
+### When to reconsider
+
+- If Phase 4 acceptance reveals on-board routing failures on rows other
+  than `na-003`, a full 10-row on-board sweep is warranted before declaring
+  iter-002 deployable end-to-end. `scripts/functiongemma/deploy/ask_board.sh`
+  is the iter-001 template to mirror.
+- If a future llama-completion update on board surfaces K-quant support,
+  re-run the 2026-05-12 host sweep on board — Q5_K_M would be a better
+  default than Q4_0 (higher precision at similar size; doesn't carry the
+  symmetric-INT4 precision loss).
+- If retune is needed (the remaining 1 of 2 free runs), one fix worth
+  trying is tighter `tuning.num_train_epochs` to reduce the weight
+  outliers that destabilize Q4_0 quantization on host.
+
+---
+
+## 2026-05-12 (Phase 1.6 eval) — Distil's SYSTEM_PROMPT is required for accurate host eval
+
+The Distil-trained student is conditioned at training/inference on a
+SPECIFIC system-prompt wrapping, NOT on the seed JSONL's SYSTEM_TRIGGER
+string. This was non-obvious; seeds use the FG-style trigger because
+that's the on-disk training-data format Distil consumes, but Distil's
+synthgen + training pipeline SWAPS the system message for the
+task_description-wrapping prompt before the model sees it. The deployed
+inference path (`releases/.../model_client.py`) reproduces the wrap; any
+eval that sends the seed's verbatim system message instead measures the
+wrong input distribution and scores systematically lower.
+
+### What the wrap looks like
+
+```
+You are a tool-calling model working on:
+<task_description>{task_description from job_description.json}</task_description>
+
+Respond to the conversation history by generating an appropriate tool call
+that satisfies the user request. Generate only the tool call according to
+the provided tool schema, do not generate anything else. Always respond
+with a tool call.
+```
+
+`{task_description}` is the verbatim string from
+`releases/functiongemma-270m/002-dispenser-demo/distil/job_description.json`.
+The `<task_description>` tags + the trailing meta-instruction ("Respond
+to the conversation history…", "Always respond with a tool call") are
+the wrapping Distil applies; both pieces are part of what the student
+expects to see.
+
+### Bound impact
+
+- Eval with seed-as-is SYSTEM_TRIGGER: 7/10 val (70 %) — 3 mismatches
+  on phrasings the student saw indirectly via synthgen (Dr. Chen named
+  provider, "Drop my meds" colloquial dispense).
+- Eval with Distil SYSTEM_PROMPT: **10/10 val (100 %)** — every category
+  PASS at the ≥ 90 % gate.
+
+### Binding
+
+- `scripts/dispenser_demo/eval/eval_holdout.py` defaults to the Distil
+  wrap, derived at runtime from `job_description.json` (`--job-description
+  <path>`). Single source of truth; drift-gated by the existing
+  `tests/dispenser_demo/test_distil_alignment.py`.
+- A `--seed-as-is` flag is preserved as a debug knob (reproduces the
+  70 % failure mode) but should NEVER be the default for an
+  acceptance-gate run.
+- The on-board `chat_board.py` (Phase 3) must mirror Distil's wrap
+  byte-for-byte. The reference is `releases/.../002-dispenser-demo/model_client.py`
+  (note: that bundled file has an f-string syntax bug from Distil's
+  generator — literal `{}` in an f-string body; do NOT `import` it
+  directly. Read the SYSTEM_PROMPT_CONTENT verbatim into your own
+  module.)
+
+### When to reconsider
+
+- If Distil rolls a CLI version that changes the wrapping template
+  (e.g. removes the `<task_description>` tags), the bench-note score
+  will drop. Re-run with `--seed-as-is` to confirm the model itself
+  hasn't regressed, then update `_DISTIL_SYSTEM_TEMPLATE` in
+  `eval_holdout.py` to the new wrap.
+- If a future iteration trains on a non-Distil pipeline (e.g. local
+  Unsloth fallback), the system-prompt wrapping changes again. Add a
+  second flag like `--unsloth-prompt` rather than overloading the
+  default.
+
+---
+
 ## 2026-05-11 (Phase 1.4 rebalance) — `out_of_scope_refusal` seeds 8 → 10; `health_advice` ramped from 3 → 5
 
 Phase 1.4 advisor pass flagged that the 8-row refusal slot (3 `health_advice`
@@ -276,6 +412,112 @@ The host-side BLE work is complete and unblocks any other peripheral:
 The board itself can rejoin Phase 2 once Synaptics confirms (a) which
 GPIO controls M.2 VDDIO_EN and (b) whether SM_URT1 OPT7 muxing is
 applied at boot.
+
+### Vendor-source root-cause confirmation (2026-05-11 deep dive)
+
+Initialized all Synaptics submodules at the
+`scarthgap_6.12_v2.3.0` branch (matching the live board image) and
+audited the BT bring-up path end-to-end. Four findings make the root
+cause unambiguous:
+
+1. **`klamath_brcm_bt_start.patch` exists, but only fixes UART number,
+   not the `--patchram` directory bug.** Located at
+   `references/Synaptics/sdk/meta-synaptics/recipes-devtools/synasdk/files/klamath_brcm_bt_start.patch`,
+   authored by Rohit Tayal (Synaptics) on 2025-09-16. Changes
+   `/dev/ttyS2` → `/dev/ttyS1` for klamath. Keeps
+   `--patchram /lib/firmware/bcm` (the directory) — relying on the
+   `0001-bt-auto-detect-chip-type-and-download-fw.patch` to make
+   `brcm_patchram_plus` walk the directory and pick the right `.hcd`
+   via `HCI_Read_Local_Name`. That auto-detect path requires the chip
+   to respond to `proc_reset()` first — which it never does on our
+   board.
+
+2. **DT enables `&uart1` but applies NO `pinctrl-0`.** From the live
+   board image's source
+   (`arch/arm64/boot/dts/synaptics/sl261x-rdk-common.dtsi` line 393):
+
+   ```dts
+   &uart1 {
+       status = "okay";
+       /delete-property/ dmas;
+       /delete-property/ dma-names;
+   };
+   ```
+
+   No pinctrl reference, no pmux group. The `snps,dw-apb-uart` driver
+   sees `uart1` as enabled, but the SoC pads for SM_URT1_RXD/TXD/CTS/RTS
+   are not muxed to OPT7 via kernel pinctrl. Per dev-kit Table 10 those
+   are System Manager pads (SM_GPIO7/8/14/15) and the kernel can't drive
+   them — they're owned by the M52 / SM CM3 bootloader.
+
+3. **`bluetooth-lpm.c` itself says the SM pinmux is bootloader-owned.**
+   File header comment in
+   `references/Synaptics/linux-drivers-synaptics/bluetooth/bluetooth-lpm.c`:
+
+   ```c
+   /*bt-host-wake-gpio is connected into SM_GPIO[6]
+    *which is handled in bootloader                                       */
+   ```
+
+   So SM_GPIO routing for BT lives in the SM CM3 bootloader, not in
+   Linux DT.
+
+4. **Smoking gun — there is NO klamath SM bootloader customization.**
+   `references/Synaptics/boot/bootloader/sm_cm3/syna/customization/`
+   has subdirectories for `platypus` (SL1640) and `dolphin` (SL1680)
+   only. There is no `klamath/` directory. `board_wifi_poweron()` /
+   `board_wifi_poweroff()` are defined per-platform in those custom
+   dirs (e.g. `platypus/platypus-rdk/platform_customization.c` writes
+   to the FXL6408 expander GPIO to enable WiFi/BT). Without an
+   analogous klamath file, the SM bootloader's WiFi/BT power-on hook
+   is a no-op and the SM pin-mux to route SM_URT1 to the M.2 connector
+   never happens.
+
+   WiFi nonetheless works on the board because the kernel's
+   `sdhci1_pwrseq` separately toggles `expander1 line 2` to power the
+   SDIO Wi-Fi side. BT has no such kernel-side analogue for its
+   UART-pin muxing — that's an SM-only operation.
+
+### Why this matches the release-notes bug 37861/37374
+
+The publicly tracked bug "Bluetoothctl is not working" on SL2611/2615/2619
+in scarthgap_6.12_v2.3.0 reduces to: **the SL2619 (klamath) SM CM3
+bootloader is missing the platform customization that routes the
+M.2 BT UART signals.** Synaptics shipped a partial Linux-side fix
+(`klamath_brcm_bt_start.patch`, UART number) but not the M52/SM
+bootloader-side fix (pin-mux + GPIO expander toggle).
+
+### What this closes
+
+Investigation **closed for real this time.** No software-only fix
+possible from a Linux user-space or kernel module patch on the
+shipped image. The fix requires:
+
+- A new `bootloader/sm_cm3/syna/customization/klamath/klamath-rdk/platform_customization.c`
+  (Synaptics internal work).
+- An updated SM CM3 firmware binary flashed via `astra-update`.
+- Optionally a corrected `klamath_brcm_bt_start.patch` that pins a
+  specific `.hcd` file as belt-and-braces.
+
+Until Synaptics ships the SM bootloader update with klamath
+customization, **board BT on SL2619 cannot come up.** The dispenser
+demo's BLE peripheral test will run from a different Linux host
+(WSL2 + USB BT dongle, or any laptop / Pi with native BT). The
+host-side BLE code (`ble_client.py`, `ble_test.py`, 43 tests) is
+hardware-agnostic and works unchanged on those targets.
+
+### Reference paths (initialized submodules)
+
+For future sessions that want to verify or extend this audit:
+
+- `docs/references/upstream/synaptic-sl2619/references/Synaptics/sdk/meta-synaptics/recipes-devtools/synasdk/files/klamath_brcm_bt_start.patch`
+- `docs/references/upstream/synaptic-sl2619/references/Synaptics/sdk/meta-synaptics/recipes-devtools/syna_connectivity/brcm-patchram-plus/0001-bt-auto-detect-chip-type-and-download-fw.patch`
+- `docs/references/upstream/synaptic-sl2619/references/Synaptics/boot/bootloader/sm_cm3/syna/customization/`
+  (note absence of `klamath/`)
+- `docs/references/upstream/synaptic-sl2619/references/Synaptics/linux-drivers-synaptics/bluetooth/bluetooth-lpm.c:10-12`
+- `docs/references/upstream/synaptic-sl2619/references/Synaptics/astra-doc/release_notes/scarthgap_6.12_v2.3.0.rst:827`
+- DT source (fetched from GitHub raw, not in submodule):
+  https://raw.githubusercontent.com/synaptics-astra/linux_6_12-main/scarthgap_6.12_v2.3.0/arch/arm64/boot/dts/synaptics/sl261x-rdk-common.dtsi
 
 ### Smoking gun — Synaptics-confirmed known bug (closes the investigation)
 
