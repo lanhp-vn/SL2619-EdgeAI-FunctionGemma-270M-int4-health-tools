@@ -136,3 +136,6 @@
 [submodule "docs/references/upstream/silero-vad"]
 	path = docs/references/upstream/silero-vad
 	url = https://github.com/snakers4/silero-vad
+[submodule "references/upstream/openWakeWord"]
+	path = references/upstream/openWakeWord
+	url = https://github.com/dscripka/openWakeWord
