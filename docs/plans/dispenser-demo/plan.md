@@ -101,7 +101,7 @@ git submodule update --init docs/references/upstream/synaptic-sl2619/references/
 ```
 src/gemma_tools/dispenser_demo/
     __init__.py
-    tools.py              # 4 tools + refusal helper; every digit-bearing field has a `*_words` companion
+    tools.py              # 5 tools (4 domain + `refuse_out_of_scope(reason)`); every digit-bearing field has a `*_words` companion
     dataset.py            # JSONL validator; tool-response *_words companion check (regex [0-9] on *_words keys only)
     system_prompt.py      # Short, scope-locked prompt for this demo
     state_machine.py      # Pure-logic FSM (wake / VAD / STT / timers) — no I/O
@@ -110,7 +110,7 @@ src/gemma_tools/dispenser_demo/
 
 scripts/dispenser_demo/
     data/
-        build_seeds.py            # ~40 hand-authored seeds (8 per category × 5)
+        build_seeds.py            # 42 hand-authored seeds (8 each × 4 domain cats + 10 in out_of_scope_refusal)
         build_splits.py           # stratified train/val/test from seeds + LLM-aug
         gen_prompt_templates.py   # on-board prompt prefix/suffix gen
     train/
@@ -191,7 +191,7 @@ flowchart TB
         VAD[Silero VAD]
         STT[Moonshine Streaming Tiny GGUF<br/>via CrispASR runtime]
         LLM[FunctionGemma 270M Q4_0<br/>via llama-completion subprocess<br/>+ primed /tmp/fg_pc_*.bin]
-        DISP[Tool dispatch<br/>4 tools + no-tool refusal]
+        DISP[Tool dispatch<br/>5 tools incl. refuse_out_of_scope]
         BLE[pybleno peripheral<br/>0xFFB0 / 0xFFB2 notify]
         TTY[Terminal answer<br/>stdout, word-only]
     end
@@ -324,7 +324,19 @@ add to the `docs/conventions/doc-update.md §8.1` ownership registry.
 | `get_next_appointment()` | none | `{date, date_words, time, time_words, provider, purpose, location, location_words}` | reuse w/ extended return |
 | `get_emergency_contact()` | none | `{name, relation, phone, phone_words}` | reuse w/ extended return |
 | `dispense_medication()` | none | `{status}` (side-effects BLE notify) | **new (side-effecting)** |
-| (refusal — no tool) | n/a | category `out_of_scope_refusal`; `tool_calls: null`; canned content | **new pattern usage** |
+| `refuse_out_of_scope(reason)` | `reason: enum["health_advice","off_topic"]` | `{status: "refused"}` (runtime acknowledgement; the dispatcher prints the canned refusal NL) | **new (refusal-as-tool)** |
+
+**Why refusal is a tool, not a no-tool-call assistant turn (2026-05-11):** the
+Distil `multi-turn-tool-calling-closed-book` contract enforces "exactly one
+tool call per assistant turn" — no-tool refusals fail the dry-run. The public
+`distil-labs/distil-home-assistant-functiongemma` model card uses the same
+pattern (an `intent_unclear(reason)` tool). Distil's own CLI docs recommend
+this: *"always respond with a tool call; if the request is invalid, call an
+`error` or `refuse` tool with a reason parameter."* The two-value `reason`
+enum carries diagnostic signal for per-cluster eval without proliferating
+runtime branches — the canned NL is the same for both reasons. See
+`docs/plans/dispenser-demo/decisions-log.md` for the full reasoning and
+external evidence.
 
 Tools-per-row in seeds: embedded as full JSON-Schema array, matching iter-001
 convention.
@@ -333,10 +345,13 @@ System prompt (canonical, `src/gemma_tools/dispenser_demo/system_prompt.py`):
 
 ```
 You are Sago, a health assistant for a single patient. You can call exactly
-these four tools when relevant: get_patient_profile, get_next_appointment,
-get_emergency_contact, dispense_medication. If the user asks for anything
-else, refuse politely and do not call any tool. Always quote tool response
-fields ending in "_words" verbatim. Never produce digits in your final answer.
+these five tools when relevant: get_patient_profile, get_next_appointment,
+get_emergency_contact, dispense_medication, refuse_out_of_scope. If the user
+asks for anything other than the four domain actions, call refuse_out_of_scope
+with reason="health_advice" for medical-advice / symptom-diagnosis /
+treatment-plan questions, or reason="off_topic" for anything outside the
+health domain. Always quote tool response fields ending in "_words" verbatim.
+Never produce digits in your final answer.
 ```
 
 ---
@@ -445,8 +460,8 @@ server time; doesn't touch the board).
 
 | Step | Action | Pass criterion |
 | --- | --- | --- |
-| 1.1 | Author 40 seeds in `data/dispenser_demo/seed_conversations.jsonl`. 8 rows × 5 categories: `patient_profile`, `next_appointment`, `emergency_contact`, `dispense`, `out_of_scope_refusal`. Use wordforms verbatim from §5.2. | `pytest tests/dispenser_demo/test_dataset_validator.py` green. PHI scan green. |
-| 1.2 | Write `src/gemma_tools/dispenser_demo/tools.py` + `wordform.py` + `dataset.py`. Unit tests cover `wordform.py` (table-driven per §5.2) and the tool-boundary invariant: every digit-bearing key in a tool response has a digit-free `*_words` companion. The model's free narration is NOT checked. | `uv run pytest tests/dispenser_demo/` green, `mypy src` clean. |
+| 1.1 | Author 42 seeds in `data/dispenser_demo/seed_conversations.jsonl`. 8 rows each for the four domain categories (`patient_profile`, `next_appointment`, `emergency_contact`, `dispense`) plus 10 rows in `out_of_scope_refusal` (5 `health_advice` + 5 `off_topic`, rebalanced 2026-05-11 to give each refusal reason 3 train rows after split). Use wordforms verbatim from §5.2. Refusal rows emit `refuse_out_of_scope(reason)`, keeping every assistant turn at exactly one tool call to fit Distil's contract. | `pytest tests/dispenser_demo/test_dataset_validator.py` green. PHI scan green. |
+| 1.2 | Write `src/gemma_tools/dispenser_demo/tools.py` (the 5-tool registry incl. `refuse_out_of_scope`) + `wordform.py` + `dataset.py`. Unit tests cover `wordform.py` (table-driven per §5.2) and the tool-boundary invariant: every digit-bearing key in a tool response has a digit-free `*_words` companion. The model's free narration is NOT checked. | `uv run pytest tests/dispenser_demo/` green, `mypy src` clean. |
 | 1.3 | Build splits via `scripts/dispenser_demo/data/build_splits.py`. Stratified split: train 60% / val 20% / test 20%. | `train.jsonl + val.jsonl + test.jsonl` validate via `dataset.py`. |
 | 1.4 | Author Distil config + job_description for `002-dispenser-demo`. Mirror `001-baseline/distil/config.yaml` with task `multi-turn-tool-calling-closed-book`, synthgen target 1500, validation_similarity_threshold 0.90. `job_description.json` documents the tool return shape: every digit-bearing field MUST be accompanied by a `*_words` companion; the model is trained to quote the `*_words` field when speaking to a TTS-bound user, but its free narration is unrestricted. | Both files lint-clean. |
 | 1.5 | Upload to Distil Labs, run synthgen, iterate task description as in iter-001's 3-round flow. Headline metric: Distil judge ≥ 0.92 on hold-out. The judge already checks tool-call correctness and answer fidelity — no separate digit-free regex; the tool boundary owns digit-vs-word, the model owns intent + tool-arg routing. | Judge ≥ 0.92. |

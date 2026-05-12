@@ -1,0 +1,51 @@
+# Distil iteration 002 — dispenser-demo, multi-turn-tool-calling-closed-book.
+#
+# Source-of-truth: docs/plans/dispenser-demo/plan.md §9.1 step 1.4.
+# Mirrors releases/functiongemma-270m/001-baseline/distil/config.yaml.
+#
+# Catalog-vs-blog conflict (resolved by FG iter-001, 2026-05-01): the local
+# distil-cli-skill model-catalog says tool-calling tasks are restricted to
+# Qwen3 / Llama 3-family students, but the platform itself accepts
+# functiongemma-270m-it for multi-turn-tool-calling-closed-book end to end.
+# Iter-001 trained to deploy on this combination; we rely on the same path
+# (see iter-001 distil/README.md §"Catalog-vs-blog conflict resolved").
+
+base:
+  task: multi-turn-tool-calling-closed-book
+  student_model_name: functiongemma-270m-it
+  teacher_model_name: openai.gpt-oss-120b
+  random_seed: 3407
+
+synthgen:
+  # Plan §9.1 step 1.4 target: 1500 synthetic rows. Iter-001 used 5000; our
+  # universe is narrower (5 tools, single patient fixture) so 1500 should be
+  # ample. Raise to 3000 if the v1 judge < 0.92 on the closed-book holdout.
+  generation_target: 1500
+  output_is_json: true
+  # Plan §9.1 step 1.4: 0.90 — slightly looser than the platform default
+  # (0.95) to widen the paraphrase variety synthgen surfaces. Tighten if
+  # we see scenario drift in the iter-001 8-row test set translating to
+  # noise here.
+  validation_similarity_threshold: 0.90
+  parallel_llm_calls: true
+  basic_mutators_to_use: ["complexity"]
+  # Mutation topics scoped to the 5 dispenser intents. Two clusters —
+  # "ask-for-data" (profile / appointment / contact / dispense) and "refuse"
+  # (the two reason classes) — keep paraphrase diversity inside the trained
+  # coverage rather than wandering into the FG iter-001 universe.
+  mutation_topics:
+    - [
+        "patient profile readback variations",
+        "next appointment date / time / location framings",
+        "emergency contact lookup phrasings",
+        "dispense intent direct and indirect",
+      ]
+    - [
+        "refuse health advice (medication advice, symptom diagnosis, treatment plans)",
+        "refuse off-topic (weather, news, jokes, math, generic personal questions)",
+        "short single-turn",
+      ]
+
+evaluation:
+  num_few_shot_examples: 1
+  expand_tool_calling_turns: true

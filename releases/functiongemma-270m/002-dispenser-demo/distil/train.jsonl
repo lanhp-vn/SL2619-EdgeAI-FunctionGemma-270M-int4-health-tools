@@ -1,0 +1,22 @@
+{"question":"[{\"role\": \"user\", \"content\": \"Tell me about myself.\"}]","answer":"{\"name\": \"get_patient_profile\", \"parameters\": {}}"}
+{"question":"[{\"role\": \"user\", \"content\": \"What's my diagnosis?\"}]","answer":"{\"name\": \"get_patient_profile\", \"parameters\": {}}"}
+{"question":"[{\"role\": \"user\", \"content\": \"Summarize my profile.\"}]","answer":"{\"name\": \"get_patient_profile\", \"parameters\": {}}"}
+{"question":"[{\"role\": \"user\", \"content\": \"What does my record say about me?\"}]","answer":"{\"name\": \"get_patient_profile\", \"parameters\": {}}"}
+{"question":"[{\"role\": \"user\", \"content\": \"What's my next visit?\"}]","answer":"{\"name\": \"get_next_appointment\", \"parameters\": {}}"}
+{"question":"[{\"role\": \"user\", \"content\": \"What time is my appointment?\"}]","answer":"{\"name\": \"get_next_appointment\", \"parameters\": {}}"}
+{"question":"[{\"role\": \"user\", \"content\": \"Where am I going for my check-up?\"}]","answer":"{\"name\": \"get_next_appointment\", \"parameters\": {}}"}
+{"question":"[{\"role\": \"user\", \"content\": \"When is my upcoming appointment and where?\"}]","answer":"{\"name\": \"get_next_appointment\", \"parameters\": {}}"}
+{"question":"[{\"role\": \"user\", \"content\": \"Who is listed as my emergency contact?\"}]","answer":"{\"name\": \"get_emergency_contact\", \"parameters\": {}}"}
+{"question":"[{\"role\": \"user\", \"content\": \"What's the phone number for my emergency contact?\"}]","answer":"{\"name\": \"get_emergency_contact\", \"parameters\": {}}"}
+{"question":"[{\"role\": \"user\", \"content\": \"Can you give me my daughter's number?\"}]","answer":"{\"name\": \"get_emergency_contact\", \"parameters\": {}}"}
+{"question":"[{\"role\": \"user\", \"content\": \"If I have an emergency, who do I reach?\"}]","answer":"{\"name\": \"get_emergency_contact\", \"parameters\": {}}"}
+{"question":"[{\"role\": \"user\", \"content\": \"Release my medication.\"}]","answer":"{\"name\": \"dispense_medication\", \"parameters\": {}}"}
+{"question":"[{\"role\": \"user\", \"content\": \"Activate the dispenser.\"}]","answer":"{\"name\": \"dispense_medication\", \"parameters\": {}}"}
+{"question":"[{\"role\": \"user\", \"content\": \"It's time for my medicine.\"}]","answer":"{\"name\": \"dispense_medication\", \"parameters\": {}}"}
+{"question":"[{\"role\": \"user\", \"content\": \"Dispense my evening pill.\"}]","answer":"{\"name\": \"dispense_medication\", \"parameters\": {}}"}
+{"question":"[{\"role\": \"user\", \"content\": \"Should I increase my diabetes medication?\"}]","answer":"{\"name\": \"refuse_out_of_scope\", \"parameters\": {\"reason\": \"health_advice\"}}"}
+{"question":"[{\"role\": \"user\", \"content\": \"Is it safe to mix ibuprofen with my regular meds?\"}]","answer":"{\"name\": \"refuse_out_of_scope\", \"parameters\": {\"reason\": \"health_advice\"}}"}
+{"question":"[{\"role\": \"user\", \"content\": \"How much aspirin should I take for back pain?\"}]","answer":"{\"name\": \"refuse_out_of_scope\", \"parameters\": {\"reason\": \"health_advice\"}}"}
+{"question":"[{\"role\": \"user\", \"content\": \"Tell me a joke.\"}]","answer":"{\"name\": \"refuse_out_of_scope\", \"parameters\": {\"reason\": \"off_topic\"}}"}
+{"question":"[{\"role\": \"user\", \"content\": \"What's two plus two?\"}]","answer":"{\"name\": \"refuse_out_of_scope\", \"parameters\": {\"reason\": \"off_topic\"}}"}
+{"question":"[{\"role\": \"user\", \"content\": \"What's your favorite color?\"}]","answer":"{\"name\": \"refuse_out_of_scope\", \"parameters\": {\"reason\": \"off_topic\"}}"}
