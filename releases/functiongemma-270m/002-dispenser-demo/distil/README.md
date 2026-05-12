@@ -43,10 +43,16 @@ Qwen3-0.6B with the same dataset.
 | `task_description` revert to v1 baseline | DONE 2026-05-12 | every addition tested hurt; v1 baseline is the empirical ceiling for this teacher on this test set |
 | v4 upload (`d0abd44c-…`) + eval (`4f560651-…`) | DONE 2026-05-12 | judge=0.90 — **baseline confirmed**; 1 miss on row 6 (not row 3 as in v1) — teacher is stable on score but stochastic on which row fails; predictions at `predictions/teacher_eval_v4.jsonl` |
 | **Decision: PROCEED to training** | 2026-05-12 | judge=0.90 well above platform PROCEED threshold (0.70 for tool calling). Plan §9.1 §1.5 internal gate (≥0.92) not met but waived after 3 iteration attempts showed v1 is the ceiling. Synthgen will paraphrase 22 train rows ~150× → tuned student should generalize past teacher's single empty-prediction failure mode. |
-| `distil model run-training` | DONE 2026-05-12 01:58:58 UTC | training job id `019fc6bf-9c93-4b51-81fd-081e37a5c3d6` (consumed 1 of 2 free runs) |
-| Training polling | IN PROGRESS | background poll every 600 s, logging to `/tmp/distil_train_poll.log`; iter-001 took ~3h 41m, expect similar |
-| Download artifacts (`model.tar` → `model/`, `model-adapter/`, `model.gguf`) | TODO | extract to `releases/functiongemma-270m/002-dispenser-demo/{merged,adapter,gguf}/` |
-| Verdict | TODO | DEPLOY / RETUNE |
+| `distil model run-training` | DONE 2026-05-12 02:02:42 UTC | training job id `019fc6bf-9c93-4b51-81fd-081e37a5c3d6` (consumed 1 of 2 free runs) |
+| Training JOB_SUCCESS | 2026-05-12 03:13:54 UTC | 1 h 11 m wall (3 substages: evaluate_teacher → generate_synthetic_data → finetune_student, all JOB_SUCCESS) |
+| Final metrics (from `distil model show`) | DONE | tuned student **1.00 / 1.00 / 1.00** (judge / rouge / TCE) vs teacher 0.80 vs base 0.70 — student dominates both, +0.20 over teacher |
+| Download artifacts | DONE 2026-05-12 | `distil model download` pulled 1.8 GB bundle (`model.tar`, renamed from `model.tar.tar` per CLI's suffix-doubling quirk) |
+| Extract artifacts to `{merged,adapter,gguf}/` | DONE 2026-05-12 | extracted: `merged/` (HF safetensors 512 MB), `adapter/` (LoRA r=64 654 MB), `gguf/finetuned_dispenser_fp16.gguf` (518 MB); SHA256 recorded in `gguf/CHECKSUMS.txt` (`8a5d5d46…`) |
+| Verdict | **DEPLOY** | tuned student 0.20 above teacher; iter-002 ready for Phase 1.6 (host eval on the 10 val rows the student has never seen) and Phase 1.7 (Q4_0 quantize) |
+| Phase 1.6 host eval (FP16 GGUF, Distil prompt) | **DONE 2026-05-12, 10/10 PASS** | All 5 categories at 100 % on the 10 val rows (none seen during synthgen). Bench-note at `docs/bench-notes/dispenser-demo/2026-05-11_dispenser-eval-gguf-finetuned_dispenser_fp16.md`. The first eval pass with seed's SYSTEM_TRIGGER got 7/10 (70 %); switching to Distil's task_description-wrapping prompt closed the gap. Lesson archived in `docs/plans/dispenser-demo/decisions-log.md` "2026-05-12 (Phase 1.6 eval)". |
+| Phase 1.7 quantize Q4_0 + sweep | **DONE 2026-05-12** | All 5 quants built (`Q4_0`, `Q4_K_M`, `Q5_K_M`, `Q8_0`, `IQ4_XS`); SHA256 in `releases/.../002-dispenser-demo/gguf/CHECKSUMS.txt`. Host-eval sweep: Q4_K_M / Q5_K_M / Q8_0 / IQ4_XS all 100 %, Q4_0 30 % (known host-runtime artifact, see decisions-log "2026-05-12 (Phase 1.7)"). |
+| Phase 1.7 on-board Q4_0 smoke | **PASS 2026-05-12** | `na-003 "When do I see Dr. Chen?"` → `get_next_appointment{}` (correct). 10.39 tok/s decode, 849 MiB host RSS. Wire-format wrinkle (missing `<start_function_call>` opener vs iter-001) documented for Phase 3 parser relaxation. Full bench-note at `docs/bench-notes/dispenser-demo/2026-05-12_iter-002-q4_0-on-board-smoke.md`. |
+| Iter-002 status | **READY FOR PHASE 2 / 3** | Q4_0 GGUF is the deployable on-board variant. FP16 host eval at 100 %, on-board Q4_0 smoke pass. Free training runs remaining: **1 of 2**. |
 
 ## Source data
 
