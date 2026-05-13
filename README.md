@@ -4,7 +4,7 @@ Fine-tune **FunctionGemma 270M-IT** for closed-world function-calling against a 
 
 The deliverable is a 224 MiB GGUF that answers natural-language health questions on-device at **~10 tok/s decode**, with tool dispatch + a human-readable formatter resolving the structured output back into one sentence per question.
 
-A second active track — the **dispenser demo** — stacks an on-device voice front-end (pretrained openWakeWord `hey_jarvis_v0.1` ONNX + Silero VAD + CrispASR + Moonshine Tiny GGUF, non-streaming) and a BLE-driven ESP32 medication dispenser on top of this FunctionGemma brain. The v1 demo runtime is **iter-001 + a dispatcher-hijack wrapper** ([`scripts/functiongemma/deploy/chat_board_dispense.py`](scripts/functiongemma/deploy/chat_board_dispense.py)) that short-circuits two existing tools to the §6 dispense intent (mock BLE notify + canned response) — iter-002 ([`releases/functiongemma-270m/002-dispenser-demo/`](releases/functiongemma-270m/002-dispenser-demo/)) is trained but NOT deployed for v1 pending wire-format reconciliation. Phase 0 (STT runtime spike) closed 2026-05-11; Phase 3 (voice integration) Layer B (board wake→STT smoke) and Layer C (full pipeline via [`scripts/dispenser_demo/deploy/dispenser_voice.py`](scripts/dispenser_demo/deploy/dispenser_voice.py)) both closed 2026-05-12, first-run wall ~10.7 s/turn end-to-end. Layer A (WSL host) was skipped — WSL2 doesn't expose a mic via WSLg in this user's setup. Layer D (espeak-ng → aplay TTS) is the next gate; code does not exist yet. See [`docs/plans/dispenser-demo/plan.md`](docs/plans/dispenser-demo/plan.md) and [`decisions-log.md`](docs/plans/dispenser-demo/decisions-log.md).
+A second active track — the **dispenser demo** — stacks an on-device voice front-end (pretrained openWakeWord `hey_jarvis_v0.1` ONNX + Silero VAD + CrispASR + Moonshine Tiny GGUF, non-streaming) plus **Piper neural TTS** (en_US-lessac-medium) on the P10S speaker, all driving the FunctionGemma brain, with a BLE-driven ESP32 medication dispenser as the final actuator. The v1 demo runtime is **iter-001 + a dispatcher-hijack wrapper** ([`scripts/functiongemma/deploy/chat_board_dispense.py`](scripts/functiongemma/deploy/chat_board_dispense.py)) that short-circuits two existing tools to the §6 dispense intent (mock BLE notify + canned response) — iter-002 ([`releases/functiongemma-270m/002-dispenser-demo/`](releases/functiongemma-270m/002-dispenser-demo/)) is trained but NOT deployed for v1 pending wire-format reconciliation. Phase 0 (STT runtime spike) closed 2026-05-11; Phase 3 (voice integration) Layers B, C, and D all closed 2026-05-12 via the long-running [`scripts/dispenser_demo/deploy/dispenser_voice.py`](scripts/dispenser_demo/deploy/dispenser_voice.py), first-run wall ~10.7 s/turn end-to-end including Piper render. Layer A (WSL host) was skipped — WSL2 doesn't expose a mic via WSLg in this user's setup. **BLE bring-up is now the sole remaining v1 demo blocker** (board BT is gated on Synaptics bug 37861/37374 — the demo's `[BLE→ESP32]` payload is stdout-mock until pybleno binds a real radio; see [`decisions-log.md`](docs/plans/dispenser-demo/decisions-log.md) 2026-05-11 late entry). See [`docs/plans/dispenser-demo/plan.md`](docs/plans/dispenser-demo/plan.md) and [`decisions-log.md`](docs/plans/dispenser-demo/decisions-log.md).
 
 ## Status
 
@@ -16,11 +16,12 @@ A second active track — the **dispenser demo** — stacks an on-device voice f
 | Dispenser demo — Phase 0 (CrispASR STT spike) | **DONE 2026-05-11** — pinned `cstr/moonshine-tiny-GGUF` via `--backend moonshine` (superseded the streaming variant the same afternoon; archive recipe at `archive/dispenser-demo-moonshine-streaming/`). Board: 4.66 s wall / 11 s audio, 49.6 MB RSS; extrapolated 3 s utterance ≈ 1.27 s / ≈ 50 MB, well inside the ≤ 2.0 s / ≤ 250 MB gate. Audit: [`docs/plans/dispenser-demo/crispasr-spike-notes.md`](docs/plans/dispenser-demo/crispasr-spike-notes.md) |
 | Dispenser demo — iter-002 (Distil retrain) | **TRAINED, NOT DEPLOYED** — artifacts at `releases/functiongemma-270m/002-dispenser-demo/`. Host Q4_0 host-eval collapsed to 30 %; on-board output omits `<start_function_call>` opener. Held until wire-format reconciled |
 | Dispenser demo — Phase 1 (data + Distil retrain to land iter-002) | **DEFERRED** — v1 demo bridges with iter-001 + dispatcher-hijack (`chat_board_dispense.py`) instead. See `docs/plans/dispenser-demo/decisions-log.md` 2026-05-12 entries |
-| Dispenser demo — Phase 2 (BLE GATT + P10S audio) | **NEXT** — pybleno against M.2 Broadcom BT, ESP32 peripheral; runs in parallel with Phase 3 |
+| Dispenser demo — Phase 2 (BLE GATT on board) | **BLOCKED on board BT** (Synaptics bug 37861/37374 — needs SM CM3 bootloader fix from Synaptics; details in `decisions-log.md` 2026-05-11 late entry). Host-side BLE complete (43 tests green); the demo BLE peripheral runs from an external Linux host with a USB BT dongle. v1 demo's `[BLE→ESP32]` line in `chat_board_dispense.py` is stdout-mock until then. **Sole remaining v1 demo blocker.** |
+| Dispenser demo — Phase 2 (P10S audio) | **DONE 2026-05-11** — speaker + mic + firmware AEC all verified; recipe in `docs/guides/usb-audio-testing-sl2619.md` |
 | Dispenser demo — Phase 3 Layer A (wake + VAD + STT on WSL host, stdout only) | **SKIPPED** — WSL2 doesn't expose a mic via WSLg in this user's setup. Documented for future sessions on a machine with a working mic |
 | Dispenser demo — Phase 3 Layer B (wake + VAD + STT on board, stdout only) | **DONE 2026-05-12** — board wake→STT smoke green; details in `docs/plans/dispenser-demo/decisions-log.md` |
-| Dispenser demo — Phase 3 Layer C (full pipeline on board: wake→STT→FunctionGemma→stdout) | **DONE 2026-05-12** — long-running [`scripts/dispenser_demo/deploy/dispenser_voice.py`](scripts/dispenser_demo/deploy/dispenser_voice.py) wires Layer B into iter-001 hijack. First-run wall ~10.7 s/turn (wake ~1.55 s → STT 1.14 s → FunctionGemma 6.48 s → dispense override + canned line). Carry-over Layer C.1: arecord overrun during LLM turn (non-blocking ~10-line stdout-drain fix) |
-| Dispenser demo — Phase 3 Layer D (espeak-ng → aplay → P10S speaker) | **NEXT** — promotes plan §1 v2 non-goal (spoken answer) to v1 demo gate; code does NOT exist yet |
+| Dispenser demo — Phase 3 Layer C (full pipeline on board: wake→STT→FunctionGemma→stdout) | **DONE 2026-05-12** — long-running [`scripts/dispenser_demo/deploy/dispenser_voice.py`](scripts/dispenser_demo/deploy/dispenser_voice.py) wires Layer B into iter-001 hijack. First-run wall ~10.7 s/turn (wake ~1.55 s → STT 1.14 s → FunctionGemma 6.48 s → dispense override + canned line). |
+| Dispenser demo — Phase 3 Layer D (Piper TTS → P10S speaker) | **DONE 2026-05-12** — dynamic per-turn Piper render of `chat_board.format_response`'s output (`_capture_format` wrapper), humanizer helpers normalize dates/times/schedules/vitals for natural cadence, out-of-scope refusals routed through `format_response` so the TTS layer speaks them, wake-ack + command-ack chimes, `-v`/`--trace` logging split. Layer C.1 arecord-overrun closed inside Layer D via `ArecordMic.drain()`. See `decisions-log.md` 2026-05-12 (afternoon) entry |
 
 ## Quick start
 
@@ -83,7 +84,7 @@ flowchart TB
     FMT --> ANS[Human-readable answer]
 ```
 
-### Dispenser-demo voice pipeline (Phase 3 target shape)
+### Dispenser-demo voice pipeline (v1 shipping shape)
 
 ```mermaid
 flowchart LR
@@ -91,13 +92,17 @@ flowchart LR
     WAKE[openWakeWord<br/>hey_jarvis_v0.1 ONNX<br/>pretrained, v0.5.1 release]
     VAD[Silero VAD<br/>ONNX]
     STT[crispasr-cli<br/>moonshine-tiny GGUF q4_k<br/>--backend moonshine -l en --no-punctuation -t 2]
-    BRAIN[chat_board_dispense.py<br/>iter-001 Q4_0 + dispatch hijack]
-    BLE[pybleno GATT server<br/>M.2 Broadcom BT - planned]
-    ESP[ESP32 dispenser<br/>medication actuator - planned]
-    MIC --> WAKE --> VAD --> STT --> BRAIN --> BLE -- BLE notify --> ESP
+    BRAIN[chat_board_dispense.py<br/>iter-001 Q4_0 + dispatch hijack<br/>+ humanizer helpers<br/>+ OUT_OF_SCOPE_TOOL]
+    TTS[Piper TTS<br/>en_US-lessac-medium ONNX<br/>dynamic per-turn render]
+    SPK[P10S speaker<br/>aplay -D plughw:1,0]
+    BLE[pybleno GATT server<br/>blocked on board BT bug 37861/37374<br/>currently stdout-mock]
+    ESP[ESP32 dispenser<br/>medication actuator]
+    MIC --> WAKE --> VAD --> STT --> BRAIN
+    BRAIN --> TTS --> SPK
+    BRAIN --> BLE -- BLE notify --> ESP
 ```
 
-Phase 0 (STT runtime) closed 2026-05-11. Phase 3 (voice integration): Layer A (WSL host) skipped — no WSLg mic in this user's setup. Layer B (board wake + VAD + STT) and Layer C (full pipeline through `chat_board_dispense.py` via the long-running [`scripts/dispenser_demo/deploy/dispenser_voice.py`](scripts/dispenser_demo/deploy/dispenser_voice.py)) both closed 2026-05-12, ~10.7 s/turn first-run end-to-end. Layer D (espeak-ng → aplay TTS) is the next gate; code does not exist yet. Phase 1 (Distil retrain to land iter-002) is deferred; Phase 2 (BLE GATT bring-up + P10S audio) runs in parallel with Phase 3. Full plan, BLE wire contract, and wake-word state machine: [`docs/plans/dispenser-demo/plan.md`](docs/plans/dispenser-demo/plan.md); binding decisions: [`docs/plans/dispenser-demo/decisions-log.md`](docs/plans/dispenser-demo/decisions-log.md).
+Phase 0 (STT runtime) closed 2026-05-11. Phase 3 (voice integration): Layer A (WSL host) skipped — no WSLg mic in this user's setup. Layers B, C, and D all closed 2026-05-12 via the long-running [`scripts/dispenser_demo/deploy/dispenser_voice.py`](scripts/dispenser_demo/deploy/dispenser_voice.py); first-run wall ~10.7 s/turn end-to-end including Piper render. Phase 1 (Distil retrain to land iter-002) is deferred; the v1 demo bridges via iter-001 + dispatcher-hijack with runtime humanizer helpers in `chat_board.py` / `chat.py` (kept in lockstep; `tests/functiongemma/test_chat_formatters.py` parametrizes both copies). **BLE bring-up is the sole remaining v1 demo blocker** — board BT is gated on Synaptics bug 37861/37374; the host-side `ble_test.py` runs from any peripheral with a working radio (WSL2 + `usbipd-win` + USB BT dongle, or a spare Linux box). Full plan, BLE wire contract, and wake-word state machine: [`docs/plans/dispenser-demo/plan.md`](docs/plans/dispenser-demo/plan.md); binding decisions: [`docs/plans/dispenser-demo/decisions-log.md`](docs/plans/dispenser-demo/decisions-log.md).
 
 ## Hardware
 
@@ -231,6 +236,28 @@ you> what is her phone number?
   >> Call Jane Doe (daughter) at +1-555-0142.
   [prompt 13 (32.7 tok/s) + decode 11 (10.6 tok/s) in 6.15s wall]
 ```
+
+## Try the voice loop (dispenser demo, on board)
+
+The long-running voice pipeline lives at [`scripts/dispenser_demo/deploy/dispenser_voice.py`](scripts/dispenser_demo/deploy/dispenser_voice.py). Phase 3 Layers B/C/D all closed 2026-05-12; first-run wall is ~10.7 s/turn end-to-end on a P10S USB speakerphone plugged into the SL2619.
+
+Prerequisites on the board (one-time staging, see [`decisions-log.md`](docs/plans/dispenser-demo/decisions-log.md) for the exact layout):
+
+- `/mnt/sdcard/python-deps/site/{onnxruntime,openwakeword}/` — extracted manylinux_2_28 aarch64 wheel + vendored openWakeWord (with `hey_jarvis_v0.1.onnx` under `resources/models/`).
+- `/mnt/sdcard/models/functiongemma-270m/` — Q4_0 GGUF + `chat_board.py` + `chat_board_dispense.py` + `health_table_dispense.json` + prompt prefix/suffix.
+- `/mnt/sdcard/models/moonshine-tiny/moonshine-tiny-q4_k.gguf` — STT model.
+- `/mnt/sdcard/bin/crispasr` — STT engine (stripped aarch64 static binary; sha256 `5bfedc14...`).
+- `/mnt/sdcard/dispenser_demo/{wake_ack.wav,command_ack.wav,piper-voices/,tts/,dispenser_voice.py}` — chimes, Piper voice model, fallback canned WAVs, the script itself.
+
+Run on board:
+
+```bash
+PYTHONPATH=/mnt/sdcard/python-deps/site python3 \
+    /mnt/sdcard/dispenser_demo/dispenser_voice.py
+# add -v for pipeline-transition logging, --trace for per-frame wake/VAD scores
+```
+
+Flow per turn: say "Hey Jarvis" → wake chime → speak the command → command-ack chime → STT transcript prints → FunctionGemma turn (~6 s) → Piper renders the answer → aplay speaks it on the P10S speaker. The dispense intent additionally prints `[BLE→ESP32] 5A A5 01 00` (stdout-mock until the BLE peripheral binds a real radio). Out-of-scope queries route through `format_response` via the `OUT_OF_SCOPE_TOOL` sentinel and are spoken as a canned refusal.
 
 ## Tool registry
 

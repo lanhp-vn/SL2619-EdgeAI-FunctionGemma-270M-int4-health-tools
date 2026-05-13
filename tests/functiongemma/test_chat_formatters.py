@@ -87,7 +87,144 @@ def test_meds_at_time_happy_path_unchanged(chat_mod: ModuleType) -> None:
     )
     assert "Atorvastatin" in out
     assert "20 mg" in out
-    assert "08:00" in out
+    # The host formatter keeps the raw HH:MM in parens alongside the
+    # humanized phrase (see chat.py:_format_meds_at_time). The board
+    # formatter drops the raw form (TTS-only path).
+    assert "08:00" in out or "8 in the morning" in out
+
+
+# ----------------------------------------------------------------------------
+# Humanizer regression coverage — chat.py and chat_board.py duplicate the
+# helpers, so test both copies with the same inputs to guarantee parity.
+# ----------------------------------------------------------------------------
+
+
+@pytest.fixture(scope="module", params=["chat", "chat_board"])
+def fmt_mod(request: pytest.FixtureRequest) -> ModuleType:
+    if request.param == "chat":
+        return _load(_CHAT, "fg_chat")
+    return _load(_CHAT_BOARD, "fg_chat_board")
+
+
+@pytest.mark.parametrize(
+    ("date_in", "want_substring"),
+    [
+        ("2026-05-20", "May 20"),
+        ("2026-01-01", "January 1"),
+        ("2026-12-31", "December 31"),
+        # Malformed → return raw (don't crash).
+        ("not-a-date", "not-a-date"),
+    ],
+)
+def test_humanize_date(
+    fmt_mod: ModuleType, date_in: str, want_substring: str,
+) -> None:
+    assert want_substring in fmt_mod._humanize_date(date_in)
+
+
+@pytest.mark.parametrize(
+    ("time_in", "want_substring"),
+    [
+        ("07:30", "7:30 in the morning"),
+        ("08:00", "8 in the morning"),
+        ("14:00", "2 in the afternoon"),
+        ("20:00", "8 in the evening"),
+        ("23:30", "11:30 at night"),
+        ("00:00", "12 at night"),
+        ("12:00", "12 in the afternoon"),
+        # Malformed → return raw.
+        ("not-a-time", "not-a-time"),
+    ],
+)
+def test_humanize_time(
+    fmt_mod: ModuleType, time_in: str, want_substring: str,
+) -> None:
+    assert want_substring in fmt_mod._humanize_time(time_in)
+
+
+def test_humanize_schedule_conjunction(fmt_mod: ModuleType) -> None:
+    out = fmt_mod._humanize_schedule("08:00, 20:00")
+    assert "8 in the morning" in out
+    assert "8 in the evening" in out
+    assert " and " in out
+
+
+def test_humanize_schedule_three_times(fmt_mod: ModuleType) -> None:
+    out = fmt_mod._humanize_schedule("08:00, 14:00, 20:00")
+    # Oxford-comma form: "X, Y, and Z"
+    assert out.count(",") >= 2
+    assert "and " in out
+
+
+def test_humanize_measured_suffix_pretty(fmt_mod: ModuleType) -> None:
+    out = fmt_mod._humanize_measured_suffix("2026-05-11 07:30")
+    assert "May 11" in out
+    assert "7:30 in the morning" in out
+    # No raw "2026-05-11" or "07:30" leaks through.
+    assert "2026" not in out
+    assert "07:30" not in out
+
+
+def test_humanize_measured_suffix_empty(fmt_mod: ModuleType) -> None:
+    assert fmt_mod._humanize_measured_suffix("") == ""
+
+
+def test_vitals_no_iso_leakage(fmt_mod: ModuleType) -> None:
+    """The vitals sentence going to TTS must not contain ISO date/time
+    fragments; Piper renders those digit-by-digit and breaks the cadence.
+    """
+    result = {
+        "heart_rate_bpm": 82,
+        "blood_pressure_systolic": 142,
+        "blood_pressure_diastolic": 88,
+        "spo2_percent": 97,
+        "body_temperature_c": 36.6,
+        "respiratory_rate": 16,
+        "last_measured": "2026-05-11 07:30",
+    }
+    out = fmt_mod.format_response(
+        "what is my heart rate?", "get_vitals", {}, result,
+    )
+    assert "82" in out
+    assert "2026-05-11" not in out
+    assert "07:30" not in out
+    assert "May 11" in out
+    assert "morning" in out
+
+
+def test_appointment_no_iso_leakage(fmt_mod: ModuleType) -> None:
+    result = {
+        "date": "2026-05-20",
+        "time": "14:30",
+        "provider": "Dr. Sarah Kim",
+        "purpose": "blood pressure follow-up",
+        "location": "clinic room 3",
+    }
+    out = fmt_mod.format_response(
+        "when is my next appointment?", "get_next_appointment", {}, result,
+    )
+    assert "2026-05-20" not in out
+    assert "14:30" not in out
+    assert "May 20" in out
+    assert "2:30 in the afternoon" in out
+
+
+def test_out_of_scope_refusal_via_format_response(
+    fmt_mod: ModuleType,
+) -> None:
+    """The OUT_OF_SCOPE_TOOL sentinel must produce a refusal sentence
+    (not the fallthrough `[no formatter for tool: ...]`).
+    """
+    out = fmt_mod.format_response(
+        "tell me a joke", fmt_mod.OUT_OF_SCOPE_TOOL, {}, None,
+    )
+    assert isinstance(out, str)
+    assert out
+    assert "no formatter" not in out
+    # The refusal mentions the allowed scope so the user knows what to
+    # rephrase to — don't hard-code the exact wording but check for a
+    # signature substring.
+    assert "medication" in out.lower() or "help with" in out.lower()
 
 
 def test_chat_board_meds_at_time_error_handled(

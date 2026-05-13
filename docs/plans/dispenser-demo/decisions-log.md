@@ -5,8 +5,126 @@ entry pins one resolved question. Update existing entries only to add follow-up
 references; do not rewrite history.
 
 The plan itself lives at [`plan.md`](plan.md). Phase-specific working notes
-(e.g. [`crispasr-spike-notes.md`](crispasr-spike-notes.md)) are the authoritative
-record of the underlying analysis; this file is the index.
+(e.g. [`crispasr-spike-notes.md`](crispasr-spike-notes.md),
+[`bt-bringup-investigation-2026-05-12.md`](bt-bringup-investigation-2026-05-12.md))
+are the authoritative record of the underlying analysis; this file is the index.
+
+---
+
+## 2026-05-12 (PM) — BT bring-up second-pass audit; disposition unchanged, hypotheses narrowed
+
+Re-investigation of the M.2 BT failure mode under explicit user authorization
+to run mutating SSH commands. The 2026-05-11 (late, addendum) entry below
+established that `brcm_patchram_plus` loops `HCI_Reset` with no chip
+response. This pass goes deeper.
+
+**Net change: no new fix; hypothesis space narrowed from ~12 to 3.**
+
+### What this audit added
+
+- **UART1 pinmux verified correct.** Direct devmem read of pinctrl@`0xe5025b00`
+  shows the bootloader has already set SM_GPIO7/8/14/15 to function 6
+  (`uart1`). The empty `pinctrl-0` on `uart@e5031000` in DT is a red
+  herring — kernel-side pinctrl is not applying mux; bootloader is. So
+  the earlier hypothesis "the SL2619 DTS is missing a UART1 pinctrl
+  reference" is wrong.
+- **32.768 kHz refclk path effectively ruled out.** WiFi works → combo
+  chip has the slow clock from *somewhere*. Forcing `SM_GPIO30 → sm_clkout`
+  (function 7) on top of the existing config did nothing for BT.
+- **FXL6408 register map corrected.** Mainline `gpio-fxl6408.c` uses
+  `0x03=Dir, 0x05=Output, 0x07=High-Z, 0x0F=InputStatus` — distinct from
+  the addresses an external chat tool (NotebookLM) had hallucinated.
+  `bt_power`'s `out lo` in `/sys/kernel/debug/gpio` is a chip artifact
+  (FXL6408 Input Status reads 0 for output pins), not a "chip can't
+  drive high" failure mode.
+- **`/dev/ttyS1` listen returns zero bytes** at 115200, 921600, and
+  3 Mbps after rfkill cycle — confirming the chip is silent on UART
+  regardless of baud, not just at patchram's chosen rate.
+- **FXL pin 2 (`reset` ACTIVE_LOW, no documented consumer) gates network
+  connectivity.** Driving it low — which NotebookLM had speculated was
+  WL_REG_ON — drops `wlan0` and SSH within a second. Do not toggle it
+  in any future experiment. Two board hangs this session traced to
+  collateral effects of that pin or downstream registers; in both
+  cases a clean power-cycle recovered.
+
+### Three hypotheses survive — all physical-layer
+
+| # | Hypothesis | Cannot test from SSH because |
+|---|---|---|
+| H13 | BT_REG_ON wired to FXL pin 4 (currently `output, no consumer, low`), not pin 5 | Toggling pin 4 hung the board mid-test; needs a self-reverting test wrapper, but better: schematic confirmation from Synaptics |
+| H14 | M.2 module's BT-side hardware fault while WiFi works | Needs a known-good M.2 swap |
+| H15 | SL2619-RDK PCB trace from SoC SM_UART1 TX (SM_GPIO8) to M.2 socket is broken/unpopulated | Needs an oscilloscope on the M.2 pin |
+
+### Decision
+
+**No further SSH-only investigation will productively move this.** Per
+[`bt-bringup-investigation-2026-05-12.md`](bt-bringup-investigation-2026-05-12.md)
+§ "Practical disposition", the v1 demo should take path 2 (run BLE
+peripheral from a different Linux host on the LAN; wire contract
+unchanged). The host-side BLE work is already hardware-agnostic and
+tested. Board BT path stays gated on Synaptics bug 37861/37374.
+
+### What NOT to retry next session
+
+Different `.hcd` files, alternate baud rates, `hciattach` permutations,
+`rfkill` cycle sweeps, `pinmux-select` syntaxes, `devmem` writes to
+pinmux/FXL registers. All covered. The next legitimate experiment is
+gated on one of: a Synaptics support response, a different M.2 card
+swap, or a scope on the SM_UART1 TX pad.
+
+### Evidence file
+
+Full hypothesis matrix, register dumps, loopback measurements, and the
+draft Synaptics-ticket payload are in
+[`bt-bringup-investigation-2026-05-12.md`](bt-bringup-investigation-2026-05-12.md).
+
+---
+
+## 2026-05-12 (Phase 3 Layer D closed, afternoon) — Piper TTS landed; humanizer + refusal-as-TTS + command-ack chime + trace/-v split shipped
+
+Four user-driven fixes closed Layer D and tightened the v1 voice loop end-to-end. With this entry, **BLE bring-up is the sole remaining v1 demo blocker** (board BT still gated on Synaptics bug 37861/37374 per the 2026-05-11 late entry; the `[BLE→ESP32] 5A A5 01 00` line in `chat_board_dispense.py` remains stdout-mock until pybleno binds a real radio — see the 2026-05-11 (late) ground-truth audit below).
+
+### Decision 1 — Dynamic Piper TTS, with humanizer helpers for digit-bearing fields
+
+- **Decision.** Layer D ships **Piper neural TTS** rendered per-turn from `chat_board.format_response`'s output, captured via the `_capture_format` side-effect wrapper in `dispenser_voice.py`. Canned per-tool WAVs at `<tts_dir>/<tool>.wav` remain as a fallback (`--no-dynamic-tts` or Piper load/render failure). Default voice: `en_US-lessac-medium` (host-rendered, ~30–60 MB ONNX, gitignored).
+- **Decision.** All formatters in `scripts/functiongemma/deploy/chat_board.py` and the host `scripts/functiongemma/chat.py` route digit-bearing fields through new humanizer helpers — `_humanize_date`, `_humanize_time`, `_humanize_schedule`, `_humanize_measured_suffix` — before emitting the assistant line. Examples: `"2026-05-20"` → `"May 20"`; `"07:30"` → `"7:30 in the morning"`; `"23:30"` → `"11:30 at night"`; `"08:00, 20:00"` → `"8 in the morning and 8 in the evening"`. Vitals also spell units (`"82 beats per minute"`, `"142 over 88"`, `"97 percent"`, `"36.6 degrees Celsius"`).
+- **Rationale.** Piper renders raw ISO strings digit-by-digit (`"two zero two six dash zero five dash twenty"`), which breaks cadence and listener comprehension. Cheap host-side normalization in the formatter sidesteps the problem without re-training. This is **not** the iter-002 `*_words`-companion contract — that remains the iter-002 target shape and stays unimplemented for v1.
+- **Evidence.** `scripts/functiongemma/deploy/chat_board.py:168-233` (helpers) + `chat_board.py:362,408,428,457,468` (formatter call sites); identical mirror in `scripts/functiongemma/chat.py:193-243`. `tests/functiongemma/test_chat_formatters.py` parametrizes 35 new cases across both module copies via `@pytest.fixture(params=["chat", "chat_board"])` — **adding a new helper or formatter must update both module copies or the parity tests fail.** 729 tests green.
+
+### Decision 2 — Out-of-scope refusal as TTS, routed through `format_response`
+
+- **Decision.** Introduce sentinel `OUT_OF_SCOPE_TOOL = "_out_of_scope"` and constant `OUT_OF_SCOPE_REFUSAL = "I can only help with your medications, vitals, allergies, appointments, and emergency contact."` `_run_turn` (in both `chat_board.py` and `chat.py`) calls `format_response(user_text, OUT_OF_SCOPE_TOOL, {}, None)` on both the no-parse path and the dispatch-KeyError path so the assistant line reaches the same emission point as a normal answer.
+- **Rationale.** Plan §6 + §7 wanted the iter-002 `refuse_out_of_scope(reason)` tool to own this surface. v1 runs on iter-001 which has no such tool, so refusals previously produced silent skip — both wrong UX and invisible to `dispenser_voice.py`'s `_capture_format` wrapper (no string captured → no Piper render → silent box). Routing through `format_response` keeps the TTS layer agnostic and reuses the existing capture wire. Per plan §6 ("refuse everything else") the user-facing line is the same for both refusal classes; the diagnostic `reason` enum from iter-002's design is dropped for v1 (the runtime layer can't infer it post-hoc anyway).
+- **Evidence.** `chat_board.py:486-518,734-758` and `chat.py:411-441,571-589`. Plan §6 / §7 retain `refuse_out_of_scope(reason)` as the iter-002 target shape.
+
+### Decision 3 — Post-STT "command received" chime before the LLM turn
+
+- **Decision.** Play a short 160 ms two-blip 660 Hz WAV (`command_ack.wav`, distinct from the 170 ms rising `wake_ack.wav` already played on WAKE) after STT prints the transcript and before the LLM turn starts. New flags `--command-ack-wav` (default `/mnt/sdcard/dispenser_demo/command_ack.wav`) and `--no-command-ack`.
+- **Rationale.** The LLM turn is ~6.5 s wall on first turn and ~6 s/turn warm. Without an audible "heard you, thinking" cue the user reflexively re-speaks during that gap (we're half-duplex per plan §8.3 E2 — mic is paused during playback, but no playback was happening, so the box looked dead). 160 ms is short enough that the arecord pipe survives without explicit half-duplex pause; the distinct two-blip pattern is differentiable from the rising-tone wake-ack at typical speaker output.
+- **Evidence.** `dispenser_voice.py:197-204` (constant), `:815-823` (playback call site), `:976-983` (CLI flags). WAV staged at `/tmp/dispenser_demo_board/command_ack.wav` (gitignored).
+
+### Decision 4 — Split `-v` (pipeline transitions) from `--trace` (per-frame)
+
+- **Decision.** Introduce two loggers in `dispenser_voice.py`: `dispenser_voice` (INFO/DEBUG gated on `-v`) and `dispenser_voice.trace` (gated on the new `--trace` flag, default WARNING/silent). Per-frame `wake score %.3f` (80 ms cadence) and `vad %.3f speech_seen=...` (30 ms cadence) move to the trace logger. Pipeline transitions (`listening`, `[WAKE]`, `end of utterance`, `STT`, `LLM turn wall`, `TTS`) stay on the main logger.
+- **Rationale.** Pre-fix, a few seconds of LISTENING under `-v` produced 50+ frame-level lines per second, drowning the pipeline-transition lines that matter for debugging. Two-logger split keeps the common case (`-v` for "what stage are we in?") readable while preserving access to frame-level data when needed (`--trace`).
+- **Evidence.** `dispenser_voice.py:208-225` (logger setup), `:605` (wake-score trace), `:664` (VAD trace), `:1011-1016` (CLI flags). No call-site count change in the main logger.
+
+### Binding (cumulative, supersedes the Layer C "Known carry-overs" list)
+
+- **Long-running entry point unchanged**: `scripts/dispenser_demo/deploy/dispenser_voice.py`. Code size grew from ~676 to ~1036 lines (Piper render + render-cache plumbing + chime playback + humanizer-aware capture wrapper).
+- **TTS rendering tool**: `scripts/dispenser_demo/voice/build_tts_canned.py` (host-side; bakes the fallback per-tool WAVs into `<tts_dir>/` using Piper). Run once per voice change.
+- **On-board file layout adds**: `/mnt/sdcard/dispenser_demo/{wake_ack.wav, command_ack.wav, piper-voices/, tts/}`. Layer-B/C stages under `/mnt/sdcard/python-deps/site/` unchanged. WAVs are not committed (gitignored under `/tmp/dispenser_demo_board/`).
+- **Test parity rule**: `tests/functiongemma/test_chat_formatters.py` parametrizes across `chat` and `chat_board`. Adding a helper or formatter to one module without the other is now a CI failure, not a runtime-only bug.
+- **Layer C.1 arecord-overrun**: closed inside Layer D via `ArecordMic.drain(max_seconds=6)` — non-blocking pipe drain called after each LLM turn (and implicitly after TTS playback). See the Layer C entry below — the carry-over note there now reads "closed". No phantom-wake regression observed in this session's runs.
+
+### What this leaves open
+
+- **BLE bring-up is the sole remaining v1 demo blocker.** The board BT path remains gated on Synaptics bug 37861/37374 (see the 2026-05-11 (late) ground-truth audit). `chat_board_dispense.py:dispatch` will swap the stdout `[BLE→ESP32]` print for a `pybleno` notify call once the radio is reachable from any peripheral host.
+
+### When to reconsider
+
+- If Piper render wall exceeds ~500 ms per turn on board (current ballpark on lessac-medium), drop to `en_US-amy-low` or revert to canned WAVs by toolname.
+- If real BLE bring-up reveals timing skew between the canned chime, Piper playback, and the BLE notify (e.g. dispense fires before the canned line finishes speaking), serialize at the dispatch level instead of relying on aplay returning.
 
 ---
 
