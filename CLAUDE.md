@@ -12,7 +12,7 @@ Two active focuses sharing one board (Synaptics SL2619, Cortex-A55 ×2,
    patient registry. Iteration 001 (Distil Labs SFT) shipped at
    `releases/functiongemma-270m/001-baseline/`; the 2026-05-02 quantization
    sweep selected **Q4_0** as the on-board variant. No retrain planned.
-2. **Dispenser demo** (active, Phase 0 closed 2026-05-11; Phase 3 Layer B + Layer C both closed 2026-05-12) — voice-driven medication dispenser stacking **openWakeWord (pretrained `hey_jarvis_v0.1` ONNX) + Silero VAD + CrispASR + Moonshine Tiny GGUF** (non-streaming, `--backend moonshine`) for the wake→VAD→STT front-end on top of the FunctionGemma tool-call brain, with BLE GATT to an ESP32-controlled dispenser. The v1 demo runs on **iter-001 + a dispatcher-hijack wrapper** (`scripts/functiongemma/deploy/chat_board_dispense.py`) that short-circuits `get_medications_at_time` / `get_medication_by_name` to the §6 dispense intent (mock BLE notify `5A A5 01 00` + canned response). Iter-002 (`releases/functiongemma-270m/002-dispenser-demo/`) is trained but **NOT deployed** for v1 (host Q4_0 host-eval collapsed to 30 %; on-board output omits the `<start_function_call>` opener); Phase 1 (Distil retrain to land iter-002) is **DEFERRED** until that wire-format quirk is reconciled. Phase 3 (voice stack integration) layering: **Layer A skipped** (WSL2 doesn't expose a mic via WSLg in this user's setup; documented for future sessions on a machine with a working mic). **Layer B closed 2026-05-12** — board wake→STT smoke. **Layer C closed 2026-05-12** — full pipeline (long-running `scripts/dispenser_demo/deploy/dispenser_voice.py` wires Layer-B wake/STT into `chat_board_dispense.py`); first-run wall ~10.7 s/turn end-to-end. Carry-over Layer C.1: arecord overrun during the LLM turn (non-blocking, ~10-line stdout-drain fix). **Layer D pending** — espeak-ng → aplay → P10S speaker (promotes plan §1 v2 non-goal to v1 demo gate; code does not exist yet). Custom "Hey Sago" training is deferred. Plan + decisions: [`docs/plans/dispenser-demo/{plan.md,decisions-log.md}`](docs/plans/dispenser-demo/).
+2. **Dispenser demo** — voice-driven medication dispenser. v1 voice loop **closed end-to-end 2026-05-12** (Phase 3 Layers B/C/D all green) on **iter-001 + dispatcher-hijack** (`scripts/functiongemma/deploy/chat_board_dispense.py`) wired into the long-running `scripts/dispenser_demo/deploy/dispenser_voice.py`: openWakeWord `hey_jarvis_v0.1` → Silero VAD → CrispASR (Moonshine Tiny GGUF) → FunctionGemma → **Piper neural TTS** (dynamic per-turn render) → P10S speaker. First-run wall ~10.7 s/turn including Piper render. **BLE bring-up is the sole remaining v1 demo blocker** — board BT gated on Synaptics bug 37861/37374; `chat_board_dispense.py` prints `[BLE→ESP32] 5A A5 01 00` as stdout-mock until pybleno binds a real radio. Iter-002 (`releases/functiongemma-270m/002-dispenser-demo/`) is trained but **NOT deployed** for v1 (host Q4_0 collapsed; on-board output drops `<start_function_call>`); Phase 1 retrain deferred. Layer A skipped (no WSL mic). Custom "Hey Sago" deferred. Full layer state, per-stage timing, and the 2026-05-12 (afternoon) Layer-D fixes (Piper dynamic render, humanizer helpers, `OUT_OF_SCOPE_TOOL` refusal-as-TTS, post-STT chime, `-v` / `--trace` split) live in [`docs/plans/dispenser-demo/{plan.md,decisions-log.md}`](docs/plans/dispenser-demo/).
 
 The original Gemma 3 270M-IT health-QA SFT track is frozen as a reference
 under `archive/gemma3-270m-health-qa/`; live code at `src/gemma_tools/_legacy/`,
@@ -33,15 +33,19 @@ flowchart TB
         SEEDS --> PHI --> SPLITS --> DISTIL --> REL
         REL -- llama-quantize Q4_0 --> GGUF
     end
-    subgraph DD[Dispenser voice pipeline - Phase 3 target]
+    subgraph DD[Dispenser voice pipeline - v1 shipping shape]
         MIC[P10S USB mic]
         WAKE[openWakeWord hey_jarvis_v0.1 ONNX]
         VAD[Silero VAD ONNX]
         STT[crispasr-cli + moonshine-tiny GGUF q4_k]
         BRAIN[chat_board_dispense.py - iter-001 hijack]
-        BLE[BLE GATT - pybleno - planned]
+        TTS[Piper TTS - en_US-lessac-medium - dynamic render]
+        SPK[P10S speaker - aplay]
+        BLE[BLE GATT - blocked on board BT bug 37861/37374]
         ESP[ESP32 dispenser - planned]
-        MIC --> WAKE --> VAD --> STT --> BRAIN --> BLE --> ESP
+        MIC --> WAKE --> VAD --> STT --> BRAIN
+        BRAIN --> TTS --> SPK
+        BRAIN --> BLE --> ESP
     end
     GGUF -- scp --> BRAIN
 ```
@@ -64,7 +68,8 @@ flowchart TB
 | `scripts/dispenser_demo/spike/crispasr_host_smoke.py` | Phase 0 host-side CrispASR smoke (Python, uv-run) |
 | `scripts/dispenser_demo/spike/crispasr_board_smoke.sh` | Phase 0 board-side dispatcher (SSH read-only pre-flight + decode + VmRSS poll) |
 | `scripts/dispenser_demo/{data,eval,deploy}/` | Iter-002 substrate — dataset build, holdout eval, `ble_test.py`. NOT the v1 demo path (v1 = iter-001 hijack via `scripts/functiongemma/deploy/chat_board_dispense.py`) |
-| `scripts/dispenser_demo/deploy/dispenser_voice.py` | Phase 3 Layer C long-running entry — voice→wake→VAD→STT→FunctionGemma→stdout, iter-001 hijack (imports `chat_board_dispense.py`, primes FG KV cache, sets ALSA mixer, speech-relative LISTENING cap, arecord SIGTERM stderr suppression) |
+| `scripts/dispenser_demo/deploy/dispenser_voice.py` | **v1 demo voice loop** (Phase 3 Layers B/C/D, closed 2026-05-12). Long-running: wake → VAD → STT → FunctionGemma → Piper TTS → speaker. Imports `chat_board_dispense.py` for the dispense override; primes FG KV cache; sets ALSA mixer; SIGSTOP/SIGCONT around aplay; `ArecordMic.drain()` after each turn; chimes; `-v` / `--trace` logging split |
+| `scripts/dispenser_demo/voice/{wake_stt_board_smoke.py,build_tts_canned.py}` | Phase 3 Layer B smoke + host-side Piper TTS WAV baking (per-tool fallback wavs in `<tts_dir>/<tool>.wav`) |
 | `scripts/dispenser_demo/chat.py` | Iter-002 host REPL (not the v1 demo path) |
 | `scripts/setup/server-bootstrap.sh` | Idempotent Ubuntu-server SFT-stack bootstrap (RTX 5080) |
 | `scripts/sl2619/p10s_aec_probe.py` | P10S firmware AEC tone-suppression probe (duplex; verdict via Goertzel) |
@@ -84,7 +89,7 @@ flowchart TB
 | `releases/functiongemma-270m/002-dispenser-demo/` | Iter-002 deliverable: `merged/`, `adapter/`, `gguf/`, `distil/`, `Modelfile`, `model_client.py`, `DISTIL_README.md`. **Trained but NOT deployed for v1** — two open quirks (host Q4_0 collapse, on-board missing `<start_function_call>` opener) blocked promotion; see `docs/plans/dispenser-demo/decisions-log.md` 2026-05-12 entries |
 | `bench/functiongemma/runs/2026-05-02-quant/` | Quant sweep JSONL outputs |
 | `docs/plans/functiongemma/` | FunctionGemma plan docs — recipe, decisions-log, quantization-plan, seed-authoring-recipe, llm-augmentation-prompt, upstream-issue-drafts |
-| `docs/plans/dispenser-demo/` | Dispenser demo — `plan.md`, `crispasr-spike-notes.md`, `decisions-log.md` (Phase 0 closed 2026-05-11; 2026-05-12 entries cover the iter-001 hijack pivot, pretrained Hey Jarvis wake word, WSL-first Layer A/B/C/D smoke topology, Layer B board wake/STT close, and Layer C full-pipeline close with per-stage wall-clock + arecord-overrun carry-over) |
+| `docs/plans/dispenser-demo/` | Dispenser demo — `plan.md`, `crispasr-spike-notes.md`, `decisions-log.md` (Phase 0 closed 2026-05-11; 2026-05-12 entries cover the iter-001 hijack pivot, pretrained Hey Jarvis wake word, Layer B board wake/STT close, Layer C full-pipeline close, and Layer D close with Piper TTS / humanizer helpers / refusal-as-TTS / chimes / logging split) |
 | `docs/bench-notes/functiongemma/2026-05-02_quantization-sweep.md` | Single canonical quant sweep report |
 | `docs/deployment/{sl2619-board,functiongemma-board-deploy}.md` | Board cross-compile + FunctionGemma deploy runbooks |
 | `docs/guides/usb-audio-testing-sl2619.md` | USB speaker + mic + P10S firmware AEC probe recipe |
@@ -106,7 +111,7 @@ uv pip install -e ".[dev,functiongemma]"
 ### Tests, lint, typecheck
 
 ```bash
-uv run pytest                            # 568 tests (active + dispenser_demo + _legacy)
+uv run pytest                            # 729 tests (active + dispenser_demo + _legacy)
 uv run ruff check src tests scripts/functiongemma
 uv run mypy src
 ```
@@ -210,16 +215,17 @@ a new cache. Clear with `rm /tmp/fg_pc_*.bin` if the prefix changes.
 - **FunctionGemma on board: Q4_0 only.** The 2026-05-02 sweep tested Q4_0, Q4_K_M, Q5_K_M, Q8_0, IQ4_XS. Only Q4_0 preserves the FunctionGemma wire format on the board's `b8925`/`0adede8` runtime (K-quant scale-factor encoding skew with the older runtime drops `<start_function_call>`). Repo ships only Q4_0 + FP16 source on disk. Rationale: [`releases/functiongemma-270m/001-baseline/gguf/RECOMMENDED.md`](releases/functiongemma-270m/001-baseline/gguf/RECOMMENDED.md).
 - **Dispenser-demo v1 runtime: iter-001 Q4_0 + dispatcher-hijack.** Entry point is [`scripts/functiongemma/deploy/chat_board_dispense.py`](scripts/functiongemma/deploy/chat_board_dispense.py); it imports `chat_board.py` and monkey-patches `dispatch` + `format_response` so `get_medications_at_time` / `get_medication_by_name` route to the §6 dispense intent (mock BLE notify + verbatim canned response). Tool schema unchanged → the warm prompt cache `/tmp/fg_pc_finetuned_functiongemma_q4_0.gguf.bin` reuses across `chat_board.py` and the wrapper. Iter-002 (`releases/functiongemma-270m/002-dispenser-demo/`) is the eventual target shape (named `dispense_medication()` tool) but is **NOT deployed** for v1 — see `docs/plans/dispenser-demo/decisions-log.md` 2026-05-12 entries for the host Q4_0 collapse and on-board `<start_function_call>` omission that gate promotion.
 - **Wake word: pretrained openWakeWord `hey_jarvis_v0.1` ONNX (from upstream v0.5.1 release).** Inference framework is ONNX (Silero VAD is ONNX-native — single runtime, no TFLite dependency). Custom "Hey Sago" training is deferred past v1; plan §11 R4 / O4 retired for the v1 demo. Models fetched at first use from openWakeWord GitHub releases, not committed.
-- **STT on board: CrispASR + Moonshine Tiny GGUF (q4_k, non-streaming).** Pinned model: `cstr/moonshine-tiny-GGUF` → `moonshine-tiny-q4_k.gguf` (~20.2 MB) at `/mnt/sdcard/models/moonshine-tiny/`, invoked via CrispASR `--backend moonshine` (NOT `moonshine-streaming` — that variant was provisionally pinned 2026-05-11 (AM) and superseded the same afternoon after a head-to-head: −38 % wall, −29 % RSS, −34 % model size). Build profile: static aarch64, no OpenMP, `crispasr-cli` target (NOT bare `crispasr`, which builds only `libcrispasr.so`). Phase 0 (2026-05-11) measured: host (WSL2, x86_64) 1.10 s wall / 155 MB RSS on an 11 s clip; board (SL2619, 2× A55) **4.66 s wall (2.4× realtime) / 49.6 MB RSS** — extrapolated 3 s utterance ≈ 1.27 s wall, ≈ 50 MB RSS, comfortably meeting `plan.md` §9 Phase 0 gate. Production launcher flags (binding): `-l en --no-punctuation -t 2` — `--no-punctuation` remains mandatory for defense-in-depth even though the non-streaming backend honors it natively (`CAP_PUNCTUATION_TOGGLE`), so the same launcher survives a future re-flip to a backend without that cap. Full flag list, rationale, and reproduction in [`docs/plans/dispenser-demo/decisions-log.md`](docs/plans/dispenser-demo/decisions-log.md) and [`docs/plans/dispenser-demo/crispasr-spike-notes.md`](docs/plans/dispenser-demo/crispasr-spike-notes.md). Frozen streaming-variant recipe at [`archive/dispenser-demo-moonshine-streaming/working-recipe.md`](archive/dispenser-demo-moonshine-streaming/working-recipe.md).
+- **STT on board: CrispASR + Moonshine Tiny GGUF q4_k (non-streaming).** `cstr/moonshine-tiny-GGUF` → `/mnt/sdcard/models/moonshine-tiny/moonshine-tiny-q4_k.gguf`, invoked via `--backend moonshine`. Production launcher flags (binding): `-l en --no-punctuation -t 2`. Build profile + rationale + reproduction in [`docs/plans/dispenser-demo/{decisions-log,crispasr-spike-notes}.md`](docs/plans/dispenser-demo/); frozen streaming-variant recipe at `archive/dispenser-demo-moonshine-streaming/`.
+- **TTS on board: Piper neural TTS (dynamic per-turn render).** Voice `en_US-lessac-medium` ONNX rendered host-side from `chat_board.format_response`'s output via `_capture_format` in `dispenser_voice.py`, piped to `aplay -D plughw:1,0`. Canned per-tool WAVs are the `--no-dynamic-tts` fallback. **Hard rule**: humanizer helpers (`_humanize_date`/`_time`/`_schedule`/`_measured_suffix`) and the `OUT_OF_SCOPE_TOOL` sentinel live in `chat_board.py` AND `chat.py` and MUST move in lockstep — `tests/functiongemma/test_chat_formatters.py` parametrizes both copies and fails the parity check otherwise. Full rationale: [`docs/plans/dispenser-demo/decisions-log.md`](docs/plans/dispenser-demo/decisions-log.md) 2026-05-12 (afternoon) entry.
 
 ## Pointers
 
 - `docs/conventions/doc-update.md` — DRY canonical-ownership registry.
 - `docs/conventions/{code-style-python,code-style-shell,testing}.md` — normative rules.
 - `docs/plans/functiongemma/{recipe,decisions-log,quantization-plan}.md` — FunctionGemma working recipe + decisions.
-- `docs/plans/dispenser-demo/plan.md` — full dispenser demo plan (phases, BLE wire contract, state machine, Phase 3 Layer A/B/C/D smoke topology).
+- `docs/plans/dispenser-demo/plan.md` — full dispenser demo plan (phases, BLE wire contract, state machine, Phase 3 Layer A/B/C/D smoke topology — Layers B/C/D all CLOSED 2026-05-12).
 - `docs/plans/dispenser-demo/crispasr-spike-notes.md` — Phase 0 STT spike audit trail.
-- `docs/plans/dispenser-demo/decisions-log.md` — binding decisions (Phase 0 STT runtime/flags/build profile + 2026-05-12 entries: iter-001 hijack pivot, pretrained Hey Jarvis wake word, WSL-first smoke topology, Layer B board wake/STT close, Layer C full-pipeline close with per-stage wall-clock + arecord-overrun carry-over).
+- `docs/plans/dispenser-demo/decisions-log.md` — binding decisions (Phase 0 STT runtime/flags/build profile + 2026-05-12 entries: iter-001 hijack pivot, pretrained Hey Jarvis, Layer B/C/D closes, Layer D's four afternoon fixes — Piper TTS, humanizer helpers, refusal-as-TTS, chime + logging split — and the BLE-board-bring-up Synaptics bug 37861/37374 audit).
 - `docs/bench-notes/functiongemma/2026-05-02_quantization-sweep.md` — single canonical sweep report.
 - `docs/guides/usb-audio-testing-sl2619.md` — USB speaker + mic + P10S firmware AEC probe (verified 2026-05-11: firmware AEC handles echo cancellation, no software AEC needed for duplex voice pipeline).
 - `releases/functiongemma-270m/001-baseline/{RECIPE.md,distil/README.md,gguf/RECOMMENDED.md}` — iter-001 reproduce + Distil timeline + Q4_0 rationale.

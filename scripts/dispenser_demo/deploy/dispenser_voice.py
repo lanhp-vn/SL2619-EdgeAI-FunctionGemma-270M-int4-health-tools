@@ -194,20 +194,35 @@ DEFAULT_PIPER_MODEL = Path("/mnt/sdcard/dispenser_demo/piper-voices/en_US-lessac
 # after WAKE fires so the user knows the box transitioned to LISTENING.
 # Generated host-side; not synthesized on board.
 DEFAULT_WAKE_ACK_WAV = Path("/mnt/sdcard/dispenser_demo/wake_ack.wav")
+# Command-received chime — distinct single-tone (~120 ms, lower pitch) played
+# after STT decodes a transcript but BEFORE the LLM turn. Tells the user
+# "I heard you" so the long (~6 s) LLM wall doesn't feel like a hang. Played
+# AFTER `mic.pause()` would normally apply, but kept simple here: aplay is
+# short enough that the arecord pipe survives without explicit half-duplex.
+DEFAULT_COMMAND_ACK_WAV = Path("/mnt/sdcard/dispenser_demo/command_ack.wav")
 
 # endregion
 
 # region: logging
 
 log = logging.getLogger("dispenser_voice")
+# Per-frame trace logger — wake-score / VAD-score lines fire per 80 ms or 30 ms
+# audio frame, so a couple seconds of LISTENING produces 50+ lines under -v.
+# Sink them on a separate logger that defaults to WARNING (silent); flip ON
+# with --trace when actually debugging frame-level behavior.
+trace_log = logging.getLogger("dispenser_voice.trace")
 
 
-def _setup_logging(verbose: bool) -> None:
+def _setup_logging(verbose: bool, trace: bool) -> None:
     logging.basicConfig(
         level=logging.DEBUG if verbose else logging.INFO,
         format="%(asctime)s %(levelname)s %(name)s: %(message)s",
         stream=sys.stderr,
     )
+    # The `.trace` child inherits the root configuration above; override its
+    # level explicitly so per-frame messages are gated on --trace, not -v.
+    trace_log.setLevel(logging.DEBUG if trace else logging.WARNING)
+    trace_log.propagate = True
 
 # endregion
 
@@ -587,7 +602,7 @@ def capture_utterance(
             score = float(scores.get(WAKE_MODEL_NAME, 0.0))
             if score >= args.wake_threshold:
                 consecutive_above += 1
-                log.debug("wake score %.3f (run=%d)", score, consecutive_above)
+                trace_log.debug("wake score %.3f (run=%d)", score, consecutive_above)
             else:
                 consecutive_above = 0
             prewake_ring.append(chunk)
@@ -646,8 +661,8 @@ def capture_utterance(
                 vad_silence_run = 0
             else:
                 vad_silence_run += 1
-            log.debug("vad %.3f speech_seen=%s silence_run=%d",
-                      vad_score, vad_speech_seen, vad_silence_run)
+            trace_log.debug("vad %.3f speech_seen=%s silence_run=%d",
+                            vad_score, vad_speech_seen, vad_silence_run)
         vad_consumed += n_sub * VAD_FRAME_SAMPLES
 
         wake_elapsed = time.perf_counter() - wake_t0
@@ -791,6 +806,24 @@ def run_voice_loop(args: argparse.Namespace) -> int:
                     continue
 
                 print(f"\nyou> {transcript}", flush=True)
+
+                # Command-received chime. Tells the user "I heard you" before
+                # the ~6 s LLM wall. arecord pause not strictly needed (the
+                # chime is ~120 ms and we'll drain after the full turn anyway),
+                # but matches the same path the wake-ack used so the audio
+                # device stays consistent across both signals.
+                if not args.no_command_ack and args.command_ack_wav.exists():
+                    try:
+                        t_ack = time.perf_counter()
+                        subprocess.run(
+                            ["aplay", "-q", "-D", args.aplay_device,
+                             str(args.command_ack_wav)],
+                            check=False, capture_output=True, timeout=2.0,
+                        )
+                        log.debug("command-ack chime wall=%.2f s",
+                                  time.perf_counter() - t_ack)
+                    except (subprocess.TimeoutExpired, FileNotFoundError) as exc:
+                        log.warning("command-ack chime failed: %s", exc)
 
                 # LLM turn — dispense override already installed via
                 # `import chat_board_dispense` inside _load_chat_board.
@@ -940,6 +973,12 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
                         f"(default: {DEFAULT_WAKE_ACK_WAV}).")
     p.add_argument("--no-wake-ack", action="store_true",
                    help="Disable the post-WAKE acknowledgement chime.")
+    p.add_argument("--command-ack-wav", type=Path, default=DEFAULT_COMMAND_ACK_WAV,
+                   help=f"Short WAV (~120 ms chime, distinct from wake-ack) "
+                        f"played after STT decodes the transcript and before "
+                        f"the LLM turn (default: {DEFAULT_COMMAND_ACK_WAV}).")
+    p.add_argument("--no-command-ack", action="store_true",
+                   help="Disable the post-STT command-received chime.")
 
     # STT.
     p.add_argument("--crispasr-bin", type=Path, default=DEFAULT_CRISPASR)
@@ -968,8 +1007,15 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     p.add_argument("--raw", action="store_true",
                    help="Show raw FG output before tool-call parsing.")
     p.add_argument("--verbose", "-v", action="store_true",
-                   help="Pipeline-level DEBUG logging (wake/VAD/STT/TTS). "
-                        "Does NOT pass through to llama-completion subprocess.")
+                   help="Pipeline-level DEBUG logging (wake/VAD/STT/TTS "
+                        "transitions, timings). Per-frame trace lines are "
+                        "NOT enabled here — use --trace for that. Does NOT "
+                        "pass through to llama-completion subprocess.")
+    p.add_argument("--trace", action="store_true",
+                   help="Per-frame trace logging (wake score every 80 ms "
+                        "frame, VAD score every 30 ms frame). Independent "
+                        "from -v; flip on only when debugging frame-level "
+                        "behavior — produces ~50 lines per second.")
     p.add_argument("--llama-verbose", action="store_true",
                    help="Forward llama-completion stderr to console (model "
                         "loader banner, perf footer). Off by default — was on "
@@ -980,7 +1026,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
 
 def main(argv: list[str] | None = None) -> int:
     args = parse_args(argv)
-    _setup_logging(args.verbose)
+    _setup_logging(args.verbose, args.trace)
     return run_voice_loop(args)
 
 

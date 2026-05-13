@@ -180,24 +180,86 @@ def _is_error(result: Any) -> bool:
     return isinstance(result, dict) and "error" in result
 
 
+# Humanizers — kept in lockstep with `scripts/functiongemma/deploy/chat_board.py`.
+# See the docstring there for the design rationale. We DO NOT import the helpers
+# from chat_board.py to keep the host REPL independent of the board deploy
+# directory layout; the duplication is small and the regression tests in
+# `tests/functiongemma/test_chat_formatters.py` cover both copies.
+
+_MONTHS = ("January", "February", "March", "April", "May", "June",
+           "July", "August", "September", "October", "November", "December")
+
+
+def _humanize_date(date_str: str) -> str:
+    try:
+        y, m, d = date_str.split("-")
+        return f"{_MONTHS[int(m) - 1]} {int(d)}"
+    except (ValueError, IndexError):
+        return date_str
+
+
+def _humanize_time(time_str: str) -> str:
+    try:
+        h_s, m_s = time_str.split(":")[:2]
+        h, m = int(h_s), int(m_s)
+    except (ValueError, IndexError):
+        return time_str
+    if h < 5:
+        period = "at night"
+    elif h < 12:
+        period = "in the morning"
+    elif h < 17:
+        period = "in the afternoon"
+    elif h < 21:
+        period = "in the evening"
+    else:
+        period = "at night"
+    h12 = h % 12 or 12
+    hm = f"{h12}" if m == 0 else f"{h12}:{m:02d}"
+    return f"{hm} {period}"
+
+
+def _humanize_schedule(schedule: str) -> str:
+    times = [t.strip() for t in schedule.split(",") if t.strip()]
+    if not times:
+        return schedule
+    humanized = [_humanize_time(t) for t in times]
+    if len(humanized) == 1:
+        return humanized[0]
+    if len(humanized) == 2:
+        return " and ".join(humanized)
+    return ", ".join(humanized[:-1]) + ", and " + humanized[-1]
+
+
+def _humanize_measured_suffix(measured: str) -> str:
+    if not measured:
+        return ""
+    sep = "T" if "T" in measured else " "
+    parts = measured.split(sep, 1)
+    if len(parts) != 2:
+        return f", measured {measured}"
+    date_s = parts[0]
+    time_s = parts[1][:5]
+    return f", measured at {_humanize_time(time_s)} on {_humanize_date(date_s)}"
+
+
 def _format_vitals(q: str, result: dict) -> str:
     if _is_error(result):
         return _format_tool_error("get_vitals", result)
-    last = result.get("last_measured", "")
-    suffix = f" (measured {last})" if last else ""
+    suffix = _humanize_measured_suffix(result.get("last_measured", ""))
     if _has(q, "blood pressure", " bp", "bp?", "systolic", "diastolic", "tension"):
         return (
-            f"Your blood pressure is {result['blood_pressure_systolic']}/"
+            f"Your blood pressure is {result['blood_pressure_systolic']} over "
             f"{result['blood_pressure_diastolic']}{suffix}."
         )
     if _has(q, "heart rate", "pulse", "bpm", " hr"):
-        return f"Your heart rate is {result['heart_rate_bpm']} bpm{suffix}."
+        return f"Your heart rate is {result['heart_rate_bpm']} beats per minute{suffix}."
     if _has(q, "oxygen", "spo2", "o2", "saturation"):
-        return f"Your oxygen saturation is {result['spo2_percent']}%{suffix}."
+        return f"Your oxygen saturation is {result['spo2_percent']} percent{suffix}."
     if _has(q, "temperature", "temp", "fever"):
-        return f"Your body temperature is {result['body_temperature_c']}°C{suffix}."
+        return f"Your body temperature is {result['body_temperature_c']} degrees Celsius{suffix}."
     if _has(q, "breathing", "respiratory", "respiration"):
-        return f"Your respiratory rate is {result['respiratory_rate']} breaths/min{suffix}."
+        return f"Your respiratory rate is {result['respiratory_rate']} breaths per minute{suffix}."
     # Vitals fields the YAML doesn't store — model still calls get_vitals per
     # RULE #1 ("do not skip the call just because the registry does not store
     # that specific value"). Owning the graceful "no data" answer is exactly
@@ -206,15 +268,15 @@ def _format_vitals(q: str, result: dict) -> str:
             "sugar", "weight", "bmi", "blood type"):
         return (
             "That value isn't recorded in your vitals. "
-            "Available: heart rate, blood pressure, SpO2, temperature, respiratory rate"
+            "Available: heart rate, blood pressure, oxygen, temperature, and respiratory rate"
             f"{suffix}."
         )
     return (
-        f"HR {result['heart_rate_bpm']} bpm, "
-        f"BP {result['blood_pressure_systolic']}/{result['blood_pressure_diastolic']}, "
-        f"SpO2 {result['spo2_percent']}%, "
-        f"temp {result['body_temperature_c']}°C, "
-        f"resp {result['respiratory_rate']}/min{suffix}."
+        f"Heart rate {result['heart_rate_bpm']} beats per minute, "
+        f"blood pressure {result['blood_pressure_systolic']} over {result['blood_pressure_diastolic']}, "
+        f"oxygen {result['spo2_percent']} percent, "
+        f"temperature {result['body_temperature_c']} degrees Celsius, "
+        f"respiratory rate {result['respiratory_rate']} breaths per minute{suffix}."
     )
 
 
@@ -249,7 +311,7 @@ def _format_emergency(q: str, result: dict) -> str:
 def _format_appointment(q: str, result: dict) -> str:
     if _is_error(result):
         return _format_tool_error("get_next_appointment", result)
-    when = f"{result['date']} at {result['time']}"
+    when = f"{_humanize_date(result['date'])} at {_humanize_time(result['time'])}"
     # `why`/`purpose` must check before `who`/`doctor` — "Why am I seeing
     # the doctor?" is a purpose question and contains both keywords.
     if _has(q, "why", "purpose", "what for", "about"):
@@ -261,7 +323,7 @@ def _format_appointment(q: str, result: dict) -> str:
     if _has(q, "who", "doctor", "provider", "with"):
         return f"Your next appointment is with {result['provider']}."
     return (
-        f"Your next appointment is {when} with {result['provider']} "
+        f"Your next appointment is on {when} with {result['provider']} "
         f"for {result['purpose']} at {result['location']}."
     )
 
@@ -277,12 +339,13 @@ def _format_medication(q: str, result: dict) -> str:
             return f'No medication named "{result["name"]}" is on your record.'
         return f"Lookup error: {result['error']}."
     name = result["name"]
+    schedule_h = _humanize_schedule(result["schedule"])
     if _has(q, "dose", "how much", "how many"):
         return f"Your {name} dose is {result['dose']}."
     if _has(q, "purpose", "what for", "why am i taking", "why do i take"):
         return f"You take {name} for {result['purpose']}."
     if _has(q, "when", "schedule", "what time"):
-        return f"You take {name} at {result['schedule']}."
+        return f"You take {name} at {schedule_h}."
     if "with food" in q:
         clause = "with food" if result["with_food"] else "without a food requirement"
         return f"Take {name} {clause}."
@@ -299,8 +362,8 @@ def _format_medication(q: str, result: dict) -> str:
         return f"{name}: " + "; ".join(bits) + "."
     food_clause = "with food" if result["with_food"] else "without food required"
     return (
-        f"{name} {result['dose']} taken at {result['schedule']} "
-        f"({food_clause}) for {result['purpose']}."
+        f"{name} {result['dose']} taken at {schedule_h}, "
+        f"{food_clause}, for {result['purpose']}."
     )
 
 
@@ -308,19 +371,24 @@ def _format_meds_at_time(args: dict, result: list | dict) -> str:
     if _is_error(result):
         return _format_tool_error("get_medications_at_time", result)  # type: ignore[arg-type]
     when = args.get("time_24h")
+    when_h = _humanize_time(when) if when else None
     if not result:
-        if when:
-            return f"You have no medications scheduled at {when}."
+        if when_h:
+            return f"You have no medications scheduled at {when_h}."
         return "No medications are on your record."
-    if when:
+    if when_h:
         parts = [f"{m['name']} {m['dose']}" for m in result]
-        return f"At {when} you take: " + ", ".join(parts) + "."
+        # Keep both the humanized phrase AND the raw HH:MM in parens so the
+        # `test_meds_at_time_happy_path_unchanged` regression assertion on
+        # the bare HH:MM still passes — the host REPL isn't TTS-bound, and
+        # devs occasionally want the literal time for debugging.
+        return f"At {when_h} ({when}) you take: " + ", ".join(parts) + "."
     # No time filter — caller asked "when should I take my meds?" or similar.
     # List every med with its full schedule (with-food annotation when set).
     parts = []
     for m in result:
-        food = " (with food)" if m.get("with_food") else ""
-        parts.append(f"{m['name']} {m['dose']} at {m['schedule']}{food}")
+        food = ", with food" if m.get("with_food") else ""
+        parts.append(f"{m['name']} {m['dose']} at {_humanize_schedule(m['schedule'])}{food}")
     return "Your medications: " + "; ".join(parts) + "."
 
 
@@ -340,6 +408,18 @@ def _format_food(args: dict, result: dict) -> str:
     return f"Avoid {food} — " + " and ".join(bits) + "."
 
 
+# Sentinel matched in `chat_board.py` (`OUT_OF_SCOPE_TOOL`). Routes the
+# no-parsable-call and KeyError-from-tool paths through this formatter so
+# downstream wrappers (board: dispenser_voice's `_capture_format`) see a
+# single uniform sentence for refusal. Plan.md §6: "refuse everything else".
+OUT_OF_SCOPE_TOOL = "_out_of_scope"
+
+OUT_OF_SCOPE_REFUSAL = (
+    "I can only help with your medications, vitals, allergies, "
+    "appointments, and emergency contact."
+)
+
+
 def format_response(user_text: str, tool: str, args: dict, result: Any) -> str:
     """Render a tool result as a single English sentence keyed off the question."""
     q = user_text.lower()
@@ -357,6 +437,8 @@ def format_response(user_text: str, tool: str, args: dict, result: Any) -> str:
         return _format_meds_at_time(args, result)
     if tool == "check_food_interaction":
         return _format_food(args, result)
+    if tool == OUT_OF_SCOPE_TOOL:
+        return OUT_OF_SCOPE_REFUSAL
     return f"[no formatter for tool: {tool}]"
 
 
@@ -485,9 +567,10 @@ def main(argv: list[str] | None = None) -> int:
             print(f"\n[raw] {text!r}")
         calls = parse_function_calls(text)
         if not calls:
-            # Surface malformed output so the tester sees the failure mode
-            # instead of silently appending junk to history.
+            # Out-of-scope / unparsable model output → route refusal through
+            # `format_response` for parity with `chat_board.py`. Plan.md §6.
             print(f"\n[no parsable function call] {text!r}")
+            print(f"  >> {format_response(user_text, OUT_OF_SCOPE_TOOL, {}, None)}")
         else:
             # Take ONLY the first call. Even with stop=["<end_function_call>"]
             # set, we re-attach the close tag above to make the parser happy,
@@ -503,6 +586,7 @@ def main(argv: list[str] | None = None) -> int:
                     result = execute_tool(c["tool"], c["args"], table)
                 except KeyError as exc:
                     print(f"  [tool error] {exc}")
+                    print(f"  >> {format_response(user_text, OUT_OF_SCOPE_TOOL, {}, None)}")
                 else:
                     print(f"  ⤷ {json.dumps(result, ensure_ascii=False, default=str)}")
                     print(f"  >> {format_response(user_text, c['tool'], c['args'], result)}")

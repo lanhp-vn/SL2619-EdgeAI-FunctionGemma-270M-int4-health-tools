@@ -153,6 +153,88 @@ def parse_perf(stream: str) -> dict[str, float]:
 
 _HHMM_RE = re.compile(r"^([01]\d|2[0-3]):[0-5]\d$")
 
+# region: humanizers — render ISO dates/times as natural-language phrases
+#
+# The TTS layer (Piper) handles raw "2026-05-11 07:30" by reading every digit
+# ("two zero two six dash zero five..."), which is robotic and clashes with the
+# rest of the sentence. Humanize on the way in: "May 11 at 7:30 in the morning"
+# reads naturally without Piper-side tweaks. Keep the helpers cheap (no
+# datetime parsing) so they survive the BusyBox/Yocto image.
+
+_MONTHS = ("January", "February", "March", "April", "May", "June",
+           "July", "August", "September", "October", "November", "December")
+
+
+def _humanize_date(date_str: str) -> str:
+    """'2026-05-20' → 'May 20'. Year is dropped — patient context rarely needs
+    it, and 'twenty twenty six' adds noise for TTS. On parse failure return
+    the raw string so we never crash the format path.
+    """
+    try:
+        y, m, d = date_str.split("-")
+        return f"{_MONTHS[int(m) - 1]} {int(d)}"
+    except (ValueError, IndexError):
+        return date_str
+
+
+def _humanize_time(time_str: str) -> str:
+    """'07:30' → '7:30 in the morning', '14:00' → '2 in the afternoon',
+    '20:00' → '8 in the evening', '23:30' → '11:30 at night'. Drops the
+    leading zero and uses a period-of-day clause so AM/PM doesn't get
+    spelled out letter-by-letter by Piper.
+    """
+    try:
+        h_s, m_s = time_str.split(":")[:2]
+        h, m = int(h_s), int(m_s)
+    except (ValueError, IndexError):
+        return time_str
+    if h < 5:
+        period = "at night"
+    elif h < 12:
+        period = "in the morning"
+    elif h < 17:
+        period = "in the afternoon"
+    elif h < 21:
+        period = "in the evening"
+    else:
+        period = "at night"
+    h12 = h % 12 or 12
+    hm = f"{h12}" if m == 0 else f"{h12}:{m:02d}"
+    return f"{hm} {period}"
+
+
+def _humanize_schedule(schedule: str) -> str:
+    """'08:00, 20:00' → '8 in the morning and 8 in the evening'. Comma-separated
+    HH:MM list → English conjunction. Single time stays bare.
+    """
+    times = [t.strip() for t in schedule.split(",") if t.strip()]
+    if not times:
+        return schedule
+    humanized = [_humanize_time(t) for t in times]
+    if len(humanized) == 1:
+        return humanized[0]
+    if len(humanized) == 2:
+        return " and ".join(humanized)
+    return ", ".join(humanized[:-1]) + ", and " + humanized[-1]
+
+
+def _humanize_measured_suffix(measured: str) -> str:
+    """'2026-05-11 07:30' or '2026-05-11T07:30:00' → ', measured at 7:30 in
+    the morning on May 11'. Empty input → empty string.
+    """
+    if not measured:
+        return ""
+    sep = "T" if "T" in measured else " "
+    parts = measured.split(sep, 1)
+    if len(parts) != 2:
+        return f", measured {measured}"
+    date_s = parts[0]
+    time_s = parts[1][:5]  # take HH:MM, drop any seconds
+    return f", measured at {_humanize_time(time_s)} on {_humanize_date(date_s)}"
+
+
+# endregion
+
 
 def _split_schedule(schedule: str) -> list[str]:
     return [tok.strip() for tok in schedule.split(",") if tok.strip()]
@@ -277,26 +359,26 @@ def _is_error(r: Any) -> bool:
 def _fmt_vitals(q: str, r: dict) -> str:
     if _is_error(r):
         return _fmt_tool_error("get_vitals", r)
-    last = r.get("last_measured", "")
-    suf = f" (measured {last})" if last else ""
+    suf = _humanize_measured_suffix(r.get("last_measured", ""))
     if _has(q, "blood pressure", " bp", "bp?", "systolic", "diastolic", "tension"):
-        return f"Your blood pressure is {r['blood_pressure_systolic']}/{r['blood_pressure_diastolic']}{suf}."
+        return f"Your blood pressure is {r['blood_pressure_systolic']} over {r['blood_pressure_diastolic']}{suf}."
     if _has(q, "heart rate", "pulse", "bpm", " hr"):
-        return f"Your heart rate is {r['heart_rate_bpm']} bpm{suf}."
+        return f"Your heart rate is {r['heart_rate_bpm']} beats per minute{suf}."
     if _has(q, "oxygen", "spo2", "o2", "saturation"):
-        return f"Your oxygen saturation is {r['spo2_percent']}%{suf}."
+        return f"Your oxygen saturation is {r['spo2_percent']} percent{suf}."
     if _has(q, "temperature", "temp", "fever"):
-        return f"Your body temperature is {r['body_temperature_c']}°C{suf}."
+        return f"Your body temperature is {r['body_temperature_c']} degrees Celsius{suf}."
     if _has(q, "breathing", "respiratory", "respiration"):
-        return f"Your respiratory rate is {r['respiratory_rate']} breaths/min{suf}."
+        return f"Your respiratory rate is {r['respiratory_rate']} breaths per minute{suf}."
     if _has(q, "cholesterol", "ldl", "hdl", "triglyceride", "a1c", "glucose",
             "sugar", "weight", "bmi", "blood type"):
         return ("That value isn't recorded in your vitals. "
-                f"Available: heart rate, blood pressure, SpO2, temperature, respiratory rate{suf}.")
-    return (f"HR {r['heart_rate_bpm']} bpm, "
-            f"BP {r['blood_pressure_systolic']}/{r['blood_pressure_diastolic']}, "
-            f"SpO2 {r['spo2_percent']}%, temp {r['body_temperature_c']}°C, "
-            f"resp {r['respiratory_rate']}/min{suf}.")
+                f"Available: heart rate, blood pressure, oxygen, temperature, and respiratory rate{suf}.")
+    return (f"Heart rate {r['heart_rate_bpm']} beats per minute, "
+            f"blood pressure {r['blood_pressure_systolic']} over {r['blood_pressure_diastolic']}, "
+            f"oxygen {r['spo2_percent']} percent, "
+            f"temperature {r['body_temperature_c']} degrees Celsius, "
+            f"respiratory rate {r['respiratory_rate']} breaths per minute{suf}.")
 
 
 def _fmt_allergies(q: str, r: list) -> str:
@@ -323,7 +405,7 @@ def _fmt_emergency(q: str, r: dict) -> str:
 def _fmt_appointment(q: str, r: dict) -> str:
     if _is_error(r):
         return _fmt_tool_error("get_next_appointment", r)
-    when = f"{r['date']} at {r['time']}"
+    when = f"{_humanize_date(r['date'])} at {_humanize_time(r['time'])}"
     if _has(q, "why", "purpose", "what for", "about"):
         return f"Your next appointment is for {r['purpose']}."
     if _has(q, "where", "location", "address"):
@@ -332,7 +414,7 @@ def _fmt_appointment(q: str, r: dict) -> str:
         return f"Your next appointment is on {when}."
     if _has(q, "who", "doctor", "provider", "with"):
         return f"Your next appointment is with {r['provider']}."
-    return f"Your next appointment is {when} with {r['provider']} for {r['purpose']} at {r['location']}."
+    return f"Your next appointment is on {when} with {r['provider']} for {r['purpose']} at {r['location']}."
 
 
 def _fmt_medication(q: str, r: dict) -> str:
@@ -343,12 +425,13 @@ def _fmt_medication(q: str, r: dict) -> str:
             return f'No medication named "{r["name"]}" is on your record.'
         return f"Lookup error: {r['error']}."
     name = r["name"]
+    schedule_h = _humanize_schedule(r["schedule"])
     if _has(q, "dose", "how much", "how many"):
         return f"Your {name} dose is {r['dose']}."
     if _has(q, "purpose", "what for", "why am i taking", "why do i take"):
         return f"You take {name} for {r['purpose']}."
     if _has(q, "when", "schedule", "what time"):
-        return f"You take {name} at {r['schedule']}."
+        return f"You take {name} at {schedule_h}."
     if "with food" in q:
         clause = "with food" if r["with_food"] else "without a food requirement"
         return f"Take {name} {clause}."
@@ -364,24 +447,25 @@ def _fmt_medication(q: str, r: dict) -> str:
             bits.append("avoid " + ", ".join(drugs) + " (drug interaction)")
         return f"{name}: " + "; ".join(bits) + "."
     food_clause = "with food" if r["with_food"] else "without food required"
-    return f"{name} {r['dose']} taken at {r['schedule']} ({food_clause}) for {r['purpose']}."
+    return f"{name} {r['dose']} taken at {schedule_h}, {food_clause}, for {r['purpose']}."
 
 
 def _fmt_meds_at_time(args: dict, r: list | dict) -> str:
     if _is_error(r):
         return _fmt_tool_error("get_medications_at_time", r)  # type: ignore[arg-type]
     when = args.get("time_24h")
+    when_h = _humanize_time(when) if when else None
     if not r:
-        if when:
-            return f"You have no medications scheduled at {when}."
+        if when_h:
+            return f"You have no medications scheduled at {when_h}."
         return "No medications are on your record."
-    if when:
+    if when_h:
         parts = [f"{m['name']} {m['dose']}" for m in r]
-        return f"At {when} you take: " + ", ".join(parts) + "."
+        return f"At {when_h} you take: " + ", ".join(parts) + "."
     parts = []
     for m in r:
-        food = " (with food)" if m.get("with_food") else ""
-        parts.append(f"{m['name']} {m['dose']} at {m['schedule']}{food}")
+        food = ", with food" if m.get("with_food") else ""
+        parts.append(f"{m['name']} {m['dose']} at {_humanize_schedule(m['schedule'])}{food}")
     return "Your medications: " + "; ".join(parts) + "."
 
 
@@ -399,6 +483,28 @@ def _fmt_food(args: dict, r: dict) -> str:
     return f"Avoid {food} — " + " and ".join(bits) + "."
 
 
+# Sentinel "tool" name for the out-of-scope refusal path. `_run_turn` routes
+# both the no-parsable-call case and the KeyError-from-dispatch case through
+# `format_response(user_text, OUT_OF_SCOPE_TOOL, {}, None)` so the same
+# `chat_board.format_response` capture wrapper in `dispenser_voice.py` picks
+# up the refusal sentence for TTS. Without this, an out-of-scope question
+# (per plan.md §6 — "refuse everything else") produced silent skip on the
+# speaker while stdout still logged it as `[no parsable function call]`.
+OUT_OF_SCOPE_TOOL = "_out_of_scope"
+
+OUT_OF_SCOPE_REFUSAL = (
+    "I can only help with your medications, vitals, allergies, "
+    "appointments, and emergency contact."
+)
+
+
+def _fmt_out_of_scope(_q: str) -> str:
+    # Single canned line — kept constant on purpose so the spoken refusal is
+    # immediately recognizable across turns. Plan.md §6 also constrains the
+    # iter-002 refusal seeds to a tight phrasing; mirror that intent here.
+    return OUT_OF_SCOPE_REFUSAL
+
+
 def format_response(user_text: str, tool: str, args: dict, result: Any) -> str:
     q = user_text.lower()
     fns = {
@@ -409,6 +515,7 @@ def format_response(user_text: str, tool: str, args: dict, result: Any) -> str:
         "get_medication_by_name": lambda: _fmt_medication(q, result),
         "get_medications_at_time": lambda: _fmt_meds_at_time(args, result),
         "check_food_interaction": lambda: _fmt_food(args, result),
+        OUT_OF_SCOPE_TOOL: lambda: _fmt_out_of_scope(q),
     }
     fn = fns.get(tool)
     return fn() if fn else f"[no formatter for tool: {tool}]"
@@ -624,7 +731,14 @@ def _run_turn(
 
     calls = parse_function_calls(text)
     if not calls:
+        # Out-of-scope / unparsable model output. Route through `format_response`
+        # with the OUT_OF_SCOPE_TOOL sentinel so the same capture wrappers used
+        # by `dispenser_voice.py` (`_capture_format` → `_last_formatted`) pick
+        # up the refusal sentence for TTS. Without this branch, the speaker
+        # stays silent on out-of-scope questions even though stdout shows them.
         print(f"\n[no parsable function call] {text!r}", flush=True)
+        print(f"  >> {format_response(user_text, OUT_OF_SCOPE_TOOL, {}, None)}",
+              flush=True)
     else:
         # Take ONLY the first call. Greedy decoding occasionally loops the
         # same call until n_predict; the user-facing answer is the first
@@ -637,7 +751,12 @@ def _run_turn(
         try:
             result = dispatch(c["tool"], c["args"], table)
         except KeyError as exc:
+            # Unknown / hallucinated tool name — same TTS rationale as the
+            # no-call branch above. Surface the error for stdout debugging
+            # AND emit a spoken refusal so the dispenser doesn't go silent.
             print(f"  [tool error] {exc}", flush=True)
+            print(f"  >> {format_response(user_text, OUT_OF_SCOPE_TOOL, {}, None)}",
+                  flush=True)
         else:
             print(f"  ⤷ {json.dumps(result, ensure_ascii=False, default=str)}", flush=True)
             print(f"  >> {format_response(user_text, c['tool'], c['args'], result)}",

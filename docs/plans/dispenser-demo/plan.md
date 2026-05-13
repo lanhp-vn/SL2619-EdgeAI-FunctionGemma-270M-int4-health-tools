@@ -1,14 +1,11 @@
 # Dispenser Demo — Implementation Plan
 
-> **Status:** Spec frozen, implementation in progress (iter-001 demo path).
-> **Date:** 2026-05-11 (spec); 2026-05-12 (v1 demo pivot).
+> **Status:** v1 voice loop closed end-to-end (Phase 3 Layers B/C/D all CLOSED 2026-05-12); **BLE bring-up is the sole remaining v1 demo blocker**.
+> **Date:** 2026-05-11 (spec); 2026-05-12 (v1 demo pivot + Layer D close).
 > **Owner:** Lan.
-> **Headline goal:** Voice-driven medication-dispenser demo on SL2619 using a
-> dedicated FunctionGemma 270M iteration (`002-dispenser-demo`), wake word
-> "Hey Sago", word-only TTS-ready answers, and a BLE notification to an
-> ESP32 dispenser using the existing `pybleno` peripheral scaffold.
+> **Headline goal (v1, as shipping):** Voice-driven medication-dispenser demo on SL2619 — pretrained openWakeWord "Hey Jarvis" wake → Silero VAD → CrispASR (Moonshine Tiny) STT → FunctionGemma iter-001 + dispatcher-hijack brain → Piper TTS on the P10S speaker → BLE notify to an ESP32 dispenser. The original spec ("Hey Sago", word-only TTS-ready `*_words` companion fields, iter-002 model with `dispense_medication()` tool) is preserved below as the iter-002 target shape; the v1 demo bridges via runtime-layer humanizer helpers and iter-001's existing tool names.
 
-> ### v1 demo pivot (2026-05-12)
+> ### v1 demo pivot + Layer D close (2026-05-12)
 >
 > Iter-002 trained but is **NOT** the v1 demo's runtime — see
 > [`decisions-log.md#2026-05-12-phase-3-pivot`](decisions-log.md). The v1
@@ -20,8 +17,14 @@
 > iter-002 target shape; iter-001's existing tool names are the v1 bridge.
 > Wake word for v1 is **pretrained "Hey Jarvis"** (openWakeWord v0.5.1),
 > not the original "Hey Sago"; custom Hey-Sago training is deferred.
-> Phase 3 smoke runs **WSL host first**, board second — see the Phase 3
-> sub-table below for the layered topology.
+> Phase 3 Layer A skipped (no WSL mic), Layers B/C/D all closed
+> 2026-05-12 (see Phase 3 sub-table below). TTS via Piper (dynamic
+> per-turn render) — formerly a v2 non-goal, now a v1 demo gate. The
+> `*_words`-companion contract from §5.2 stays an iter-002 design; v1
+> uses runtime humanizer helpers (`_humanize_date`, `_humanize_time`,
+> `_humanize_schedule`, `_humanize_measured_suffix`) in
+> `chat_board.py` / `chat.py` to keep Piper output cadence sane without
+> training on word-form tool fields.
 
 ---
 
@@ -49,15 +52,21 @@
 
 ### Non-goals
 
-- TTS / spoken answer playback. **v1 is terminal text only.** v2 will add
-  spoken output via the P10S speaker (`aplay -D plughw:<N>,0`). v2 AEC is
-  provided by the P10S firmware — verified 2026-05-11 to suppress device
-  echo by ~65 dB during single-talk and ~55 dB during double-talk while
-  preserving near-end speech (Δ -1.9 dB). No software AEC, no host-side
-  echo-reference channel, no UAC2 jack setup is needed. v1 still uses a
-  half-duplex rule (mute mic during any playback) for engineering
-  simplicity, not hardware necessity. See §8.3 E2 and the probe results
-  in `docs/guides/usb-audio-testing-sl2619.md`.
+- ~~TTS / spoken answer playback.~~ **Promoted to v1 demo gate
+  2026-05-12 (Layer D close).** Implementation: **Piper neural TTS**
+  (en_US-lessac-medium ONNX, host-rendered per turn from
+  `chat_board.format_response`'s output, captured via
+  `_capture_format` wrapper in `dispenser_voice.py`), piped to `aplay
+  -D plughw:1,0` on the P10S speaker. Canned per-tool WAVs at
+  `<tts_dir>/<tool>.wav` remain as a `--no-dynamic-tts` fallback.
+  Short chimes (`wake_ack.wav` 170 ms rising, `command_ack.wav`
+  160 ms two-blip) play on WAKE and after STT respectively. The
+  half-duplex rule still applies — `ArecordMic.pause()`/`resume()`
+  via SIGSTOP/SIGCONT bracket each playback, and
+  `ArecordMic.drain(max_seconds=6)` clears stale audio from the
+  pipe before the next listen cycle. P10S firmware AEC verified
+  2026-05-11 (`docs/guides/usb-audio-testing-sl2619.md`); no
+  software AEC needed.
 - ESP32 firmware development. The ESP32 firmware is **user-provided**; this
   plan only fixes the wire contract (§6.2).
 - Multi-turn conversation memory. Each utterance starts fresh.
@@ -559,7 +568,7 @@ board-resident pipeline. The work is layered to limit blast radius — see
 | A | WSL host | Wake (Hey Jarvis ONNX) + Silero VAD + Moonshine STT, stdout. No LLM, no speaker. | **Skipped 2026-05-12** — WSL2 has no input device exposed through WSLg; pivoted to Layer B. Documented for future sessions on a machine with a working mic. |
 | B | SL2619 board | Same code path with P10S USB mic. | **Closed 2026-05-12.** First-run end-to-end: model load 0.97 s; wake-fire latency ~0.45 s on `"Hey Jarvis"`; VAD endpoint after 3.68 s capture; CrispASR decode 1.23 s (3.2× realtime); transcript `"give me my medication"` correct. Total wake→transcript ~4.8 s wall. Smoke: `scripts/dispenser_demo/voice/wake_stt_board_smoke.py`. |
 | C | SL2619 board | Wire Layer B into `chat_board_dispense.py` (iter-001 hijack). Output still stdout. | **Closed 2026-05-12.** First-run dispense intent: wake → STT (3.20 s capture, 1.14 s decode) → FG `get_medication_by_name{}` → `[BLE→ESP32] 5A A5 01 00` + canned line. Total ~10.7 s/turn. Loop reset clean. Long-running entry: `scripts/dispenser_demo/deploy/dispenser_voice.py`. |
-| D | SL2619 board | Add espeak-ng → aplay for the answer (promotes §1 v2 non-goal to v1 gate). | Audible answer on P10S speaker; §8.3 E2 half-duplex rule holds. |
+| D | SL2619 board | Piper neural TTS (en_US-lessac-medium ONNX) → aplay → P10S speaker. Dynamic per-turn render of `chat_board.format_response`'s output (`_capture_format` wrapper). Humanizer helpers in `chat_board.py` + `chat.py` (`_humanize_date`/`_time`/`_schedule`/`_measured_suffix`) keep digit-bearing fields readable. `OUT_OF_SCOPE_TOOL` sentinel routes refusals through `format_response` so the same Piper pipe speaks the refusal. Wake/command chimes (`wake_ack.wav`, `command_ack.wav`). Per-frame logging split (`-v` for transitions, `--trace` for frame-level). | **CLOSED 2026-05-12.** Audible Piper answer on P10S speaker; refusals spoken too; chimes audible; arecord-overrun Layer C.1 closed inside Layer D via `ArecordMic.drain()`. §8.3 E2 half-duplex rule held via SIGSTOP/SIGCONT around aplay. Details: [`decisions-log.md`](decisions-log.md) 2026-05-12 (afternoon) entry. |
 
 ### Phase 4 — Acceptance
 
@@ -603,7 +612,7 @@ before merge.
 | R2 | pybleno fails against M.2 Broadcom path | medium | Phase 2 step 2.3 branches to `bluez-peripheral` or D-Bus shim. |
 | R3 | Memory ceiling (~600 MB) exceeded once everything is loaded | medium | Phase 4 incremental measurement; cut openWakeWord (replace with smaller) or VAD if needed. |
 | R4 | openWakeWord custom training quality | medium | **Retired for v1 (2026-05-12)** — pretrained `hey_jarvis_v0.1` (openWakeWord v0.5.1) is the v1 wake phrase; upstream-validated FPR/TPR. Reopen if/when a custom "Hey Sago" model is needed. |
-| R5 | A tool's `*_words` companion field is missing, mis-derived, or contains digits (e.g. `wordform.py` regression) | medium | `test_tools_word_only.py` + `test_wordform.py` are CI gates. Model-level digit output in free narration is OUT OF SCOPE as a defect — TTS reads `*_words` fields, not free narration. |
+| R5 | A tool's `*_words` companion field is missing, mis-derived, or contains digits (e.g. `wordform.py` regression) | **iter-002 only** | `test_tools_word_only.py` + `test_wordform.py` are CI gates **for iter-002 only**. v1 demo does **not** use `*_words` companions — see Layer D close above; v1's TTS reads from `chat_board.format_response`'s output after runtime humanizer helpers normalize digit-bearing fields. The risk re-activates when iter-002 lands on board. |
 | R6 | ESP32 firmware not ready when Phase 2 starts | low | Phase 2 step 2.4 acceptable with `nRF Connect` standing in for ESP32 (subscribes + reads notification). |
 | O1 | `STT_FINAL` semantics — is "joint VAD-end + STT-final" event the intended trigger for the 3-s timer? | open | **Default in this plan: yes.** Override before Phase 3 if not. |
 | O2 | Greeting **content** for the dispense response when BLE peer not connected | open | Default in this plan: `"I cannot reach the dispenser right now."` — override if you want it dropped. |
@@ -638,8 +647,12 @@ Each new session: open this plan first; the plan is the durable handoff.
 - Moonshine ONNX (fallback): `docs/references/sl2619-moonshine.md`.
 - **v1 demo bridge (2026-05-12):**
   - Wrapper: `scripts/functiongemma/deploy/chat_board_dispense.py` — hijacks iter-001's `get_medications_at_time` + `get_medication_by_name` into the §6 dispense intent.
+  - Long-running entry: `scripts/dispenser_demo/deploy/dispenser_voice.py` — voice loop (wake → STT → FG → Piper TTS).
   - Patient fixture: `data/health_table_v1_dispense_demo.yaml` (renders to `health_table_dispense.json` on board).
-  - Decisions: [`decisions-log.md`](decisions-log.md) entries for `Phase 3 pivot`, `Phase 3 wake-word`, `Phase 3 smoke topology` (all 2026-05-12).
+  - Humanizer helpers (`_humanize_date`, `_humanize_time`, `_humanize_schedule`, `_humanize_measured_suffix`) + out-of-scope sentinel (`OUT_OF_SCOPE_TOOL`): `scripts/functiongemma/deploy/chat_board.py` and `scripts/functiongemma/chat.py` (kept in lockstep; `tests/functiongemma/test_chat_formatters.py` parametrizes both copies).
+  - Piper TTS rendering tool: `scripts/dispenser_demo/voice/build_tts_canned.py` (host-side; bakes per-tool fallback WAVs).
+  - Chimes: `/mnt/sdcard/dispenser_demo/{wake_ack,command_ack}.wav` (gitignored; staged under `/tmp/dispenser_demo_board/`).
+  - Decisions: [`decisions-log.md`](decisions-log.md) entries for `Phase 3 pivot`, `Phase 3 wake-word`, `Phase 3 smoke topology`, `Phase 3 Layer B closed`, `Phase 3 Layer C closed`, `Phase 3 Layer D closed` (all 2026-05-12).
 - openWakeWord upstream (submodule): `docs/references/upstream/openWakeWord/` — pretrained models fetched from GitHub releases on first use (URLs in `openwakeword/__init__.py:MODELS`).
 - Old BLE peripheral (scaffold to fork): `docs/references/old-dispenser-demo/ble_peripheral.py`.
 - SL2619 Broadcom M.2 specifics: `docs/references/upstream/synaptic-sl2619/{references/Synaptics, docs/datasheets/sl2610-datasheets}` — submodule, init on demand.
