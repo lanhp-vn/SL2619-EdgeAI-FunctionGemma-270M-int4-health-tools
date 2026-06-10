@@ -130,6 +130,7 @@
 	branch = lan-pham
 	update = none
 	shallow = true
+	ignore = dirty
 [submodule "docs/references/upstream/CrispASR"]
 	path = docs/references/upstream/CrispASR
 	url = https://github.com/CrispStrobe/CrispASR

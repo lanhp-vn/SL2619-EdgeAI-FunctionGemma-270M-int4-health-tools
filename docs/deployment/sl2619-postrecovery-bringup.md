@@ -1,10 +1,15 @@
 # SL2619 post-recovery bring-up — Wi-Fi, hostname, SSH, NTP, microSD
 
-> ✅ **Executed and verified 2026-06-01** after the v2.4.0 recovery flash. End
-> state: hostname `nouslogic`, Wi-Fi `Kylie` persistent at `192.168.12.240`, NTP
+> NOTE: **Executed and verified 2026-06-01** after the v2.4.0 recovery flash. End
+> state: hostname `nouslogic`, Wi-Fi `Kylie` (DHCP `192.168.12.240` at the time), NTP
 > synced, TZ correct, microSD mounted, key-auth SSH from both Windows and WSL.
 > The exact values, the SSH gotchas hit, and the next step (BLE bring-up) are in
 > §7. This is a proven runbook.
+>
+> UPDATE 2026-06-10: with no DHCP reservation ever added (see §7 TODO), the lease
+> has since drifted to `192.168.12.239` (re-verified live; `.240` no longer
+> responds). `~/.ssh/config` HostName + `known_hosts` were updated to `.239`.
+> Treat the `.240` values below as the 2026-06-01 snapshot, not the current IP.
 
 Run this **after** a fresh eMMC reflash (see
 [`sl2619-windows-recovery.md`](sl2619-windows-recovery.md)) to return a bare
@@ -127,7 +132,7 @@ networkctl status wlan0        # expect: State: routable (configured), Online
 iw dev wlan0 link
 ping -c 2 1.1.1.1
 ```
-> **⚠️ The real `<BOARD_IP>` is the one in `networkctl status wlan0` here — NOT
+> **WARNING: The real `<BOARD_IP>` is the one in `networkctl status wlan0` here — NOT
 > the one-shot `udhcpc` lease from §2.3.** They often differ: `udhcpc` and
 > `systemd-networkd` each pull their own lease (seen 2026-06-01: udhcpc got
 > `.239`, systemd-networkd got `.240`; `.239` then went dead → "No route to
@@ -212,7 +217,7 @@ adb push $env:USERPROFILE\.ssh\sl2619_nouslogic.pub /tmp/
 adb shell "mkdir -p /home/root/.ssh && tr -d '\r' < /tmp/sl2619_nouslogic.pub >> /home/root/.ssh/authorized_keys && chmod 700 /home/root/.ssh && chmod 600 /home/root/.ssh/authorized_keys && rm /tmp/sl2619_nouslogic.pub"
 ```
 
-> **⚠️ Clear stale `known_hosts` first (you reflashed → new host key).** The
+> **WARNING: Clear stale `known_hosts` first (you reflashed → new host key).** The
 > board's IP/name still carry the *pre-reflash* host key, so the first connect
 > screams `REMOTE HOST IDENTIFICATION HAS CHANGED`. This is expected, not a MITM
 > — the offered fingerprint matches your §4.1 `dropbearkey` output. Purge **every**
@@ -341,7 +346,7 @@ The bring-up that proved this runbook, with real values. **Substitute your own.*
 
 | Item | Value (this board) |
 | --- | --- |
-| Board IP (Wi-Fi, `systemd-networkd` lease) | **`192.168.12.240`** (one-shot `udhcpc` had transiently shown `.239` — ignore) |
+| Board IP (Wi-Fi, `systemd-networkd` lease) | **`192.168.12.240`** as of 2026-06-01; **drifted to `192.168.12.239` by 2026-06-10** (no DHCP reservation — see §7 TODO and the header UPDATE) |
 | SSID | `Kylie` (5 GHz, `e8:9f:80:2f:fa:b0`) |
 | wlan0 MAC (for DHCP reservation) | `9c:b8:b4:3c:27:7a` (AMPAK) |
 | Hostname | `nouslogic` |
@@ -363,7 +368,9 @@ logged in as `phl` and failed — fixed by `Host nouslogic nouslogic-sl2619` +
 already-working WSL session.
 
 **Still TODO before this board is fully "done":** add a router DHCP reservation
-for `9c:b8:b4:3c:27:7a` → `192.168.12.240` so the SSH aliases survive reboots.
+for `9c:b8:b4:3c:27:7a` so the SSH aliases survive reboots. This was never done,
+and the lease has already drifted `.240` → `.239` (2026-06-10) — pin it to one
+address and update `~/.ssh/config` to match.
 
 ---
 

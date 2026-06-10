@@ -92,6 +92,8 @@ flowchart TB
 | `docs/plans/dispenser-demo/` | Dispenser demo — `plan.md`, `crispasr-spike-notes.md`, `decisions-log.md` (Phase 0 closed 2026-05-11; 2026-05-12 entries cover the iter-001 hijack pivot, pretrained Hey Jarvis wake word, Layer B board wake/STT close, Layer C full-pipeline close, and Layer D close with Piper TTS / humanizer helpers / refusal-as-TTS / chimes / logging split) |
 | `docs/bench-notes/functiongemma/2026-05-02_quantization-sweep.md` | Single canonical quant sweep report |
 | `docs/deployment/{sl2619-board,functiongemma-board-deploy}.md` | Board cross-compile + FunctionGemma deploy runbooks |
+| `docs/deployment/sl2619-ble-bringup.md` | BLE bring-up runbook (pybleno on `hci0`/UART, Astra v2.4; proven e2e 2026-06-01) |
+| `docs/deployment/{sl2619-recovery-reflash,sl2619-windows-recovery,sl2619-postrecovery-bringup}.md` | 2026-06-01 brick recovery: root-cause + Windows reflash (as-run) + post-recovery bring-up |
 | `docs/guides/usb-audio-testing-sl2619.md` | USB speaker + mic + P10S firmware AEC probe recipe |
 | `docs/conventions/` | Normative coding/repo/workflow rules (Python, shell, testing, doc-update) |
 | `docs/references/upstream/` | Opt-in shallow submodules: `gemma`, `llama.cpp`, `CrispASR`, `openWakeWord`, `silero-vad`, `distil-cli-skill`, `synaptic-sl2619`, `unsloth-notebooks` (nested clone) |
@@ -231,4 +233,4 @@ a new cache. Clear with `rm /tmp/fg_pc_*.bin` if the prefix changes.
 - `releases/functiongemma-270m/001-baseline/{RECIPE.md,distil/README.md,gguf/RECOMMENDED.md}` — iter-001 reproduce + Distil timeline + Q4_0 rationale.
 - `archive/README.md` — archive index.
 
-Last refreshed: 2026-06-01
+Last refreshed: 2026-06-10
