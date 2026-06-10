@@ -12,7 +12,7 @@ Two active focuses sharing one board (Synaptics SL2619, Cortex-A55 ×2,
    patient registry. Iteration 001 (Distil Labs SFT) shipped at
    `releases/functiongemma-270m/001-baseline/`; the 2026-05-02 quantization
    sweep selected **Q4_0** as the on-board variant. No retrain planned.
-2. **Dispenser demo** — voice-driven medication dispenser. v1 voice loop **closed end-to-end 2026-05-12** (Phase 3 Layers B/C/D all green) on **iter-001 + dispatcher-hijack** (`scripts/functiongemma/deploy/chat_board_dispense.py`) wired into the long-running `scripts/dispenser_demo/deploy/dispenser_voice.py`: openWakeWord `hey_jarvis_v0.1` → Silero VAD → CrispASR (Moonshine Tiny GGUF) → FunctionGemma → **Piper neural TTS** (dynamic per-turn render) → P10S speaker. First-run wall ~10.7 s/turn including Piper render. **BLE bring-up is the sole remaining v1 demo blocker** — board BT gated on Synaptics bug 37861/37374; `chat_board_dispense.py` prints `[BLE→ESP32] 5A A5 01 00` as stdout-mock until pybleno binds a real radio. Iter-002 (`releases/functiongemma-270m/002-dispenser-demo/`) is trained but **NOT deployed** for v1 (host Q4_0 collapsed; on-board output drops `<start_function_call>`); Phase 1 retrain deferred. Layer A skipped (no WSL mic). Custom "Hey Sago" deferred. Full layer state, per-stage timing, and the 2026-05-12 (afternoon) Layer-D fixes (Piper dynamic render, humanizer helpers, `OUT_OF_SCOPE_TOOL` refusal-as-TTS, post-STT chime, `-v` / `--trace` split) live in [`docs/plans/dispenser-demo/{plan.md,decisions-log.md}`](docs/plans/dispenser-demo/).
+2. **Dispenser demo** — voice-driven medication dispenser. v1 voice loop **closed end-to-end 2026-05-12** (Phase 3 Layers B/C/D all green) on **iter-001 + dispatcher-hijack** (`scripts/functiongemma/deploy/chat_board_dispense.py`) wired into the long-running `scripts/dispenser_demo/deploy/dispenser_voice.py`: openWakeWord `hey_jarvis_v0.1` → Silero VAD → CrispASR (Moonshine Tiny GGUF) → FunctionGemma → **Piper neural TTS** (dynamic per-turn render) → P10S speaker. First-run wall ~10.7 s/turn including Piper render. **BLE PROVEN END-TO-END 2026-06-01** — the revB pin-mux blocker (Synaptics bug 37861/37374) is **resolved by Astra v2.4.0**; `hci0` (UART / SYN43711 combo) enumerates + patches, and pybleno advertised `NousVoice` to a phone that subscribed to `0xFFB2` and received `5A A5 01 00` (full plan §6.2 wire contract). Board deps staged manually (no `pip`/`fcntl` on board → `scripts/dispenser_demo/deploy/{patch_pybleno_bluetoothhci.py,board_fcntl_shim.py}` + `/tmp/pylibs`); mandatory pre-bleno reset cycle `hciconfig hci0 up && hciconfig hci0 down` (else `Command Disallowed`). **Only remaining BLE item:** swap the `[BLE→ESP32] 5A A5 01 00` stdout-mock in `chat_board_dispense.py:dispatch` for a real `PyBlenoBleClient.notify` (+ boot-auto-up check, persist staging to `/mnt/sdcard`). Full runbook: [`docs/deployment/sl2619-ble-bringup.md`](docs/deployment/sl2619-ble-bringup.md). Iter-002 (`releases/functiongemma-270m/002-dispenser-demo/`) is trained but **NOT deployed** for v1 (host Q4_0 collapsed; on-board output drops `<start_function_call>`); Phase 1 retrain deferred. Layer A skipped (no WSL mic). Custom "Hey Sago" deferred. Full layer state, per-stage timing, and the 2026-05-12 (afternoon) Layer-D fixes (Piper dynamic render, humanizer helpers, `OUT_OF_SCOPE_TOOL` refusal-as-TTS, post-STT chime, `-v` / `--trace` split) live in [`docs/plans/dispenser-demo/{plan.md,decisions-log.md}`](docs/plans/dispenser-demo/).
 
 The original Gemma 3 270M-IT health-QA SFT track is frozen as a reference
 under `archive/gemma3-270m-health-qa/`; live code at `src/gemma_tools/_legacy/`,
@@ -41,7 +41,7 @@ flowchart TB
         BRAIN[chat_board_dispense.py - iter-001 hijack]
         TTS[Piper TTS - en_US-lessac-medium - dynamic render]
         SPK[P10S speaker - aplay]
-        BLE[BLE GATT - blocked on board BT bug 37861/37374]
+        BLE[BLE GATT - PROVEN e2e on v2.4 hci0/UART via pybleno; dispatch notify wiring pending]
         ESP[ESP32 dispenser - planned]
         MIC --> WAKE --> VAD --> STT --> BRAIN
         BRAIN --> TTS --> SPK
@@ -225,10 +225,10 @@ a new cache. Clear with `rm /tmp/fg_pc_*.bin` if the prefix changes.
 - `docs/plans/functiongemma/{recipe,decisions-log,quantization-plan}.md` — FunctionGemma working recipe + decisions.
 - `docs/plans/dispenser-demo/plan.md` — full dispenser demo plan (phases, BLE wire contract, state machine, Phase 3 Layer A/B/C/D smoke topology — Layers B/C/D all CLOSED 2026-05-12).
 - `docs/plans/dispenser-demo/crispasr-spike-notes.md` — Phase 0 STT spike audit trail.
-- `docs/plans/dispenser-demo/decisions-log.md` — binding decisions (Phase 0 STT runtime/flags/build profile + 2026-05-12 entries: iter-001 hijack pivot, pretrained Hey Jarvis, Layer B/C/D closes, Layer D's four afternoon fixes — Piper TTS, humanizer helpers, refusal-as-TTS, chime + logging split — and the BLE-board-bring-up Synaptics bug 37861/37374 audit).
+- `docs/plans/dispenser-demo/decisions-log.md` — binding decisions (Phase 0 STT runtime/flags/build profile + 2026-05-12 entries: iter-001 hijack pivot, pretrained Hey Jarvis, Layer B/C/D closes, Layer D's four afternoon fixes — Piper TTS, humanizer helpers, refusal-as-TTS, chime + logging split — and the BLE-board-bring-up Synaptics bug 37861/37374 audit; **2026-06-01 entry: BLE UNBLOCKED on Astra v2.4 — revB pin-mux fixed, BT functional, see [`docs/deployment/sl2619-ble-bringup.md`](docs/deployment/sl2619-ble-bringup.md)**).
 - `docs/bench-notes/functiongemma/2026-05-02_quantization-sweep.md` — single canonical sweep report.
 - `docs/guides/usb-audio-testing-sl2619.md` — USB speaker + mic + P10S firmware AEC probe (verified 2026-05-11: firmware AEC handles echo cancellation, no software AEC needed for duplex voice pipeline).
 - `releases/functiongemma-270m/001-baseline/{RECIPE.md,distil/README.md,gguf/RECOMMENDED.md}` — iter-001 reproduce + Distil timeline + Q4_0 rationale.
 - `archive/README.md` — archive index.
 
-Last refreshed: 2026-05-12
+Last refreshed: 2026-06-01
