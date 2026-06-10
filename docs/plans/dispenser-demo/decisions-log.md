@@ -11,6 +11,55 @@ are the authoritative record of the underlying analysis; this file is the index.
 
 ---
 
+## 2026-06-01 — BLE bring-up UNBLOCKED on Astra v2.4: revB pin-mux fixed, BT functional
+
+- **Decision.** The long-standing BLE blocker (Synaptics bug 37861/37374) is
+  **resolved by Astra `scarthgap_6.12_v2.4.0`.** Confirmed live on-board
+  (read-only SSH, 2026-06-01): `hci0` enumerates (UART / SYN43711 combo),
+  firmware-patches at boot, comes UP, and an active `bluetoothctl scan`
+  discovered ~15 real LE devices with the adapter staying `UP RUNNING`,
+  `errors:0`, no power-down under load. BR/EDR + LE central/scan work.
+- **Root cause of the prior failure (per Synaptics support).** It was the
+  **revB board pin-mux** — BT worked on revA, failed on revB. Astra **2.3**
+  carried a revB patch; **2.4** supports BT on revA/revB/revC uniformly (boot
+  CM52 `RELEASE_NOTE.txt`: *"Support RDK revA, revB and revC board"*). This
+  board's rev is **not** software-discoverable (DT model = `Synaptics SL2619
+  RDK`, no rev token) — silkscreen only — but rev is now moot for BT.
+- **Ground-truth wiring correction (supersedes earlier assumptions).** BT is
+  **UART-attached** (`hci0`, `/dev/ttyS1`, `e5031000`), **not** SDIO; only Wi-Fi
+  is on SDIO1/mmc1 (`bcmdhd`). Combo chip = **SYN43711**. BT patch firmware =
+  `/lib/firmware/bcm/SYN43711A0_…_UART_37_4MHz…hcd` (NOT `/lib/firmware/brcm/`).
+  Attach owned by **`brcm_bt_start.service`** → `brcm_patchram_plus … --enable_hci`.
+- **Operational note.** `.hcd` patch lives in chip RAM and is lost if `BT_REG_ON`
+  (I²C expander `0-0044`, `bluetooth-rfkill` driver) drops; recovery is
+  **`systemctl restart brcm_bt_start.service` + `hciconfig hci0 up`**, NOT a bare
+  `hciconfig up` (re-powers but can't re-patch → `HCI_Reset` tx-timeout / `-110`).
+- **Peripheral path CONFIRMED END-TO-END (2026-06-01).** pybleno advertised
+  `NousVoice` on `hci0`; a phone (nRF Connect) connected, subscribed to char
+  `0xFFB2`, and received `5A A5 01 00` (auto on subscribe + on each ENTER) — the
+  full plan §6.2 wire contract, proven on real hardware. Two board deps had to be worked around (board
+  Python 3.12 ships **no `pip`/`ensurepip`** and **no `fcntl` module**): pybleno
+  is downloaded + 5-patched on the host then `scp`'d as a package tree, and a
+  ctypes `fcntl` shim is staged alongside it on `PYTHONPATH=/tmp:/tmp/pylibs`.
+  Repo artifacts: `scripts/dispenser_demo/deploy/{patch_pybleno_bluetoothhci.py,
+  board_fcntl_shim.py}`; also fixed `ble_test.py`'s `parents[3]` crash for the
+  staged (`/tmp`) layout.
+- **Mandatory prep gotcha.** A freshly `brcm_patchram_plus`-attached controller
+  must get a kernel HCI Reset (`hciconfig hci0 up` then `hciconfig hci0 down`)
+  **before** pybleno binds, or advertising fails with `Command Disallowed`
+  (HCI 0x0C). The `down` then hands the reset+patched controller to
+  `HCI_CHANNEL_USER`. Confirmed both ways 2026-06-01.
+- **Still OPEN (does not block).** (a) phone-side subscribe→notify (user + nRF
+  Connect → expect `5A A5 01 00` on char `0xFFB2`); (b) one observed boot-time
+  auto power-down (chip was DOWN on first probe, untouched) — verify via a clean
+  `reboot` whether the demo needs the `brcm_bt_start` restart each boot;
+  (c) `/tmp` staging is volatile — persist `pybleno/` + `fcntl.py` to
+  `/mnt/sdcard/pylibs/` for a reboot-durable demo.
+- **Full audit trail + recovery runbook:**
+  [`docs/deployment/sl2619-ble-bringup.md`](../../deployment/sl2619-ble-bringup.md).
+
+---
+
 ## 2026-05-12 (PM) — BT bring-up second-pass audit; disposition unchanged, hypotheses narrowed
 
 Re-investigation of the M.2 BT failure mode under explicit user authorization

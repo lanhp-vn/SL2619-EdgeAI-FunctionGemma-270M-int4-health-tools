@@ -46,12 +46,14 @@ from pathlib import Path
 from types import FrameType
 
 # Make src/ importable when this script is run directly from a repo
-# checkout. On the board the file lives outside the package tree, so we
-# fall back to importing the module verbatim from a sibling copy.
-_REPO_ROOT = Path(__file__).resolve().parents[3]
-_SRC = _REPO_ROOT / "src"
-if _SRC.is_dir() and str(_SRC) not in sys.path:
-    sys.path.insert(0, str(_SRC))
+# checkout. On the board the file lives outside the package tree (e.g.
+# /tmp/ble_test.py), where parents[3] doesn't exist — guard the lookup so we
+# fall through to the PYTHONPATH-staged gemma_tools package instead of crashing.
+_parents = Path(__file__).resolve().parents
+if len(_parents) > 3:
+    _SRC = _parents[3] / "src"
+    if _SRC.is_dir() and str(_SRC) not in sys.path:
+        sys.path.insert(0, str(_SRC))
 
 try:
     from gemma_tools.dispenser_demo.ble_client import (

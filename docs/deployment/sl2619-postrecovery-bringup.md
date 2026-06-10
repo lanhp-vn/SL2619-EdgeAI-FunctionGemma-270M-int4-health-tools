@@ -371,10 +371,17 @@ for `9c:b8:b4:3c:27:7a` → `192.168.12.240` so the SSH aliases survive reboots.
 
 The board is now recovered + networked + SSH-reachable — the platform for
 resuming **BLE bring-up**, the original v1 dispenser-demo blocker (Synaptics bug
-37861/37374). **This is exactly the work that bricked the board on 2026-06-01**
-(a blind `board_patched.dtb` write into the eMMC boot partitions). Do NOT repeat
-that. Supported routes for the UART1 / bcm43438 (M.2 Broadcom BT on SDIO/UART)
-device-tree changes:
+37861/37374, the **revB pin-mux** failure). **Good news as of the v2.4.0 flash:**
+a read-only probe (2026-06-01) shows **`hci0` now enumerates** (UART, SYN43711
+combo) — the revB pin-mux fix ships in v2.4 boot firmware. Full bring-up
+(adapter UP + BLE notify) and the runbook now live in a dedicated doc:
+**[`sl2619-ble-bringup.md`](sl2619-ble-bringup.md)** — start there.
+
+> **This is exactly the work that bricked the board on 2026-06-01** (a blind
+> `board_patched.dtb` write into the eMMC boot partitions). Do NOT repeat that.
+> v2.4.0 already carries the fix, so **no device-tree surgery is needed.** If a
+> DTS change ever *is* required, use a supported route for the UART / SYN43711
+> (M.2 Broadcom BT-on-UART, Wi-Fi-on-SDIO) device tree:
 
 - **Yocto rebuild** — patch the DTS in the kernel/device-tree recipe so the build
   repacks **and re-signs** the FIT boot image, then reflash via
