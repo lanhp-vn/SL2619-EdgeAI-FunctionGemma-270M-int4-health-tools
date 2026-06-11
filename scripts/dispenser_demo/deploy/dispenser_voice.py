@@ -736,7 +736,7 @@ def run_voice_loop(args: argparse.Namespace) -> int:
 
     log.info("loading FunctionGemma context (dir=%s, model=%s, table=%s)",
              args.fg_dir, args.fg_model_name, args.fg_health_table_name)
-    chat_board, _ = _load_chat_board(args.fg_dir)
+    chat_board, chat_board_dispense = _load_chat_board(args.fg_dir)
 
     prefix_path = args.fg_dir / "prompt-prefix.txt"
     suffix_path = args.fg_dir / "prompt-suffix.txt"
@@ -768,15 +768,52 @@ def run_voice_loop(args: argparse.Namespace) -> int:
     )
     log.info("FG prompt-cache: %s", cache_label)
 
-    # ----- main loop -----
-    log.info(
-        "ready — press Ctrl-C to exit. Dispense-intent tools: "
-        "get_medications_at_time, get_medication_by_name (mock BLE).",
-    )
-
     turn = 0
     with ArecordMic(args.device, DEFAULT_SAMPLE_RATE, OWW_FRAME_SAMPLES,
                     verbose=args.verbose) as mic:
+        # ----- BLE peripheral (real pybleno notify on dispense turns) -----
+        # Constructed *inside* the mic context (after arecord opens) so a busy
+        # audio device fails before we claim hci0, and the inner `finally`
+        # below always releases the radio. Advertise ONCE; the dispense
+        # override fires notifies on the live subscription each turn. Any
+        # failure (no staging, hci0 not reset) degrades to the [BLE→ESP32]
+        # stdout mock — the demo must never block on a radio. The §1b reset
+        # cycle (hciconfig hci0 up/down) must be run by the user BEFORE launch.
+        ble_client: Any | None = None
+        if args.no_ble:
+            log.info("BLE disabled (--no-ble) — dispense turns use the stdout mock.")
+        else:
+            try:
+                # Inject the staging dir now (heavy libs already loaded), NOT via
+                # PYTHONPATH — the fcntl shim's import-time find_library() would
+                # otherwise crash subprocess startup. pybleno itself loads even
+                # later, at start_advertising.
+                if str(args.ble_libs) not in sys.path:
+                    sys.path.insert(0, str(args.ble_libs))
+                from gemma_tools.dispenser_demo.ble_client import PyBlenoBleClient
+                log.info("BLE: starting pybleno peripheral on hci%d (advertising "
+                         "'NousVoice', notify 0xFFB2)…", args.ble_hci)
+                ble_client = PyBlenoBleClient(hci_index=args.ble_hci)
+                ble_client.start_advertising()  # blocks ≤15 s; raises on adapter failure
+                chat_board_dispense.set_ble_client(ble_client)
+                log.info("BLE: advertising — subscribe a central to 0xFFB2 to "
+                         "receive 5A A5 01 00 on each dispense.")
+            except Exception as exc:
+                log.warning("BLE unavailable (%s) — falling back to stdout mock. "
+                            "Did you run the hci0 up/down reset cycle and stage "
+                            "pybleno on PYTHONPATH?", exc)
+                if ble_client is not None:
+                    with contextlib.suppress(Exception):
+                        ble_client.stop()
+                ble_client = None
+
+        # ----- main loop -----
+        log.info(
+            "ready — press Ctrl-C to exit. Dispense-intent tools: "
+            "get_medications_at_time, get_medication_by_name (%s).",
+            "real BLE notify" if ble_client is not None else "stdout mock",
+        )
+
         try:
             while True:
                 turn += 1
@@ -917,6 +954,12 @@ def run_voice_loop(args: argparse.Namespace) -> int:
         except KeyboardInterrupt:
             print("\n[exit]", flush=True)
             return 0
+        finally:
+            # Release hci0 so the next pybleno run (or BlueZ) can claim it.
+            # Idempotent + best-effort; the stdout-mock path leaves this None.
+            if ble_client is not None:
+                with contextlib.suppress(Exception):
+                    ble_client.stop()
 
 # endregion
 
@@ -1002,6 +1045,22 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
                    help="Override FG prompt cache path. Default: "
                         "/tmp/fg_pc_<model>.bin (per-model).")
     p.add_argument("--no-prompt-cache", action="store_true")
+
+    # BLE — real pybleno notify on a dispense turn (plan §6.2 wire contract).
+    p.add_argument("--no-ble", action="store_true",
+                   help="Skip the pybleno peripheral; dispense turns keep the "
+                        "[BLE→ESP32] stdout mock. Use when no phone/ESP32 is "
+                        "present or pybleno staging is absent.")
+    p.add_argument("--ble-hci", type=int, default=0,
+                   help="hci adapter index for the BLE peripheral (default 0 "
+                        "— SL2619 BT is hci0/UART). Requires the §1b reset "
+                        "cycle (hciconfig hci0 up/down) run BEFORE launch.")
+    p.add_argument("--ble-libs", type=Path, default=Path("/tmp/pylibs"),
+                   help="Dir holding the staged pybleno pkg + fcntl shim + "
+                        "gemma_tools (default: /tmp/pylibs). Injected into "
+                        "sys.path at runtime — NOT via PYTHONPATH — because the "
+                        "fcntl shim runs find_library() at import and collides "
+                        "with subprocess startup if on the global path.")
 
     # Diagnostics.
     p.add_argument("--raw", action="store_true",

@@ -76,12 +76,39 @@ DISPENSE_TOOLS: frozenset[str] = frozenset({
 _orig_dispatch = chat_board.dispatch
 _orig_format_response = chat_board.format_response
 
+# Injected BLE peripheral (a `gemma_tools.dispenser_demo.ble_client.BleClient`).
+# `dispenser_voice.py` owns the radio's lifecycle and calls `set_ble_client`
+# once at startup, after the pybleno peripheral is advertising. Left None in
+# the standalone REPL and host tests → `dispatch` keeps the stdout mock.
+_ble_client: Any | None = None
+
+
+def set_ble_client(client: Any | None) -> None:
+    """Wire the BLE peripheral the voice loop owns (None reverts to the mock).
+
+    Dependency-injected rather than constructed here so this board script
+    stays import-clean on hosts without pybleno, and so host tests can inject
+    a `MockBleClient`. The voice loop advertises the peripheral once and keeps
+    the central's subscription alive across turns (per-turn bind would re-run
+    the hci0 reset cycle and drop the phone — see the BLE bring-up runbook).
+    """
+    global _ble_client
+    _ble_client = client
+
 
 def dispatch(name: str, args: dict[str, Any], table: dict[str, Any]) -> Any:
     if name in DISPENSE_TOOLS:
-        # Mock the BLE peripheral. Phase 2 swaps this for a real pybleno
-        # notify on characteristic 0xFFB2 (see plan.md §6.2).
-        print(f"  [BLE→ESP32] {BLE_PAYLOAD_HEX}", flush=True)
+        if _ble_client is not None:
+            # Real pybleno notify on 0xFFB2 (plan §6.2). Returns False with no
+            # subscribed central — degrade (still dispense + speak), never hang.
+            ok = _ble_client.send_dispense_notify()
+            print(
+                f"  [BLE] {'notify sent ' + BLE_PAYLOAD_HEX if ok else 'ble_not_connected (no subscriber)'}",
+                flush=True,
+            )
+        else:
+            # No injected radio (standalone REPL / host tests): stdout mock.
+            print(f"  [BLE→ESP32] {BLE_PAYLOAD_HEX}", flush=True)
         return {"status": "dispensed"}
     return _orig_dispatch(name, args, table)
 
