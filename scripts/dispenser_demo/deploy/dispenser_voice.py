@@ -801,7 +801,8 @@ def run_voice_loop(args: argparse.Namespace) -> int:
             except Exception as exc:
                 log.warning("BLE unavailable (%s) — falling back to stdout mock. "
                             "Did you run the hci0 up/down reset cycle and stage "
-                            "pybleno on PYTHONPATH?", exc)
+                            "pybleno + the fcntl shim under --ble-libs (%s)?",
+                            exc, args.ble_libs)
                 if ble_client is not None:
                     with contextlib.suppress(Exception):
                         ble_client.stop()
@@ -955,11 +956,13 @@ def run_voice_loop(args: argparse.Namespace) -> int:
             print("\n[exit]", flush=True)
             return 0
         finally:
-            # Release hci0 so the next pybleno run (or BlueZ) can claim it.
-            # Idempotent + best-effort; the stdout-mock path leaves this None.
+            # Release hci0 so the next pybleno run (or BlueZ) can claim it, and
+            # clear the injected global so a re-entered loop can't dispatch
+            # through a stopped radio. Idempotent + best-effort.
             if ble_client is not None:
                 with contextlib.suppress(Exception):
                     ble_client.stop()
+                chat_board_dispense.set_ble_client(None)
 
 # endregion
 

@@ -117,6 +117,10 @@ class MockBleClient:
         self._stopped: bool = False
         self._subscriber_event: threading.Event = threading.Event()
         self.sent_notifications: list[bytes] = []
+        # Test knob: when True, a *subscribed* notify raises instead of
+        # recording — stands in for pybleno's HCI write throwing on a
+        # mid-notify disconnect, exercising the dispatch seam's degrade path.
+        self.raise_on_notify: bool = False
 
     def start_advertising(self) -> None:
         if self._stopped:
@@ -130,6 +134,8 @@ class MockBleClient:
         if not self._subscribed:
             log.info("MockBleClient: send_dispense_notify with no subscriber — returning False")
             return False
+        if self.raise_on_notify:
+            raise RuntimeError("MockBleClient: simulated mid-notify radio failure")
         self.sent_notifications.append(bytes(DISPENSE_PAYLOAD))
         return True
 
