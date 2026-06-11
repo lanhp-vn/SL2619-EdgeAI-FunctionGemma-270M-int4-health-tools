@@ -99,13 +99,18 @@ def set_ble_client(client: Any | None) -> None:
 def dispatch(name: str, args: dict[str, Any], table: dict[str, Any]) -> Any:
     if name in DISPENSE_TOOLS:
         if _ble_client is not None:
-            # Real pybleno notify on 0xFFB2 (plan §6.2). Returns False with no
-            # subscribed central — degrade (still dispense + speak), never hang.
-            ok = _ble_client.send_dispense_notify()
-            print(
-                f"  [BLE] {'notify sent ' + BLE_PAYLOAD_HEX if ok else 'ble_not_connected (no subscriber)'}",
-                flush=True,
-            )
+            # Real pybleno notify on 0xFFB2 (plan §6.2). A subscriber-less radio
+            # returns False; a mid-notify disconnect can *raise* from pybleno's
+            # HCI write. Both must degrade (still dispense + speak), never crash —
+            # chat_board._run_turn only catches KeyError, so an escape here would
+            # kill the whole voice loop on a transient BLE drop.
+            try:
+                ok = _ble_client.send_dispense_notify()
+                status = ("notify sent " + BLE_PAYLOAD_HEX if ok
+                          else "ble_not_connected (no subscriber)")
+            except Exception as exc:  # radio failure must never crash the demo
+                status = f"notify failed ({exc}) — degrading"
+            print(f"  [BLE] {status}", flush=True)
         else:
             # No injected radio (standalone REPL / host tests): stdout mock.
             print(f"  [BLE→ESP32] {BLE_PAYLOAD_HEX}", flush=True)

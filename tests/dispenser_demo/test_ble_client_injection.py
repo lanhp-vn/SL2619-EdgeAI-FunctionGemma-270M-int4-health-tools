@@ -96,6 +96,30 @@ def test_dispatch_degrades_when_client_not_subscribed(
     )
 
 
+def test_dispatch_degrades_when_notify_raises(
+    dispense_mod: ModuleType, capsys: pytest.CaptureFixture[str]
+) -> None:
+    # A mid-notify disconnect raises from pybleno's HCI write. Because
+    # chat_board._run_turn wraps dispatch in `except KeyError` only, an escape
+    # here would crash the whole voice loop — so the dispatch seam must catch it
+    # and degrade. This pins that contract.
+    client = MockBleClient()
+    client.start_advertising()
+    client._simulate_subscribe()
+    client.raise_on_notify = True
+    dispense_mod.set_ble_client(client)
+
+    result = _fire_dispense(dispense_mod)
+    out = capsys.readouterr().out
+
+    assert client.sent_notifications == [], "a raising notify records nothing"
+    assert _MOCK_TOKEN not in out, "client set → never the stdout mock"
+    assert "[BLE]" in out, "degrade path still logs a [BLE] line for the operator"
+    assert result == {"status": "dispensed"}, (
+        "a radio exception must degrade, not crash — dispense still succeeds"
+    )
+
+
 def test_non_dispense_tool_never_touches_the_radio(dispense_mod: ModuleType) -> None:
     client = MockBleClient()
     client.start_advertising()
