@@ -1,0 +1,623 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dispenser UI — Elderly-Friendly Redesign</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --font-body: 'DM Sans', system-ui, sans-serif;
+    --font-mono: 'Fira Code', 'SF Mono', Consolas, monospace;
+    --bg: #f6f8fb; --surface: #ffffff; --surface-2: #eef2f7; --border: rgba(20,35,55,0.10);
+    --text: #1f2933; --text-dim: #61708a;
+    --primary: #0b5fa5; --primary-dim: rgba(11,95,165,0.10); --accent: #3f6b5e;
+    --ok: #2f7d4f; --warn: #b5840a; --danger: #b3261e;
+    --sev-p0: #b3261e; --sev-p1: #b5840a; --sev-p2: #3f6b5e;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #11151c; --surface: #1a212b; --surface-2: #222b38; --border: rgba(255,255,255,0.10);
+      --text: #e8eef6; --text-dim: #9fb0c7; --primary: #56a8e6; --primary-dim: rgba(86,168,230,0.16); --accent: #6fae9b;
+      --ok: #6bbf8a; --warn: #e0b84a; --danger: #f08a82; --sev-p0: #f08a82; --sev-p1: #e0b84a; --sev-p2: #6fae9b;
+    }
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body { background: var(--bg); color: var(--text); font-family: var(--font-body); line-height: 1.6; padding: 36px 30px 80px; }
+  .layout { max-width: 1180px; margin: 0 auto; display: grid; grid-template-columns: 200px 1fr; gap: 38px; }
+  @media (max-width: 920px) { .layout { grid-template-columns: 1fr; } .nav { position: static !important; } }
+  .nav { position: sticky; top: 24px; align-self: start; font-size: 13px; }
+  .nav a { display: block; color: var(--text-dim); text-decoration: none; padding: 5px 10px; border-left: 2px solid transparent; border-radius: 0 4px 4px 0; }
+  .nav a:hover { color: var(--text); background: var(--surface-2); }
+  .nav a.active { color: var(--primary); border-left-color: var(--primary); font-weight: 600; }
+  .nav .nav-title { font-family: var(--font-mono); font-size: 11px; text-transform: uppercase; letter-spacing: .08em; color: var(--text-dim); margin-bottom: 8px; }
+  h1 { font-size: 33px; font-weight: 700; letter-spacing: -.5px; margin-bottom: 4px; text-wrap: balance; }
+  .subtitle { color: var(--text-dim); font-family: var(--font-mono); font-size: 13px; margin-bottom: 24px; }
+  h2 { font-size: 23px; margin: 46px 0 14px; padding-bottom: 6px; border-bottom: 1px solid var(--border); scroll-margin-top: 24px; }
+  h3 { font-size: 17px; margin: 26px 0 8px; color: var(--primary); }
+  p { margin-bottom: 12px; max-width: 76ch; overflow-wrap: break-word; }
+  .lead { font-size: 17px; max-width: 74ch; }
+  code { font-family: var(--font-mono); font-size: .86em; background: var(--primary-dim); color: var(--primary); padding: 1px 5px; border-radius: 3px; }
+  strong { color: var(--text); }
+  ul, ol { margin: 0 0 14px 22px; } li { margin-bottom: 5px; max-width: 74ch; }
+
+  /* device mockup (to-scale) */
+  .device { --dw: 480; --dh: 272; --scale: 1.35; display: inline-block; vertical-align: top; }
+  .device .bezel { background: #14110f; border-radius: 18px; padding: 12px; box-shadow: 0 10px 30px rgba(0,0,0,.22); display: inline-block; }
+  .device .screen { width: calc(var(--dw)*var(--scale)*1px); height: calc(var(--dh)*var(--scale)*1px); overflow: hidden; border-radius: 4px; background: #fff; }
+  .device .screen-inner { width: calc(var(--dw)*1px); height: calc(var(--dh)*1px); transform: scale(var(--scale)); transform-origin: top left; position: relative; font-family: var(--font-body); }
+  .device .cap { display: block; font-family: var(--font-mono); font-size: 11px; color: var(--text-dim); margin-top: 8px; text-align: center; max-width: calc(var(--dw)*var(--scale)*1px); line-height: 1.5; }
+  .mockrow { display: flex; flex-wrap: wrap; gap: 24px; align-items: flex-start; margin: 14px 0 6px; }
+  /* screen-content helpers (authored in real device px) */
+  .device .scr { background:#fff; color:#1a1a1a; padding:14px 12px; display:flex; flex-direction:column; justify-content:space-between; gap:8px; height:100%; box-sizing:border-box; line-height:1.2; }
+  .device .scr.ctr { justify-content:center; align-items:center; text-align:center; }
+  .device .pri { background:#0b5fa5; color:#fff; border-radius:10px; display:flex; align-items:center; justify-content:center; font-weight:700; }
+  .device .sec { background:#fff; border:2px solid #b8c2d2; color:#1f2933; border-radius:10px; display:flex; align-items:center; justify-content:center; font-weight:600; }
+  .device .tile { background:#eef2f7; border:1px solid #d6deea; border-radius:10px; display:flex; flex-direction:column; align-items:center; justify-content:center; font-weight:600; gap:4px; }
+  .device .tile.hl { background:#e3eefb; border-color:#bcd4ef; color:#143a5e; }
+  .device .tile.set { background:#e9ecf0; border-color:#cfd6df; color:#55657c; }
+  .device .k { background:#eef2f7; border:1px solid #d2dae6; border-radius:8px; display:flex; align-items:center; justify-content:center; font-size:23px; font-weight:600; }
+  .device .medrow { display:flex; align-items:center; gap:10px; border:1px solid #e2e8f1; border-radius:8px; padding:7px 10px; font-size:20px; text-align:left; }
+  .device .sw { width:20px; height:20px; border-radius:50%; flex:none; border:1px solid rgba(0,0,0,.18); }
+  .device .hdr { display:flex; justify-content:space-between; align-items:center; }
+  .device .back { font-size:17px; color:#0b5fa5; font-weight:600; }
+  .device .statusbar { display:flex; justify-content:space-between; align-items:center; font-size:17px; color:#55657c; }
+  .device .row2 { display:flex; gap:10px; }
+  .device .panel { background:#f3f6fb; border:1px solid #e2e8f1; border-radius:10px; padding:12px 14px; flex:1; min-width:0; display:flex; flex-direction:column; justify-content:center; gap:4px; }
+  .device .big { font-weight:700; line-height:1; }
+
+  .grid { display: grid; gap: 16px; margin: 16px 0; }
+  .grid.cols-2 { grid-template-columns: repeat(2, minmax(0,1fr)); }
+  @media (max-width: 720px) { .grid.cols-2 { grid-template-columns: 1fr; } }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 16px 18px; min-width: 0; }
+
+  .finding { background: var(--surface); border: 1px solid var(--border); border-left: 4px solid var(--text-dim); border-radius: 0 10px 10px 0; padding: 14px 18px; margin-bottom: 14px; }
+  .finding.p0 { border-left-color: var(--sev-p0); } .finding.p1 { border-left-color: var(--sev-p1); } .finding.p2 { border-left-color: var(--sev-p2); }
+  .finding .head { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; flex-wrap: wrap; }
+  .finding p { margin-bottom: 0; }
+  .badge { font-family: var(--font-mono); font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 20px; white-space: nowrap; }
+  .badge.p0 { background: rgba(179,38,30,.12); color: var(--sev-p0); }
+  .badge.p1 { background: rgba(181,132,10,.14); color: var(--sev-p1); }
+  .badge.p2 { background: rgba(63,107,94,.14); color: var(--sev-p2); }
+  .badge.ok { background: rgba(47,125,79,.14); color: var(--ok); }
+  .badge.imp { background: rgba(181,132,10,.16); color: var(--warn); }
+  .badge.cur { background: var(--surface-2); color: var(--text-dim); }
+
+  .ba { display: grid; grid-template-columns: 1fr auto 1fr; gap: 14px; align-items: center; margin: 12px 0; }
+  @media (max-width: 720px) { .ba { grid-template-columns: 1fr; } .ba .arrow { transform: rotate(90deg); } }
+  .ba .col { background: var(--surface-2); border-radius: 8px; padding: 12px 14px; min-width: 0; }
+  .ba .col .lbl { font-family: var(--font-mono); font-size: 11px; color: var(--text-dim); display: block; margin-bottom: 4px; }
+  .ba .arrow { color: var(--primary); font-size: 22px; text-align: center; }
+
+  .tbl-wrap { overflow-x: auto; margin: 16px 0; border: 1px solid var(--border); border-radius: 10px; }
+  table.tbl { border-collapse: collapse; width: 100%; font-size: 14px; min-width: 560px; }
+  table.tbl th, table.tbl td { text-align: left; padding: 10px 14px; border-bottom: 1px solid var(--border); vertical-align: top; overflow-wrap: break-word; }
+  table.tbl th { background: var(--surface-2); font-weight: 600; }
+  table.tbl tr:last-child td { border-bottom: none; }
+  .mono { font-family: var(--font-mono); font-size: 12px; }
+
+  .callout { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--accent); border-radius: 0 10px 10px 0; padding: 14px 18px; margin: 16px 0; font-size: 14px; }
+  .callout strong { color: var(--text); }
+
+  .diagram-shell { position: relative; margin: 16px 0 8px; }
+  .diagram-shell__hint { font-family: var(--font-mono); font-size: 11px; color: var(--text-dim); margin-bottom: 8px; opacity: .7; }
+  .mermaid-wrap { position: relative; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 24px; overflow: hidden; min-height: 360px; cursor: grab; }
+  .mermaid-wrap.is-panning { cursor: grabbing; user-select: none; }
+  .mermaid-viewport { position: relative; overflow: hidden; width: 100%; height: 100%; min-height: 320px; }
+  .mermaid-canvas { position: absolute; top: 0; left: 0; }
+  .zoom-controls { position: absolute; top: 8px; right: 8px; display: flex; gap: 2px; z-index: 10; background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 2px; }
+  .zoom-controls button { width: 28px; height: 28px; border: none; background: transparent; color: var(--text-dim); font-family: var(--font-mono); font-size: 14px; cursor: pointer; border-radius: 4px; }
+  .zoom-controls button:hover { background: var(--border); color: var(--text); }
+  .zoom-label { font-family: var(--font-mono); font-size: 10px; color: var(--text-dim); padding: 0 6px; white-space: nowrap; align-self: center; }
+  .mermaid .nodeLabel { font-family: var(--font-body) !important; font-size: 15px !important; }
+  .mermaid .edgeLabel { font-family: var(--font-mono) !important; font-size: 12px !important; }
+  @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+</style>
+</head>
+<body>
+<div class="layout">
+  <nav class="nav">
+    <div class="nav-title">Contents</div>
+    <a href="#overview">Overview</a>
+    <a href="#findings">Findings</a>
+    <a href="#icons">Icons</a>
+    <a href="#designs">Suggested screens</a>
+    <a href="#coverage">Feature coverage</a>
+    <a href="#feasibility">Feasibility (ESP32-S3)</a>
+    <a href="#flow">Redesigned flow</a>
+    <a href="#wording">Plain-language wording</a>
+  </nav>
+
+  <main>
+    <div style="display:flex;align-items:center;gap:14px;margin-bottom:6px;">
+      <img src="data:image/png;base64,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" alt="NousLogic" width="48" height="48" style="border-radius:8px;flex:none;">
+      <div><h1 style="margin:0;">Dispenser Touchscreen — Elderly-Friendly Redesign</h1></div>
+    </div>
+    <p class="subtitle">visual report · source: ui-redesign-feedback.md · ESP32-S3 + LVGL 9.2.2 · NV3041A 480×272 · GT911 touch</p>
+
+    <!-- OVERVIEW -->
+    <section><h2 id="overview">Overview</h2>
+      <p class="lead">This redesign keeps <strong>every feature the current firmware already has</strong> and makes it elder-friendly: a light high-contrast theme, body text that's actually legible at this screen's pixel density, plain wording, bigger touch targets, and a flatter path to the daily task. It does not remove features or invent new hardware behaviour.</p>
+      <p>Where the redesign adds something beyond today's UI — a number pad instead of the +/- stepper, medicine colour identity, on-screen Dispensing→Done→Failed states, audio feedback — it is tagged <span class="badge imp">IMPROVEMENT</span> so current-vs-proposed stays unambiguous. The <a href="#coverage" style="color:var(--primary)">feature-coverage matrix</a> shows where each existing feature lives in the new design. Everything is buildable on the existing LVGL 9.2.2 stack (see <a href="#feasibility" style="color:var(--primary)">Feasibility</a>).</p>
+    </section>
+
+    <!-- FINDINGS -->
+    <section><h2 id="findings">Findings</h2>
+      <p>Severity: <span class="badge p0">P0</span> blocks the task or is a safety issue · <span class="badge p1">P1</span> major friction · <span class="badge p2">P2</span> polish.</p>
+      <div class="finding p0"><div class="head"><span class="badge p0">P0</span><strong>Pill count is entered with two tiny arrows</strong></div>
+        <p>In <code>ui_RefillScr.c</code> the count uses an <code>lv_spinbox</code> with <code>+</code>/<code>−</code> buttons 32×32&nbsp;px (6.3&nbsp;mm), step ±1, no typing. Loading 30 pills can take up to 30 precise taps — very hard with a tremor, and over-shoot means tapping back.</p></div>
+      <div class="finding p0"><div class="head"><span class="badge p0">P0</span><strong>Dark, low-contrast theme</strong></div>
+        <p>Every screen is light text on black. Older eyes read best with high contrast, ideally dark text on a light background. The current scheme is the worst case for this audience.</p></div>
+      <div class="finding p0"><div class="head"><span class="badge p0">P0</span><strong>Text is below the legibility floor</strong></div>
+        <p>Body text is <code>montserrat_16</code> ≈ 9&nbsp;pt physically — roughly half the 16&nbsp;pt minimum for seniors. Reaching 16&nbsp;pt means ~28&nbsp;px body.</p></div>
+      <div class="finding p0"><div class="head"><span class="badge p0">P0</span><strong>A voice/auto-triggered dispense shows nothing on screen</strong></div>
+        <p>A dispense command (incl. the voice box's <code>5A A5 01 00</code> on <code>0xFFB2</code>) acts, but the on-screen "Dispensing…" message is commented out at <code>lvgl_ui.c:1543-1547</code> — only a buzzer fires. The elder gets no reliable confirmation the machine acted. Safety gap.</p></div>
+      <div class="finding p0"><div class="head"><span class="badge p0">P0</span><strong>Engineer wording and typos</strong></div>
+        <p>"Pls enter the number of pills…", "MEDICATION REMIND", "Rebooting…", "Transport pills", "Pill numbers: Not specified", "ACCOUNT INFOMATION" (typo). Jargon and broken grammar make the device feel untrustworthy.</p></div>
+      <div class="finding p1"><div class="head"><span class="badge p1">P1</span><strong>Vitals are split across two passive screens</strong></div>
+        <p>Blood pressure (<code>ui_BLEDeviceScr.c</code>) and ECG/patch (<code>ui_ECGScr.c</code>) are separate screens, each a dense read-out. For a quick "how am I doing?" glance they should be one calm dashboard.</p></div>
+      <div class="finding p1"><div class="head"><span class="badge p1">P1</span><strong>Medicines are labelled "Option 1 / 2 / 3"</strong></div>
+        <p>The lists show generic indices, not the drug name, colour, and shape. Elders identify pills by recognition cues, not list position.</p></div>
+      <div class="finding p1"><div class="head"><span class="badge p1">P1</span><strong>Dense, multi-level dispenser menus</strong></div>
+        <p>Reaching refill is Home → Dispenser → Menu → Medications → Refill → Confirm, and "Back" is a 40&nbsp;px corner arrow. The redesign flattens entry points onto Home.</p></div>
+      <div class="finding p2"><div class="head"><span class="badge p2">P2</span><strong>Weak feedback + an unimplemented button</strong></div>
+        <p><code>speaker.c</code> plays only a placeholder tone (no click/chime); and "Transport pills" (<code>transportAct</code>) is an <strong>empty handler</strong> — it does nothing. Either implement it or hide it so it doesn't mislead.</p></div>
+    </section>
+
+    <!-- ICONS -->
+    <section><h2 id="icons">Icons — used more, and grounded in what the stack provides</h2>
+      <p>LVGL's built-in symbol font (verified in <code>lvgl/…/lv_symbol_def.h</code>) covers <strong>UI chrome only</strong> — there is no heart or pill glyph. So the redesign uses LVGL symbols for status/controls and reuses the firmware's existing custom PNGs (<code>ui_img_medicine</code>, <code>ui_img_medication</code>, <code>ui_img_user</code>, <code>ui_img_setting</code>…) for medical concepts. Icons appear consistently in a status bar, on every list row, and beside every action.</p>
+      <div class="tbl-wrap"><table class="tbl">
+        <thead><tr><th>Where used</th><th>Icon</th><th>Source</th></tr></thead>
+        <tbody>
+          <tr><td>Status bar: Wi-Fi / Bluetooth / battery</td><td>📶 🔋</td><td class="mono">LV_SYMBOL_WIFI · LV_SYMBOL_BLUETOOTH · LV_SYMBOL_BATTERY_FULL/_3/_2/_1</td></tr>
+          <tr><td>Dose reminder</td><td>🔔</td><td class="mono">LV_SYMBOL_BELL</td></tr>
+          <tr><td>Settings entry / gear</td><td>⚙</td><td class="mono">LV_SYMBOL_SETTINGS</td></tr>
+          <tr><td>Back / forward in lists</td><td>‹ ›</td><td class="mono">LV_SYMBOL_LEFT · LV_SYMBOL_RIGHT</td></tr>
+          <tr><td>Success / done</td><td>✓</td><td class="mono">LV_SYMBOL_OK</td></tr>
+          <tr><td>Error / warning</td><td>⚠</td><td class="mono">LV_SYMBOL_WARNING</td></tr>
+          <tr><td>Add pills / number pad</td><td>＋ ⌫</td><td class="mono">LV_SYMBOL_PLUS · LV_SYMBOL_BACKSPACE</td></tr>
+          <tr><td>Download prescription</td><td>⬇</td><td class="mono">LV_SYMBOL_DOWNLOAD</td></tr>
+          <tr><td>Delete prescription</td><td>🗑</td><td class="mono">LV_SYMBOL_TRASH</td></tr>
+          <tr><td>Firmware update</td><td>⟳</td><td class="mono">LV_SYMBOL_REFRESH / LV_SYMBOL_UPLOAD</td></tr>
+          <tr><td>Emergency contact (Account)</td><td>📞</td><td class="mono">LV_SYMBOL_CALL</td></tr>
+          <tr><td>Medicine / pill (domain)</td><td>💊</td><td class="mono">existing PNG: ui_img_medicine / ui_img_medication</td></tr>
+          <tr><td>Health / vitals (domain)</td><td>❤</td><td class="mono">existing PNG (heart) — or a small custom glyph</td></tr>
+          <tr><td>Account / person</td><td>👤</td><td class="mono">existing PNG: ui_img_user</td></tr>
+        </tbody>
+      </table></div>
+      <p style="font-size:13px;color:var(--text-dim)">In the mockups below, emoji are visual stand-ins for these; on the device they render as the LVGL symbol or the existing PNG named above.</p>
+    </section>
+
+    <!-- SUGGESTED SCREENS -->
+    <section><h2 id="designs">Suggested screens (every current screen, redesigned)</h2>
+      <p>One to-scale 480×272 mockup per functional screen in the current UI, grouped by area. Captions name the current screen and tag what the redesign adds.</p>
+
+      <h3>Start &amp; Home</h3>
+      <div class="mockrow">
+        <figure class="device">
+          <div class="bezel"><div class="screen"><div class="screen-inner"><div class="scr ctr" style="gap:4px;background:#fff;padding:5px;">
+            <img src="data:image/png;base64,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" alt="" width="180" height="180">
+            <div style="font-size:16px;color:#8a96a8;">Starting up…</div>
+            <div style="font-size:22px;font-weight:700;color:#0b5fa5;">NousLogic Smart Dispenser</div>
+            <div style="font-size:14px;color:#8a96a8;">© 2026 NousLogic. All rights reserved.</div>
+          </div></div></div></div>
+          <figcaption class="cap">Splash <span class="badge cur">ui_Splash</span> <span class="badge imp">IMPROVEMENT: real logo + plain wording</span></figcaption>
+        </figure>
+        <figure class="device">
+          <div class="bezel"><div class="screen"><div class="screen-inner"><div class="scr" style="gap:12px;">
+            <div class="statusbar"><span>Thu · 12 Dec</span><span style="display:inline-flex;align-items:center;gap:7px;">📶 <span style="display:inline-flex;width:20px;height:20px;background:#0b5fa5;border-radius:5px;align-items:center;justify-content:center;vertical-align:middle;flex:none;"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="m7 7 10 10-5 5V2l5 5L7 17"/></svg></span> 🔋</span></div>
+            <div style="display:flex;justify-content:space-between;align-items:baseline;">
+              <span style="font-size:22px;font-weight:600;">Good morning, David</span><span style="font-size:32px;font-weight:700;line-height:1;">10:20</span>
+            </div>
+            <div style="font-size:24px;font-weight:700;line-height:1.1;">🔔 Next pills at 11:00</div>
+            <div class="pri" style="height:54px;font-size:26px;">TAKE MY PILLS NOW</div>
+            <div class="row2">
+              <div class="tile hl" style="flex:1;height:48px;font-size:19px;">💊 My Meds</div>
+              <div class="tile hl" style="flex:1;height:48px;font-size:19px;">❤ My Health</div>
+              <div class="tile set" style="flex:1;height:48px;font-size:19px;">⚙ Settings</div>
+            </div>
+          </div></div></div></div>
+          <figcaption class="cap">Home / idle <span class="badge cur">ui_MainHome + Home1</span> <span class="badge imp">IMPROVEMENT: next-dose + 1 big action; status icons</span></figcaption>
+        </figure>
+      </div>
+
+      <h3>Take pills &amp; confirm — dose dispense</h3>
+      <div class="mockrow">
+        <figure class="device">
+          <div class="bezel"><div class="screen"><div class="screen-inner"><div class="scr" style="gap:14px;">
+            <div style="font-size:32px;font-weight:700;">🔔 Time for your pills</div>
+            <div style="font-size:30px;font-weight:600;">Blood pressure pill</div>
+            <div style="font-size:22px;color:#555;">● white &nbsp; ○ round &nbsp; • 1 pill</div>
+            <div class="row2">
+              <div class="pri" style="flex:1;height:80px;font-size:28px;">TAKE NOW</div>
+              <div class="sec" style="flex:1;height:80px;font-size:28px;">NOT YET</div>
+            </div>
+          </div></div></div></div>
+          <figcaption class="cap">Dose reminder <span class="badge cur">ui_DoseAlert (DISPENSE/SKIP)</span> <span class="badge imp">IMPROVEMENT: wording</span></figcaption>
+        </figure>
+        <figure class="device">
+          <div class="bezel"><div class="screen"><div class="screen-inner"><div class="scr ctr" style="gap:12px;">
+            <div style="font-size:26px;font-weight:700;">Put the tray back in</div>
+            <div style="width:240px;height:62px;background:#eef2f7;border:2px solid #b8c2d2;border-radius:8px;display:flex;align-items:center;justify-content:center;color:#61708a;font-size:18px;">▭ Panadol tray</div>
+            <div class="pri" style="width:240px;height:54px;font-size:25px;">CONFIRM</div>
+          </div></div></div></div>
+          <figcaption class="cap">Confirm <span class="badge cur">ui_ConfirmScreen (CONFIRM/CANCEL)</span></figcaption>
+        </figure>
+      </div>
+      <div class="mockrow">
+        <figure class="device" style="--scale:1.18;">
+          <div class="bezel"><div class="screen"><div class="screen-inner"><div class="scr ctr" style="gap:12px;">
+            <div style="font-size:34px;font-weight:700;">Dispensing…</div>
+            <div style="font-size:22px;color:#555;">please wait</div>
+            <div style="width:300px;height:16px;background:#e6ebf3;border-radius:8px;overflow:hidden;"><div style="width:62%;height:100%;background:#0b5fa5;"></div></div>
+          </div></div></div></div>
+          <figcaption class="cap"><span class="badge imp">IMPROVEMENT</span> Dispensing (wires the commented-out screen)</figcaption>
+        </figure>
+        <figure class="device" style="--scale:1.18;">
+          <div class="bezel"><div class="screen"><div class="screen-inner"><div class="scr ctr" style="gap:12px;">
+            <div style="font-size:44px;font-weight:700;color:#2f7d4f;">✓ Done</div>
+            <div style="font-size:24px;">Your pills are ready.<br>Please take them now.</div>
+            <div class="pri" style="width:300px;height:54px;font-size:25px;">OK, GOT IT</div>
+          </div></div></div></div>
+          <figcaption class="cap"><span class="badge imp">IMPROVEMENT</span> Done</figcaption>
+        </figure>
+        <figure class="device" style="--scale:1.18;">
+          <div class="bezel"><div class="screen"><div class="screen-inner"><div class="scr ctr" style="gap:10px;">
+            <div style="font-size:27px;font-weight:700;color:#b3261e;">⚠ We couldn't give your Vitamin C</div>
+            <div style="font-size:20px;color:#555;">The tray may be empty or stuck.</div>
+            <div class="row2">
+              <div class="pri" style="width:160px;height:54px;font-size:21px;">TRY AGAIN</div>
+              <div class="sec" style="width:140px;height:54px;font-size:21px;">STOP</div>
+            </div>
+          </div></div></div></div>
+          <figcaption class="cap">Dispense error <span class="badge cur">"OK = manual / CANCEL = quit"</span> <span class="badge imp">wording only</span></figcaption>
+        </figure>
+      </div>
+
+      <h3>My Meds — medications, doses, manage, refill</h3>
+      <div class="mockrow">
+        <figure class="device">
+          <div class="bezel"><div class="screen"><div class="screen-inner"><div class="scr" style="gap:10px;">
+            <div class="hdr"><span style="font-size:22px;font-weight:700;">Medications</span><span class="back">‹ Back</span></div>
+            <div style="display:flex;align-items:center;gap:8px;"><span class="sw" style="background:#fff;"></span><span style="font-size:26px;font-weight:600;">Blood pressure pill</span></div>
+            <div style="font-size:20px;color:#555;">For your blood pressure. Take with food.</div>
+            <div style="font-size:20px;">Dose 25 mg · Times 7:30 · 11:00 · 20:30 · 12 left</div>
+            <div class="row2">
+              <div class="sec" style="flex:1;height:66px;font-size:24px;">＋ ADD PILLS</div>
+              <div class="pri" style="flex:1;height:66px;font-size:24px;">DISPENSE</div>
+            </div>
+          </div></div></div></div>
+          <figcaption class="cap">Medications <span class="badge cur">ui_Medications (REFILL/DISPENSE)</span> <span class="badge imp">name·colour, plain text</span></figcaption>
+        </figure>
+        <figure class="device">
+          <div class="bezel"><div class="screen"><div class="screen-inner"><div class="scr" style="gap:10px;">
+            <div class="hdr"><span style="font-size:22px;font-weight:700;">Doses</span><span class="back">‹ Back</span></div>
+            <div class="row2"><div class="pri" style="flex:1;height:34px;font-size:18px;">Today</div><div class="sec" style="flex:1;height:34px;font-size:18px;">Missed</div></div>
+            <div class="medrow" style="font-size:18px;"><span>📅 Today</span><span style="margin-left:auto;color:#0b5fa5;">change</span></div>
+            <div class="medrow" style="font-size:19px;"><span class="sw" style="background:#fff;"></span><span style="flex:1;">11:00 · BP pill</span><span style="color:#0b5fa5;">›</span></div>
+            <div class="pri" style="height:46px;font-size:21px;">DISPENSE THIS DOSE</div>
+          </div></div></div></div>
+          <figcaption class="cap">Doses <span class="badge cur">ui_DoseScr (All / Missed, date, dispense)</span></figcaption>
+        </figure>
+      </div>
+      <div class="mockrow">
+        <figure class="device">
+          <div class="bezel"><div class="screen"><div class="screen-inner"><div class="scr">
+            <div class="hdr"><span style="font-size:22px;font-weight:700;">Manage prescription</span><span class="back">‹ Back</span></div>
+            <div class="tile hl" style="height:92px;flex-direction:row;justify-content:flex-start;gap:14px;padding:0 16px;"><span style="font-size:32px;">⬇</span><div style="text-align:left;"><div style="font-size:22px;font-weight:700;">Get latest prescription</div><div style="font-size:15px;color:#41597a;font-weight:400;">from your doctor</div></div></div>
+            <div class="row2">
+              <div class="tile" style="flex:1;height:92px;font-size:19px;color:#b3261e;border-color:#e3b4b1;background:#fbeeed;"><span style="font-size:30px;">🗑</span>Remove</div>
+              <div class="tile set" style="flex:1;height:92px;font-size:18px;"><span style="font-size:30px;">📦</span>Transport <span style="font-size:13px;">(soon)</span></div>
+            </div>
+          </div></div></div></div>
+          <figcaption class="cap">Manage <span class="badge cur">ui_DoseManage</span> <span class="badge imp">"Transport" greyed = unimplemented in firmware</span></figcaption>
+        </figure>
+        <figure class="device">
+          <div class="bezel"><div class="screen"><div class="screen-inner"><div class="scr">
+            <div style="font-size:22px;font-weight:700;">How many pills did you add?</div>
+            <div style="height:40px;border:2px solid #c7d0de;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:32px;font-weight:700;">12</div>
+            <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;">
+              <div class="k" style="height:28px;">1</div><div class="k" style="height:28px;">2</div><div class="k" style="height:28px;">3</div>
+              <div class="k" style="height:28px;">4</div><div class="k" style="height:28px;">5</div><div class="k" style="height:28px;">6</div>
+              <div class="k" style="height:28px;">7</div><div class="k" style="height:28px;">8</div><div class="k" style="height:28px;">9</div>
+              <div class="k" style="height:28px;">⌫</div><div class="k" style="height:28px;">0</div><div class="k" style="height:28px;">C</div>
+            </div>
+            <div class="pri" style="height:40px;font-size:22px;background:#2f7d4f;">DONE</div>
+          </div></div></div></div>
+          <figcaption class="cap">Refill <span class="badge cur">ui_RefillScr (spinbox 0–99)</span> <span class="badge imp">IMPROVEMENT: full-width number pad replaces +/-</span></figcaption>
+        </figure>
+      </div>
+
+      <h3>My Health — vitals dashboard (one screen)</h3>
+      <p style="font-size:14px;">Combines the two current read-out screens into a single calm dashboard. Passive — it shows what the BP cuff and ECG patch report over BLE; it adds no buttons the firmware doesn't have.</p>
+      <div class="mockrow">
+        <figure class="device" style="--scale:1.7;">
+          <div class="bezel"><div class="screen"><div class="screen-inner"><div class="scr" style="gap:8px;">
+            <div class="hdr"><span style="font-size:22px;font-weight:700;">My Health</span><span class="back">‹ Back</span></div>
+            <div class="row2">
+              <div class="panel"><div style="font-size:17px;color:#55657c;">❤ Blood pressure</div><div class="big" style="font-size:40px;">120/90</div><div style="font-size:15px;color:#0b5fa5;display:flex;align-items:center;gap:5px;"><span style="display:inline-flex;width:20px;height:20px;background:#0b5fa5;border-radius:5px;align-items:center;justify-content:center;vertical-align:middle;flex:none;"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="m7 7 10 10-5 5V2l5 5L7 17"/></svg></span> Bluetooth connected</div></div>
+              <div class="panel"><div style="font-size:17px;color:#55657c;">Heart rate</div><div class="big" style="font-size:40px;">83</div><div style="font-size:15px;color:#55657c;">beats/min</div></div>
+            </div>
+            <div class="row2">
+              <div class="panel"><div style="font-size:17px;color:#55657c;">💓 ECG patch</div><div class="big" style="font-size:30px;">80 bpm</div><div style="font-size:15px;color:#55657c;">breaths 15 · 🔋 100%</div></div>
+              <div class="panel"><div style="font-size:17px;color:#55657c;">Patch status</div><div class="big" style="font-size:28px;">Not worn</div><div style="font-size:15px;color:#55657c;">Live</div></div>
+            </div>
+          </div></div></div></div>
+          <figcaption class="cap">Vitals dashboard <span class="badge cur">ui_BLEDeviceScr + ui_ECGScr</span> <span class="badge imp">IMPROVEMENT: one dashboard</span></figcaption>
+        </figure>
+      </div>
+
+      <h3>Settings — all on-device (faithful)</h3>
+      <div class="mockrow">
+        <figure class="device">
+          <div class="bezel"><div class="screen"><div class="screen-inner"><div class="scr">
+            <div class="hdr"><span style="font-size:22px;font-weight:700;">⚙ Settings</span><span class="back">‹ Back</span></div>
+            <div class="medrow" style="font-size:21px;"><span>📶</span><span style="flex:1;">Wi-Fi &amp; network</span><span style="color:#0b5fa5;">›</span></div>
+            <div class="medrow" style="font-size:21px;"><span>🕑</span><span style="flex:1;">Date &amp; time</span><span style="color:#0b5fa5;">›</span></div>
+            <div class="medrow" style="font-size:21px;"><span>👤</span><span style="flex:1;">Account</span><span style="color:#0b5fa5;">›</span></div>
+            <div class="medrow" style="font-size:21px;"><span>ℹ</span><span style="flex:1;">About this device</span><span style="color:#0b5fa5;">›</span></div>
+          </div></div></div></div>
+          <figcaption class="cap">Settings menu <span class="badge cur">ui_SettingMenu</span></figcaption>
+        </figure>
+        <figure class="device">
+          <div class="bezel"><div class="screen"><div class="screen-inner"><div class="scr">
+            <div class="hdr"><span style="font-size:22px;font-weight:700;">Wi-Fi &amp; network</span><span class="back">‹ Back</span></div>
+            <div class="panel" style="flex-direction:row;align-items:center;gap:14px;padding:14px;"><span style="font-size:34px;">📶</span><div style="text-align:left;"><div style="font-size:25px;font-weight:700;">Home-WiFi</div><div style="font-size:17px;color:#2f7d4f;">Connected</div></div></div>
+            <div style="font-size:18px;color:#555;">To change Wi-Fi, use the phone app.</div>
+            <div class="row2">
+              <div class="sec" style="flex:1;height:70px;font-size:22px;">Reset network</div>
+              <div class="sec" style="flex:1;height:70px;font-size:22px;">Offline mode</div>
+            </div>
+          </div></div></div></div>
+          <figcaption class="cap">Network <span class="badge cur">ui_PairScr (reset · offline · wifi→app)</span></figcaption>
+        </figure>
+      </div>
+      <div class="mockrow">
+        <figure class="device">
+          <div class="bezel"><div class="screen"><div class="screen-inner"><div class="scr" style="gap:6px;">
+            <div class="hdr"><span style="font-size:22px;font-weight:700;">Date &amp; time</span><span class="back">‹ Back</span></div>
+            <div style="display:flex;align-items:center;justify-content:flex-start;gap:12px;"><span style="font-size:18px;color:#55657c;width:54px;text-align:left;">Date</span><span style="font-size:25px;font-weight:700;color:#16202c;">12 Dec 2025</span><span style="color:#0b5fa5;font-size:22px;font-weight:700;">‹ ›</span></div>
+            <div style="display:flex;align-items:center;justify-content:flex-start;gap:12px;"><span style="font-size:18px;color:#55657c;width:54px;text-align:left;">Time</span><span style="font-size:25px;font-weight:700;color:#16202c;">10 : 20</span><span style="color:#0b5fa5;font-size:22px;font-weight:700;">‹ ›</span></div>
+            <div style="font-size:19px;color:#16202c;">Zone: America/Los Angeles ▾</div>
+            <div class="pri" style="height:50px;font-size:22px;">SAVE</div>
+          </div></div></div></div>
+          <figcaption class="cap">Date &amp; time <span class="badge cur">ui_SetDateTimeScr</span> <span class="badge imp">stepper rows replace tiny rollers</span></figcaption>
+        </figure>
+        <figure class="device">
+          <div class="bezel"><div class="screen"><div class="screen-inner"><div class="scr" style="gap:5px;">
+            <div class="hdr"><span style="font-size:22px;font-weight:700;">👤 Account</span><span class="back">‹ Back</span></div>
+            <div style="font-size:19px;">David Smith</div>
+            <div style="font-size:17px;color:#555;">Doctor: Dr. Lee · Carer: Mary</div>
+            <div style="font-size:18px;">📞 Emergency: (555) 010-2233</div>
+            <div class="pri" style="height:56px;font-size:21px;background:#b3261e;">Remove account</div>
+          </div></div></div></div>
+          <figcaption class="cap">Account <span class="badge cur">ui_AccountScr (Remove account)</span></figcaption>
+        </figure>
+      </div>
+      <div class="mockrow">
+        <figure class="device">
+          <div class="bezel"><div class="screen"><div class="screen-inner"><div class="scr" style="gap:5px;">
+            <div class="hdr"><span style="font-size:22px;font-weight:700;">ℹ About</span><span class="back">‹ Back</span></div>
+            <div style="display:flex;gap:8px;align-items:flex-start;">
+              <div style="flex:1;font-size:16px;line-height:1.4;">Model NOUS#01<br>Serial abcd1234<br>Display FW 5.2.5<br>Controller FW 5.2.5</div>
+              <div style="width:76px;height:76px;background:repeating-conic-gradient(#1a1a1a 0 25%, #fff 0 50%) 0/13px 13px;border:2px solid #1a1a1a;"></div>
+            </div>
+            <div class="row2"><div class="sec" style="flex:1;height:52px;font-size:18px;">⟳ Update display</div><div class="sec" style="flex:1;height:52px;font-size:18px;">⟳ Update controller</div></div>
+            <div class="sec" style="height:50px;font-size:18px;color:#b3261e;border-color:#e3b4b1;">Factory reset</div>
+          </div></div></div></div>
+          <figcaption class="cap">About <span class="badge cur">ui_AboutScr (2× FW update · factory reset · help QR)</span></figcaption>
+        </figure>
+        <div class="card" style="align-self:center;max-width:360px;">
+          <strong>Pill-count entry — before → after</strong>
+          <div class="ba" style="margin-top:10px;">
+            <div class="col"><span class="lbl">NOW</span>32&nbsp;px +/- arrows, step 1. Up to 30 taps.</div>
+            <div class="arrow">→</div>
+            <div class="col"><span class="lbl">PROPOSED</span>Number pad, ≥56&nbsp;px keys. ≤2 taps.</div>
+          </div>
+        </div>
+      </div>
+      <h3>Account safety</h3>
+      <div class="mockrow">
+        <figure class="device">
+          <div class="bezel"><div class="screen"><div class="screen-inner"><div class="scr ctr" style="gap:12px;">
+            <div style="font-size:27px;font-weight:700;color:#b3261e;">⚠ Remove account?</div>
+            <div style="font-size:20px;color:#555;">This erases David's account and<br>settings from this device.</div>
+            <div class="row2">
+              <div class="pri" style="width:170px;height:56px;font-size:21px;background:#b3261e;">YES, REMOVE</div>
+              <div class="sec" style="width:140px;height:56px;font-size:21px;">CANCEL</div>
+            </div>
+          </div></div></div></div>
+          <figcaption class="cap">Remove-account confirm <span class="badge imp">IMPROVEMENT: confirm step (not in current UI)</span></figcaption>
+        </figure>
+      </div>
+    </section>
+
+    <!-- COVERAGE -->
+    <section><h2 id="coverage">Feature coverage — every current feature has a home</h2>
+      <p>Confirms the redesign drops nothing. <span class="badge cur">kept</span> = same behaviour, restyled · <span class="badge imp">improved</span> = behaviour kept, interaction upgraded.</p>
+      <div class="tbl-wrap"><table class="tbl">
+        <thead><tr><th>Area</th><th>Current feature (source)</th><th>Redesigned location</th><th>Status</th></tr></thead>
+        <tbody>
+          <tr><td>Home</td><td>Clock, date, next-dose, status (ui_MainHome / Home1)</td><td>Home / idle + status bar</td><td><span class="badge imp">improved</span></td></tr>
+          <tr><td>Dispense</td><td>Dose reminder DISPENSE/SKIP (ui_DoseAlert)</td><td>Take pills (TAKE NOW / NOT YET)</td><td><span class="badge imp">improved</span></td></tr>
+          <tr><td>Dispense</td><td>Confirm tray inserted (ui_ConfirmScreen)</td><td>Put the tray back in → CONFIRM</td><td><span class="badge cur">kept</span></td></tr>
+          <tr><td>Dispense</td><td>Dispense failure OK=manual / CANCEL=quit</td><td>Dispense error (TRY AGAIN / STOP)</td><td><span class="badge cur">kept</span></td></tr>
+          <tr><td>Dispense</td><td>(no on-screen progress today)</td><td>Dispensing → Done states</td><td><span class="badge imp">improved</span></td></tr>
+          <tr><td>Medications</td><td>Name/desc/dose/times/count; REFILL; DISPENSE (ui_Medications)</td><td>Medications screen</td><td><span class="badge imp">improved</span></td></tr>
+          <tr><td>Doses</td><td>All / Missed-Skipped, date picker, dispense (ui_DoseScr)</td><td>Doses (Today / Missed)</td><td><span class="badge imp">improved</span></td></tr>
+          <tr><td>Manage</td><td>Download prescription (cloud)</td><td>Manage → Get latest prescription</td><td><span class="badge cur">kept</span></td></tr>
+          <tr><td>Manage</td><td>Delete prescription</td><td>Manage → Remove prescription</td><td><span class="badge cur">kept</span></td></tr>
+          <tr><td>Manage</td><td>Transport pills (empty handler)</td><td>Manage → greyed "soon"</td><td><span class="badge p2">flagged</span></td></tr>
+          <tr><td>Refill</td><td>Enter pill count (ui_RefillScr spinbox)</td><td>Number pad</td><td><span class="badge imp">improved</span></td></tr>
+          <tr><td>Vitals</td><td>Blood pressure read-out (ui_BLEDeviceScr)</td><td>My Health dashboard (BP panel)</td><td><span class="badge imp">improved</span></td></tr>
+          <tr><td>Vitals</td><td>ECG patch read-out (ui_ECGScr)</td><td>My Health dashboard (ECG panel)</td><td><span class="badge imp">improved</span></td></tr>
+          <tr><td>Settings</td><td>Network: SSID/status, reset, offline, wifi→app (ui_PairScr)</td><td>Wi-Fi &amp; network</td><td><span class="badge cur">kept</span></td></tr>
+          <tr><td>Settings</td><td>Date / time / timezone (ui_SetDateTimeScr)</td><td>Date &amp; time</td><td><span class="badge imp">improved</span></td></tr>
+          <tr><td>Settings</td><td>Account info + Remove account (ui_AccountScr)</td><td>Account</td><td><span class="badge cur">kept</span></td></tr>
+          <tr><td>Settings</td><td>(no confirm before Remove account today)</td><td>Remove-account confirm dialog</td><td><span class="badge imp">improved</span></td></tr>
+          <tr><td>Settings</td><td>Versions; 2× FW update; factory reset; help QR (ui_AboutScr)</td><td>About</td><td><span class="badge cur">kept</span></td></tr>
+          <tr><td>Alerts</td><td>System alerts "Rebooting…" etc. (SysAlertScr)</td><td>Restyled alert (plain wording)</td><td><span class="badge imp">improved</span></td></tr>
+          <tr><td>Alerts</td><td>Utility errors door/cup/timeout (UtilAlertScr)</td><td>Restyled alert</td><td><span class="badge cur">kept</span></td></tr>
+          <tr><td>Pairing</td><td>Pairing code (PairScr "AB1F")</td><td>Shown in Wi-Fi &amp; network when pairing</td><td><span class="badge cur">kept</span></td></tr>
+        </tbody>
+      </table></div>
+    </section>
+
+    <!-- FEASIBILITY -->
+    <section><h2 id="feasibility">Feasibility on ESP32-S3 + LVGL</h2>
+      <p>Verified against the vendored LVGL v9 source. Every element maps to a standard widget already in the firmware's <code>lvgl__lvgl</code> component, renders within RGB565, and avoids effects the MCU can't draw cheaply.</p>
+      <div class="tbl-wrap"><table class="tbl">
+        <thead><tr><th>Suggestion</th><th>LVGL v9 building block</th><th>Cost / limits</th><th>Feasible?</th></tr></thead>
+        <tbody>
+          <tr><td>Number pad</td><td class="mono">lv_buttonmatrix</td><td>One widget + button map; big cells via style. Trivial RAM.</td><td><span class="badge ok">YES</span></td></tr>
+          <tr><td>Light theme, body ≥ 28 px</td><td class="mono">lv_style / lv_theme</td><td>Flat fills RGB565-safe. Keep ~3 font sizes to bound flash.</td><td><span class="badge ok">YES</span></td></tr>
+          <tr><td>Big buttons + tiles, list rows</td><td class="mono">lv_button · lv_list · lv_label</td><td>Plain objects; no shadow/blur inside the screen.</td><td><span class="badge ok">YES</span></td></tr>
+          <tr><td>Dispensing → Done / Failed</td><td class="mono">lv_label · lv_bar · lv_obj</td><td>Path already exists (commented <code>lvgl_ui.c:1543</code>).</td><td><span class="badge ok">YES</span></td></tr>
+          <tr><td>Vitals dashboard panels</td><td class="mono">lv_obj grid + lv_label</td><td>Passive; just lays out values already received over BLE.</td><td><span class="badge ok">YES</span></td></tr>
+          <tr><td>Status-bar + list icons</td><td class="mono">LV_SYMBOL_* (built-in font)</td><td>Wi-Fi/BT/battery/bell/settings free in the symbol font; medical icons reuse existing PNGs.</td><td><span class="badge ok">YES</span></td></tr>
+          <tr><td>Medicine colour identity</td><td class="mono">lv_obj swatch + lv_label</td><td>Coloured rounded obj cheaper than an image. Data in <code>prescription.c</code>.</td><td><span class="badge ok">YES</span></td></tr>
+          <tr><td>Help QR (About)</td><td class="mono">lv_image (qrcode component)</td><td>Firmware already vendors <code>espressif__qrcode</code>; cache the buffer.</td><td><span class="badge ok">YES</span></td></tr>
+          <tr><td>Tap click + chimes</td><td class="mono">I²S via speaker.c</td><td>Short PCM clips, a few KB each.</td><td><span class="badge ok">YES</span></td></tr>
+          <tr><td>Screen transitions</td><td class="mono">lv_screen_load_anim</td><td>Simple fade/slide only — no per-frame blur on the S3.</td><td><span class="badge p1">LIGHT ONLY</span></td></tr>
+        </tbody>
+      </table></div>
+      <div class="callout"><strong><span class="badge ok">Touch</span></strong> At 128 ppi a 56 px row is 11 mm and a 54 px button is 10.7 mm — above the ~10 mm senior minimum. GT911 is capacitive (light taps); the design uses no swipe/long-press as a required action.</div>
+    </section>
+
+    <!-- FLOW -->
+    <section><h2 id="flow">Redesigned flow</h2>
+      <p>Faithful to the current feature set, with entry points flattened onto Home. Every box has a matching mockup above. Drag to pan · Ctrl/⌘ + wheel to zoom · ⛶ full size.</p>
+      <div class="diagram-shell">
+        <p class="diagram-shell__hint">Ctrl/Cmd + wheel to zoom · drag to pan · ⛶ full size · double-click to fit</p>
+        <div class="mermaid-wrap">
+          <div class="zoom-controls">
+            <button type="button" data-action="zoom-in" title="Zoom in">+</button>
+            <button type="button" data-action="zoom-out" title="Zoom out">&minus;</button>
+            <button type="button" data-action="zoom-fit" title="Fit">&#8634;</button>
+            <button type="button" data-action="zoom-one" title="1:1">1:1</button>
+            <button type="button" data-action="zoom-expand" title="Full size">&#x26F6;</button>
+            <span class="zoom-label">Loading…</span>
+          </div>
+          <div class="mermaid-viewport"><div class="mermaid mermaid-canvas"></div></div>
+        </div>
+        <script type="text/plain" class="diagram-source">
+flowchart TD
+  S["Splash"] --> H["🏠 Home<br/>next dose + status"]
+  H --> T["Take pills"]
+  H --> MEDS["💊 My Meds"]
+  H --> HEALTH["❤ My Health<br/>vitals dashboard"]
+  H --> SET["⚙ Settings"]
+  T --> D["Dispensing…"]
+  D --> OK["Done ✓"]
+  D --> ER["Couldn't dispense<br/>Try again · Stop"]
+  MEDS --> MD["Medications<br/>add pills · dispense"]
+  MEDS --> DO["Doses<br/>today · missed"]
+  MEDS --> MG["Manage<br/>download · remove · transport*"]
+  MD --> RF["Refill<br/>number pad → confirm tray"]
+  DO --> RF
+  SET --> NET["Wi-Fi & network<br/>reset · offline · wifi→app"]
+  SET --> DT["Date & time"]
+  SET --> AC["Account<br/>info · remove"]
+  SET --> AB["About<br/>FW update x2 · factory reset · help"]
+        </script>
+      </div>
+      <p style="font-size:13px;color:var(--text-dim)">A voice command enters at <strong>Dispensing…</strong> and drives the same Done / Couldn't-dispense screens. <strong>*</strong> "Transport" is present but unimplemented in current firmware.</p>
+    </section>
+
+    <!-- WORDING -->
+    <section><h2 id="wording">Plain-language wording (selected)</h2>
+      <p>Second person, present tense, no jargon, no abbreviations, no typos.</p>
+      <div class="tbl-wrap"><table class="tbl">
+        <thead><tr><th>Where</th><th>Current</th><th>Proposed</th></tr></thead>
+        <tbody>
+          <tr><td>Dose reminder</td><td>"MEDICATION REMIND" / "Time to take"</td><td>"Time for your pills" + medicine name</td></tr>
+          <tr><td>Reminder buttons</td><td>"DISPENSE" / "SKIP"</td><td>"TAKE NOW" / "NOT YET"</td></tr>
+          <tr><td>Refill prompt</td><td>"Pls enter the number of pills you have just refilled…"</td><td>"How many pills did you add?" then "Put the tray back in."</td></tr>
+          <tr><td>Medication list</td><td>"Option 1 / 2 / 3"</td><td>Medicine name + colour swatch</td></tr>
+          <tr><td>Med detail</td><td>"Pill numbers: Not specified"</td><td>"12 left"</td></tr>
+          <tr><td>Manage</td><td>"Download / Transport / Delete prescription"</td><td>"Get latest / Move for transport / Remove prescription"</td></tr>
+          <tr><td>Dispense error</td><td>"Failed to dispense Vitamin C…"</td><td>"We couldn't give your Vitamin C. The tray may be empty or stuck."</td></tr>
+          <tr><td>Network</td><td>"To update/configure the wifi network, please use phone app."</td><td>"To change Wi-Fi, use the phone app."</td></tr>
+          <tr><td>ECG</td><td>"Status: OFF BODY" / "Streaming"</td><td>"Not worn" / "Live"</td></tr>
+          <tr><td>System</td><td>"Rebooting…" / "ACCOUNT INFOMATION"</td><td>"Restarting… one moment." / "Account"</td></tr>
+        </tbody>
+      </table></div>
+    </section>
+
+
+</main>
+</div>
+
+<script type="module">
+  import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
+  const cfg = { fitPadding: 24, minHeight: 340, maxHeightPx: 940, maxHeightVh: .82, maxInitialZoom: 1.8, minZoom: .08, maxZoom: 6.5, zoomStep: .14, readabilityFloor: .58 };
+  const clamp = (n, lo, hi) => Math.max(lo, Math.min(hi, n));
+  let activeDrag = null;
+  addEventListener('mousemove', e => activeDrag?.onMove(e));
+  addEventListener('mouseup', () => { activeDrag?.onEnd(); activeDrag = null; });
+  const isDark = matchMedia('(prefers-color-scheme: dark)').matches;
+  mermaid.initialize({
+    startOnLoad: false, theme: 'base', look: 'classic',
+    themeVariables: {
+      fontFamily: "'DM Sans', system-ui, sans-serif", fontSize: '15px',
+      primaryColor: isDark ? '#1f3346' : '#dcebf8', primaryBorderColor: isDark ? '#56a8e6' : '#0b5fa5', primaryTextColor: isDark ? '#e8eef6' : '#1f2933',
+      secondaryColor: isDark ? '#26352f' : '#dfeae5', secondaryBorderColor: isDark ? '#6fae9b' : '#3f6b5e', secondaryTextColor: isDark ? '#e8eef6' : '#1f2933',
+      lineColor: isDark ? '#9fb0c7' : '#61708a',
+    }
+  });
+  function initDiagram(shell) {
+    const wrap = shell.querySelector('.mermaid-wrap'), viewport = shell.querySelector('.mermaid-viewport'),
+          canvas = shell.querySelector('.mermaid-canvas'), source = shell.querySelector('.diagram-source'), label = shell.querySelector('.zoom-label');
+    if (!wrap || !viewport || !canvas || !source || !label) return;
+    let zoom = 1, fitMode = 'contain', panX = 0, panY = 0, svgW = 0, svgH = 0, sx = 0, sy = 0, spx = 0, spy = 0, tDist = 0, tcx = 0, tcy = 0;
+    const constrainPan = () => {
+      const vpW = viewport.clientWidth, vpH = viewport.clientHeight, rW = svgW * zoom, rH = svgH * zoom, pad = cfg.fitPadding;
+      panX = (rW + pad * 2 <= vpW) ? (vpW - rW) / 2 : clamp(panX, vpW - rW - pad, pad);
+      panY = (rH + pad * 2 <= vpH) ? (vpH - rH) / 2 : clamp(panY, vpH - rH - pad, pad);
+    };
+    const applyTransform = () => { const svg = canvas.querySelector('svg'); if (!svg || !svgW) return; constrainPan(); svg.style.width = (svgW * zoom) + 'px'; svg.style.height = (svgH * zoom) + 'px'; canvas.style.transform = `translate(${panX}px,${panY}px)`; label.textContent = Math.round(zoom * 100) + '% — ' + fitMode; };
+    const canPan = () => (svgW * zoom + cfg.fitPadding * 2 > viewport.clientWidth) || (svgH * zoom + cfg.fitPadding * 2 > viewport.clientHeight);
+    const smartFit = () => { const vpW = viewport.clientWidth, vpH = viewport.clientHeight, aW = Math.max(80, vpW - cfg.fitPadding * 2), aH = Math.max(80, vpH - cfg.fitPadding * 2), contain = Math.min(aW / svgW, aH / svgH); let z = contain, m = 'contain'; if (contain < cfg.readabilityFloor) { if (svgH / svgW >= vpH / Math.max(vpW, 1)) { z = aW / svgW; m = 'width'; } else { z = aH / svgH; m = 'height'; } } return { zoom: clamp(z, cfg.minZoom, cfg.maxInitialZoom), mode: m }; };
+    const fit = () => { if (!svgW) return; const f = smartFit(); zoom = f.zoom; fitMode = f.mode; panX = (viewport.clientWidth - svgW * zoom) / 2; panY = (viewport.clientHeight - svgH * zoom) / 2; applyTransform(); };
+    const oneToOne = () => { zoom = clamp(1, cfg.minZoom, cfg.maxZoom); fitMode = '1:1'; panX = (viewport.clientWidth - svgW * zoom) / 2; panY = (viewport.clientHeight - svgH * zoom) / 2; applyTransform(); };
+    const zoomAround = (f, cx, cy) => { const next = clamp(zoom * f, cfg.minZoom, cfg.maxZoom), r = next / zoom; panX = cx - r * (cx - panX); panY = cy - r * (cy - panY); zoom = next; fitMode = 'custom'; applyTransform(); };
+    const adaptiveHeight = () => { if (!svgW) return; const usableW = Math.max(280, wrap.getBoundingClientRect().width - 2), idealH = (svgH / svgW) * usableW + cfg.fitPadding * 2, maxVp = Math.floor(innerHeight * cfg.maxHeightVh), hardMax = Math.min(cfg.maxHeightPx, Math.max(cfg.minHeight + 40, maxVp)); wrap.style.height = Math.round(clamp(idealH, cfg.minHeight, hardMax)) + 'px'; };
+    const readSize = svg => { let w = 0, h = 0; if (svg.viewBox?.baseVal?.width > 0) { w = svg.viewBox.baseVal.width; h = svg.viewBox.baseVal.height; } if (!w) { w = parseFloat(svg.getAttribute('width')) || 0; h = parseFloat(svg.getAttribute('height')) || 0; } if (!w) { const b = svg.getBBox(); w = b.width; h = b.height; } if (!w) { const r = svg.getBoundingClientRect(); w = r.width || 1000; h = r.height || 700; } if (!svg.getAttribute('viewBox')) svg.setAttribute('viewBox', `0 0 ${w} ${h}`); return { w, h }; };
+    const expand = () => { const svg = canvas.querySelector('svg'); if (!svg) return; const c = svg.cloneNode(true); c.style.width = ''; c.style.height = ''; const bg = isDark ? '#11151c' : '#f6f8fb'; const html = `<!DOCTYPE html><meta charset="UTF-8"><title>Diagram</title><style>body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;background:${bg};padding:40px;box-sizing:border-box}svg{max-width:100%;max-height:90vh;height:auto}</style>${c.outerHTML}`; open(URL.createObjectURL(new Blob([html], { type: 'text/html' })), '_blank'); };
+    async function render() {
+      try { const code = source.textContent.trim(); if (!code) { label.textContent = 'Error: empty'; return; }
+        const id = 'd-' + Date.now() + '-' + (source.textContent.length % 997).toString(36);
+        const { svg } = await mermaid.render(id, code);
+        const parsed = new DOMParser().parseFromString(svg, 'text/html').body.querySelector('svg');
+        if (!parsed) { label.textContent = 'Error: no SVG'; return; }
+        canvas.replaceChildren(document.adoptNode(parsed));
+        const node = canvas.querySelector('svg'), s = readSize(node); svgW = s.w; svgH = s.h;
+        node.removeAttribute('width'); node.removeAttribute('height'); node.style.maxWidth = 'none'; node.style.display = 'block';
+        adaptiveHeight(); fit();
+      } catch (err) { label.textContent = 'Error: ' + (err.message || 'render'); console.error(err); }
+    }
+    const actions = { 'zoom-in': () => zoomAround(1 + cfg.zoomStep, viewport.clientWidth / 2, viewport.clientHeight / 2), 'zoom-out': () => zoomAround(1 / (1 + cfg.zoomStep), viewport.clientWidth / 2, viewport.clientHeight / 2), 'zoom-fit': fit, 'zoom-one': oneToOne, 'zoom-expand': expand };
+    Object.entries(actions).forEach(([a, h]) => wrap.querySelector(`[data-action="${a}"]`)?.addEventListener('click', h));
+    viewport.addEventListener('dblclick', fit);
+    viewport.addEventListener('wheel', e => { if (e.ctrlKey || e.metaKey) { e.preventDefault(); const r = viewport.getBoundingClientRect(); zoomAround(e.deltaY < 0 ? 1 + cfg.zoomStep : 1 / (1 + cfg.zoomStep), e.clientX - r.left, e.clientY - r.top); return; } if (canPan()) { e.preventDefault(); panX -= e.deltaX; panY -= e.deltaY; applyTransform(); } }, { passive: false });
+    viewport.addEventListener('mousedown', e => { if (e.target.closest('.zoom-controls') || !canPan()) return; wrap.classList.add('is-panning'); sx = e.clientX; sy = e.clientY; spx = panX; spy = panY; e.preventDefault(); activeDrag = { onMove: ev => { panX = spx + (ev.clientX - sx); panY = spy + (ev.clientY - sy); applyTransform(); }, onEnd: () => wrap.classList.remove('is-panning') }; });
+    viewport.addEventListener('touchstart', e => { if (e.touches.length === 1) { sx = e.touches[0].clientX; sy = e.touches[0].clientY; spx = panX; spy = panY; } else if (e.touches.length === 2) { const dx = e.touches[0].clientX - e.touches[1].clientX, dy = e.touches[0].clientY - e.touches[1].clientY; tDist = Math.hypot(dx, dy); const r = viewport.getBoundingClientRect(); tcx = (e.touches[0].clientX + e.touches[1].clientX) / 2 - r.left; tcy = (e.touches[0].clientY + e.touches[1].clientY) / 2 - r.top; } }, { passive: true });
+    viewport.addEventListener('touchmove', e => { if (e.touches.length === 1 && canPan()) { if (tDist > 0) { sx = e.touches[0].clientX; sy = e.touches[0].clientY; spx = panX; spy = panY; tDist = 0; } e.preventDefault(); panX = spx + (e.touches[0].clientX - sx); panY = spy + (e.touches[0].clientY - sy); applyTransform(); } else if (e.touches.length === 2 && tDist > 0) { e.preventDefault(); const dx = e.touches[0].clientX - e.touches[1].clientX, dy = e.touches[0].clientY - e.touches[1].clientY, d = Math.hypot(dx, dy); zoomAround(d / tDist, tcx, tcy); tDist = d; } }, { passive: false });
+    new ResizeObserver(() => { if (svgW) { adaptiveHeight(); fit(); } }).observe(wrap);
+    render();
+  }
+  document.querySelectorAll('.diagram-shell').forEach(initDiagram);
+
+  const links = [...document.querySelectorAll('.nav a')];
+  if (links.length) {
+    const byId = new Map(links.map(a => [a.getAttribute('href').slice(1), a]));
+    const obs = new IntersectionObserver(es => es.forEach(e => { if (e.isIntersecting) { links.forEach(l => l.classList.remove('active')); byId.get(e.target.id)?.classList.add('active'); } }), { rootMargin: '-10% 0px -80% 0px' });
+    document.querySelectorAll('main section h2[id]').forEach(h => obs.observe(h));
+  }
+</script>
+</body>
+</html>

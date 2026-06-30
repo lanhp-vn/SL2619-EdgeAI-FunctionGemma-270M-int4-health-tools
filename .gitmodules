@@ -187,3 +187,6 @@
 [submodule "docs/references/upstream/ESP-UI-Display/lvgl"]
 	path = docs/references/upstream/ESP-UI-Display/lvgl
 	url = https://github.com/lvgl/lvgl
+	update = none
+	shallow = true
+	ignore = dirty
