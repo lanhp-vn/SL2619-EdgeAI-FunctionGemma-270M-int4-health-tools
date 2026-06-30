@@ -148,3 +148,42 @@
 	url = https://github.com/OHF-Voice/piper1-gpl.git
 	update = none
 	shallow = true
+[submodule "docs/references/upstream/Dispenser_LCDTouch_V2"]
+	path = docs/references/upstream/Dispenser_LCDTouch_V2
+	url = https://github.com/vietnv/Dispenser_LCDTouch_V2
+	update = none
+	shallow = true
+	ignore = dirty
+[submodule "docs/references/upstream/ESP-UI-Display/roo_display"]
+	path = docs/references/upstream/ESP-UI-Display/roo_display
+	url = https://github.com/dejwk/roo_display
+	update = none
+	shallow = true
+	ignore = dirty
+[submodule "docs/references/upstream/ESP-UI-Display/ESP32-Cheap-Yellow-Display"]
+	path = docs/references/upstream/ESP-UI-Display/ESP32-Cheap-Yellow-Display
+	url = https://github.com/witnessmenow/ESP32-Cheap-Yellow-Display
+	update = none
+	shallow = true
+	ignore = dirty
+[submodule "docs/references/upstream/ESP-UI-Display/ESP32_Display_Panel"]
+	path = docs/references/upstream/ESP-UI-Display/ESP32_Display_Panel
+	url = https://github.com/esp-arduino-libs/ESP32_Display_Panel
+	update = none
+	shallow = true
+	ignore = dirty
+[submodule "docs/references/upstream/visual-generation/PowerDocu"]
+	path = docs/references/upstream/visual-generation/PowerDocu
+	url = https://github.com/modery/PowerDocu
+	update = none
+	shallow = true
+	ignore = dirty
+[submodule "docs/references/upstream/visual-generation/visual-explainer"]
+	path = docs/references/upstream/visual-generation/visual-explainer
+	url = https://github.com/nicobailon/visual-explainer
+	update = none
+	shallow = true
+	ignore = dirty
+[submodule "docs/references/upstream/ESP-UI-Display/lvgl"]
+	path = docs/references/upstream/ESP-UI-Display/lvgl
+	url = https://github.com/lvgl/lvgl
